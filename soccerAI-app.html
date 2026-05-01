@@ -1481,7 +1481,7 @@ function renderLeagueChips(){
 
 
 // ── Detail ──
-const DTABS=['Stats','H2H','Forme','Score Exact','Value','⚡ Sharp','Analyse IA','Joueurs','Tactique','Chat IA'];
+const DTABS=['Stats','H2H','Forme','Score Exact','Value','⚡ Sharp','Analyse IA','🏆 Classement','Joueurs','Tactique','Chat IA'];
 
 function showDetail(id){
   const m=MATCHES.find(x=>x.id===id); if(!m) return;
@@ -1528,6 +1528,32 @@ function switchDTab(tab,el){
   document.querySelectorAll('.dt-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderDBody(m,tab);
+}
+
+// ── ESPN standings slugs (ls code → ESPN league slug) ──────────
+const ESPN_STD_SLUGS = {
+  'PL':'eng.1','L1':'fra.1','BL':'ger.1','SA':'ita.1','LL':'esp.1',
+  'PPL':'por.1','ERE':'ned.1','TSL':'tur.1','BEL':'bel.1',
+  'L2':'fra.2','BL2':'ger.2','SD':'esp.2',
+  'CH':'eng.2','EL1':'eng.3','EL2':'eng.4','SB':'ita.2',
+  'SPL':'sco.1','J1':'jpn.1',
+  'UCL':'uefa.champions','EL':'uefa.europa','ECL':'uefa.europa.conf'
+};
+
+// Cache pour éviter de re-fetcher à chaque clic d'onglet
+const _stdCache = {};
+
+async function _fetchStandings(ls){
+  if(_stdCache[ls]) return _stdCache[ls];
+  const slug = ESPN_STD_SLUGS[ls];
+  if(!slug) return null;
+  try{
+    const r = await fetch(`https://site.api.espn.com/apis/v2/sports/soccer/${slug}/standings`);
+    if(!r.ok) return null;
+    const d = await r.json();
+    _stdCache[ls] = d;
+    return d;
+  }catch(e){ return null; }
 }
 
 function renderDBody(m,tab){
@@ -1914,6 +1940,95 @@ function renderDBody(m,tab){
             </div>`).join('')}
         </div>
       </div>`;
+  }
+  else if(tab==='🏆 Classement'){
+    body.innerHTML=`<div style="text-align:center;padding:32px 0;color:#78726D;font-size:14px">⏳ Chargement du classement…</div>`;
+    _fetchStandings(m.ls).then(data=>{
+      // Normalise nom d'équipe pour comparaison
+      const norm=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
+      const hN=norm(m.home.name), aN=norm(m.away.name);
+
+      // ESPN peut retourner plusieurs groupes (UCL/EL/ECL) ou une seule table
+      const groups = (data?.children||[]).length
+        ? data.children
+        : (data?.standings ? [data] : []);
+
+      if(!groups.length){
+        body.innerHTML=`<div style="text-align:center;padding:32px 0;color:#ef4444;font-size:14px">❌ Classement non disponible pour <strong>${m.ls}</strong></div>`;
+        return;
+      }
+
+      // Trouve le groupe qui contient les deux équipes (pour UCL etc.)
+      let targetGroup = groups.find(g=>{
+        const entries = g.standings?.entries||[];
+        const names = entries.map(e=>norm(e.team?.displayName||''));
+        return names.some(n=>n.includes(hN.slice(0,6))||hN.includes(n.slice(0,6))) ||
+               names.some(n=>n.includes(aN.slice(0,6))||aN.includes(n.slice(0,6)));
+      }) || groups[0];
+
+      const entries = targetGroup?.standings?.entries || [];
+      if(!entries.length){
+        body.innerHTML=`<div style="text-align:center;padding:32px 0;color:#ef4444;font-size:14px">❌ Aucune donnée de classement disponible</div>`;
+        return;
+      }
+
+      const getStat=(stats,name)=>{const s=(stats||[]).find(x=>x.name===name);return s?+(s.value||0):0;};
+
+      const rows = entries.map((e,i)=>{
+        const t = e.team||{};
+        const stats = e.stats||[];
+        const pts  = getStat(stats,'points');
+        const gp   = getStat(stats,'gamesPlayed');
+        const w    = getStat(stats,'wins');
+        const d    = getStat(stats,'ties');
+        const l    = getStat(stats,'losses');
+        const gf   = getStat(stats,'pointsFor')||getStat(stats,'goalsFor');
+        const ga   = getStat(stats,'pointsAgainst')||getStat(stats,'goalsAgainst');
+        const diff = gf - ga;
+        const name = t.displayName||t.name||'—';
+        const isHome = norm(name).includes(hN.slice(0,5)) || hN.includes(norm(name).slice(0,5));
+        const isAway = norm(name).includes(aN.slice(0,5)) || aN.includes(norm(name).slice(0,5));
+        const highlight = isHome ? '#EFF6FF' : isAway ? '#FFF7ED' : 'transparent';
+        const border    = isHome ? '2px solid #3b82f6' : isAway ? '2px solid #f97316' : '1px solid #E8E3DC';
+        const fontW     = (isHome||isAway) ? '900' : '600';
+        const rank = i+1;
+        return `<div style="display:grid;grid-template-columns:24px 1fr 28px 28px 28px 28px 28px 32px;
+          gap:0;align-items:center;padding:5px 6px;border-radius:8px;
+          background:${highlight};border:${border};margin-bottom:3px;font-size:12px;font-weight:${fontW};color:#2D2A27">
+          <div style="color:#888;font-size:11px;text-align:center">${rank}</div>
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:3px">${name}</div>
+          <div style="text-align:center;color:#555">${gp}</div>
+          <div style="text-align:center;color:#22c55e">${w}</div>
+          <div style="text-align:center;color:#eab308">${d}</div>
+          <div style="text-align:center;color:#ef4444">${l}</div>
+          <div style="text-align:center;color:${diff>=0?'#22c55e':'#ef4444'}">${diff>0?'+':''}${diff}</div>
+          <div style="text-align:center;font-size:14px;font-weight:900;color:#2D2A27">${pts}</div>
+        </div>`;
+      }).join('');
+
+      const groupTitle = groups.length>1 ? (targetGroup?.name||targetGroup?.shortName||'Groupe') : (m.league||m.ls);
+      body.innerHTML=`
+        <div class="dsec">
+          <div class="dsec-title">🏆 CLASSEMENT — ${groupTitle.toUpperCase()}</div>
+          <div style="display:grid;grid-template-columns:24px 1fr 28px 28px 28px 28px 28px 32px;
+            gap:0;padding:0 6px 4px;font-size:10px;font-weight:700;color:#888;letter-spacing:.5px">
+            <div></div><div style="padding-left:3px">ÉQUIPE</div>
+            <div style="text-align:center">MJ</div>
+            <div style="text-align:center">V</div>
+            <div style="text-align:center">N</div>
+            <div style="text-align:center">D</div>
+            <div style="text-align:center">+/-</div>
+            <div style="text-align:center">PTS</div>
+          </div>
+          ${rows}
+          <div style="margin-top:8px;font-size:11px;color:#888;text-align:center">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EFF6FF;border:2px solid #3b82f6;margin-right:4px"></span>${m.home.name}
+            &nbsp;&nbsp;
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#FFF7ED;border:2px solid #f97316;margin-right:4px"></span>${m.away.name}
+          </div>
+        </div>`;
+    });
+    return;
   }
   else if(tab==='Chat IA'){
     body.innerHTML=`
