@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "soccerAI-app.html", "use": "@vercel/static" },
+    { "src": "sw.js", "use": "@vercel/static" },
+    { "src": "manifest.json", "use": "@vercel/static" },
+    { "src": "icon-192.svg", "use": "@vercel/static" },
+    { "src": "icon-512.svg", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/sw.js", "headers": { "Cache-Control": "no-cache", "Service-Worker-Allowed": "/" }, "dest": "/sw.js" },
+    { "src": "/(.*)", "dest": "/soccerAI-app.html" }
+  ]
+}
