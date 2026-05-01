@@ -120,7 +120,8 @@ body{background:#07070d;display:flex;align-items:center;justify-content:center;m
 
 .teams-row{display:flex;align-items:center;padding:4px 12px 8px;gap:4px}
 .team-side{flex:1}
-.team-logo{width:34px;height:34px;border-radius:50%;background:#1e1e2e;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:4px}
+.team-logo{width:34px;height:34px;border-radius:50%;background:#1e1e2e;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:4px;overflow:hidden;flex-shrink:0}
+.team-logo img{width:100%;height:100%;object-fit:contain;border-radius:50%}
 .team-name{font-size:13px;font-weight:900;color:#fff;margin-bottom:2px}
 .team-label{font-size:8px;color:#555;margin-bottom:4px}
 .form-dots{display:flex;gap:3px}
@@ -280,7 +281,8 @@ body{background:#07070d;display:flex;align-items:center;justify-content:center;m
 .detail-hero{display:flex;align-items:center;padding:6px 14px 6px;flex-shrink:0}
 .dh-team{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .dh-team.right{align-items:flex-end}
-.dh-logo{width:42px;height:42px;border-radius:50%;background:#1e1e2e;display:flex;align-items:center;justify-content:center;font-size:22px}
+.dh-logo{width:52px;height:52px;border-radius:50%;background:#1e1e2e;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;flex-shrink:0}
+.dh-logo img{width:100%;height:100%;object-fit:contain}
 .dh-name{font-size:12px;font-weight:900;color:#fff;text-align:center}
 .dh-side{font-size:8px;color:#555}
 .dh-center{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:76px;padding:0 6px}
@@ -453,7 +455,8 @@ mark{background:none;color:#f97316;font-weight:900}
 .smc-teams{display:flex;align-items:center;padding:4px 12px 6px;gap:6px}
 .smc-team{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .smc-team.right{align-items:flex-end}
-.smc-logo{font-size:22px}
+.smc-logo{font-size:22px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:50%}
+.smc-logo img{width:32px;height:32px;object-fit:contain;border-radius:50%}
 .smc-name{font-size:11px;font-weight:900;color:#fff;text-align:center;line-height:1.2}
 .smc-name.right{text-align:right}
 .smc-center{display:flex;flex-direction:column;align-items:center;min-width:56px}
@@ -1022,14 +1025,14 @@ function card(m){
     </div>
     <div class="teams-row">
       <div class="team-side">
-        <div class="team-logo">${m.home.emoji}</div>
+        <div class="team-logo">${_logo(m.home.logo, m.home.emoji, 34)}</div>
         <div class="team-name">${m.home.name}</div>
         <div class="team-label">🏠 Domicile</div>
         <div class="form-dots">${fd(m.home.form)}</div>
       </div>
       <div class="score-center">${center}</div>
       <div class="team-side right">
-        <div class="team-logo">${m.away.emoji}</div>
+        <div class="team-logo">${_logo(m.away.logo, m.away.emoji, 34)}</div>
         <div class="team-name" style="text-align:right">${m.away.name}</div>
         <div class="team-label" style="text-align:right">✈️ Extérieur</div>
         <div class="form-dots" style="justify-content:flex-end">${fd(m.away.form)}</div>
@@ -1184,8 +1187,8 @@ function showDetail(id){
   const p=m.pred;
   document.getElementById('d-league').textContent=`${m.ls} · ${m.league}`;
   document.getElementById('d-risk').innerHTML=riskBadge(m.risk);
-  document.getElementById('d-home-logo').textContent=m.home.emoji;
-  document.getElementById('d-away-logo').textContent=m.away.emoji;
+  document.getElementById('d-home-logo').innerHTML=_logo(m.home.logo, m.home.emoji, 52);
+  document.getElementById('d-away-logo').innerHTML=_logo(m.away.logo, m.away.emoji, 52);
   document.getElementById('d-home-name').textContent=m.home.name;
   document.getElementById('d-away-name').textContent=m.away.name;
   const lr=document.getElementById('d-live-row');
@@ -3071,7 +3074,13 @@ function renderIaList(){
           </div>
         </div>
       </div>
-      <div class="ias-match">${m.home.name} <span style="color:#333">vs</span> ${m.away.name}</div>
+      <div class="ias-match" style="display:flex;align-items:center;gap:6px">
+        ${_logo(m.home.logo, m.home.emoji, 20)}
+        <span>${m.home.name}</span>
+        <span style="color:#333;font-size:10px">vs</span>
+        ${_logo(m.away.logo, m.away.emoji, 20)}
+        <span>${m.away.name}</span>
+      </div>
       <div class="ias-bet" style="color:#f97316;margin:3px 0 4px">${mp.label} ${mp.odd} · ${m.ls} · ${m.time}</div>
       ${reasonsHtml}
       <div class="ias-footer" style="margin-top:6px">
@@ -3696,13 +3705,13 @@ function _soMatchCard(m, highlightQ){
 
     <div class="smc-teams">
       <div class="smc-team">
-        <div class="smc-logo">${m.home.emoji}</div>
+        <div class="smc-logo">${_logo(m.home.logo, m.home.emoji, 32)}</div>
         <div class="smc-name">${hlName(m.home.name)}</div>
         <div style="font-size:7px;color:#555;margin-top:1px">Domicile</div>
       </div>
       <div class="smc-center">${scoreHtml}</div>
       <div class="smc-team right">
-        <div class="smc-logo">${m.away.emoji}</div>
+        <div class="smc-logo">${_logo(m.away.logo, m.away.emoji, 32)}</div>
         <div class="smc-name right">${hlName(m.away.name)}</div>
         <div style="font-size:7px;color:#555;margin-top:1px;text-align:right">Extérieur</div>
       </div>
@@ -3901,6 +3910,12 @@ function _filterByLeague(leagueName){
 function _esc(str){
   if(!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Affiche le logo du club (img si URL dispo, sinon emoji)
+function _logo(logo, emoji, size=34){
+  if(logo) return `<img src="${_esc(logo)}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px;object-fit:contain;border-radius:50%" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;align-items:center;justify-content:center;width:${size}px;height:${size}px;font-size:${Math.round(size*0.47)}px">${emoji}</span>`;
+  return `<span style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;font-size:${Math.round(size*0.47)}px">${emoji}</span>`;
 }
 
 // ── PWA service worker ──────────────────────────────────────────────────────
