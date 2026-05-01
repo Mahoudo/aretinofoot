@@ -3010,6 +3010,92 @@ function _iaScore(m){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  PRÉDICTION CORNERS — modèle statistique expert
+// ══════════════════════════════════════════════════════════════
+function _predictCorners(m){
+  const p  = m.pred;
+  const hr = m.home.record || {};
+  const ar = m.away.record || {};
+  const s  = m.espnStats || {};
+
+  // Base : moyenne historique ~10.2 corners/match en Europe top
+  const BASE = 10.2;
+
+  // ── Facteur offensif (xG proxy) ───────────────────────────
+  // Plus les équipes attaquent → plus de corners
+  const hOff = Math.min(1.5, 0.7 + p.hxg * 0.45);
+  const aOff = Math.min(1.5, 0.7 + p.axg * 0.45);
+
+  // ── Facteur domination (possession/pression) ──────────────
+  const hDom = 0.85 + (p.ph / 100) * 0.35;  // équipe dominante génère plus de corners
+  const aDom = 0.85 + (p.pa / 100) * 0.35;
+
+  // ── Facteur forme (équipes en forme pressent plus) ─────────
+  const hFormF = 0.90 + (_formPts(m.home.form) / 15) * 0.20;
+  const aFormF = 0.90 + (_formPts(m.away.form) / 15) * 0.20;
+
+  // ── Facteur bilan saison (équipes fortes = plus de corners) ─
+  const hRec = hr.ppg > 0 ? 0.85 + hr.ppg * 0.10 : 1.0;
+  const aRec = ar.ppg > 0 ? 0.85 + ar.ppg * 0.10 : 1.0;
+
+  // ── Calcul corners attendus par équipe ─────────────────────
+  let hExp = (BASE / 2) * hOff * hDom * hFormF * hRec;
+  let aExp = (BASE / 2) * aOff * aDom * aFormF * aRec;
+
+  // Si ESPN fournit des stats live (match en cours), les intégrer
+  if(m.status === 'live' && (s.hCorners || s.aCorners)){
+    const elapsed = Math.max(1, m.liveMin || 45);
+    const scale   = 90 / elapsed;
+    hExp = (s.hCorners || hExp) * scale;
+    aExp = (s.aCorners || aExp) * scale;
+  }
+
+  // Cap réaliste : 3–9 par équipe
+  hExp = Math.max(3, Math.min(9, hExp));
+  aExp = Math.max(3, Math.min(9, aExp));
+  const total = +(hExp + aExp).toFixed(1);
+
+  // ── Marchés de paris corners ──────────────────────────────
+  const lines = [8.5, 9.5, 10.5, 11.5];
+  const bets  = lines.map(line => {
+    // Probabilité approx avec distribution de Poisson (μ = total)
+    const mu   = hExp + aExp;
+    // P(X > line) ≈ utiliser CDF Poisson (approximation normale)
+    const z    = (line - mu) / Math.sqrt(mu);
+    const pOver  = Math.max(0.05, Math.min(0.95, 1 - (0.5 * (1 + Math.tanh(z * 0.93)))));
+    const pUnder = 1 - pOver;
+    const overOdd  = +(1 / Math.max(pOver,  0.05) * 1.07).toFixed(2);
+    const underOdd = +(1 / Math.max(pUnder, 0.05) * 1.07).toFixed(2);
+    return { line, pOver:+(pOver*100).toFixed(0), pUnder:+(pUnder*100).toFixed(0), overOdd: Math.min(overOdd,9.9), underOdd: Math.min(underOdd,9.9) };
+  });
+
+  // Meilleur pari corners : choisir la ligne avec la prob la plus haute
+  const bestOver  = bets.reduce((b,x)=> x.pOver  > b.pOver  ? x : b, bets[0]);
+  const bestUnder = bets.reduce((b,x)=> x.pUnder > b.pUnder ? x : b, bets[0]);
+  const bestBet   = bestOver.pOver >= bestUnder.pUnder ? bestOver : bestUnder;
+  const bestLabel = bestOver.pOver >= bestUnder.pUnder
+    ? `Over ${bestOver.line} corners`
+    : `Under ${bestUnder.line} corners`;
+  const bestProb  = Math.max(bestOver.pOver, bestUnder.pUnder);
+  const bestOdd   = bestOver.pOver >= bestUnder.pUnder ? bestOver.overOdd : bestUnder.underOdd;
+
+  // Tendance globale
+  const trend = total >= 11.5 ? 'Match offensif 🔥 — beaucoup de corners attendus'
+              : total >= 10   ? 'Bon volume de corners prévu'
+              : total >= 8.5  ? 'Nombre moyen de corners'
+              : 'Match fermé — peu de corners attendus';
+
+  return {
+    hExp: +hExp.toFixed(1),
+    aExp: +aExp.toFixed(1),
+    total,
+    bets,
+    bestBet: { label: bestLabel, prob: bestProb, odd: bestOdd, line: bestBet.line, isOver: bestOver.pOver >= bestUnder.pUnder },
+    trend
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
 //  PARIS SAFE EXPERT — sélection intelligente par type de match
 // ══════════════════════════════════════════════════════════════
 function _expertSafePick(m){
@@ -3212,6 +3298,23 @@ function renderIaList(){
           ${m.vb.length?`<span style="font-size:7px;color:#a78bfa;font-weight:900">💎 VB</span>`:''}
           <span class="ias-odd" style="color:${isSafeFilter?'#22c55e':'#f97316'}">${displayOddStr}</span>
         </span>
+      </div>
+      <div style="margin-top:7px;background:#0f1a0f;border:1px solid #16a34a30;border-radius:8px;padding:6px 10px">
+        ${(()=>{
+          const cp = _predictCorners(m);
+          const barW = Math.round(cp.hExp/(cp.total||1)*100);
+          return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:8px;font-weight:900;color:#4ade80;letter-spacing:.4px">🔲 CORNERS PRÉVUS</span>
+            <span style="font-size:11px;font-weight:900;color:#fff">${cp.hExp} – ${cp.aExp} <span style="font-size:9px;color:#888">(total ${cp.total})</span></span>
+          </div>
+          <div style="height:4px;background:#1a2a1a;border-radius:2px;overflow:hidden;margin-bottom:4px">
+            <div style="height:100%;width:${barW}%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:2px"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:8px;color:#555">${cp.trend}</span>
+            <span style="font-size:8px;font-weight:900;color:#4ade80;background:#16a34a22;border:1px solid #16a34a44;border-radius:4px;padding:1px 6px">${cp.bestBet.label} ×${cp.bestBet.odd} (${cp.bestBet.prob}%)</span>
+          </div>`;
+        })()}
       </div>
       <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="toggleIaCouponSafe(event,${m.id})">
         ${inCoupon ? '✅ Dans le coupon — retirer' : '＋ Ajouter au coupon'}
