@@ -2828,17 +2828,35 @@ function transformTSDB(events){
     const liveMin=ev.intMinute?+ev.intMinute:undefined;
     const period=status==='HT'?'HT':status==='2H'?'2H':undefined;
 
-    // Basic AI prediction via Poisson (no odds → use neutral baseline)
+    // Basic AI prediction via Poisson — xG variés par seed de l'idEvent
     const seedN=parseInt(ev.idEvent)||uid;
-    const hxg=+(1.20+Math.sin(seedN)*0.22).toFixed(2);
-    const axg=+(0.95+Math.cos(seedN)*0.18).toFixed(2);
+    const hxg=+(1.25+Math.sin(seedN)*0.35).toFixed(2);
+    const axg=+(1.05+Math.cos(seedN)*0.30).toFixed(2);
     const pred=calcMatchPred(hxg,axg);
-    const ph=45, pd=28, pa=27;
-    const conf=58;
-    const risk='moyen';
+
+    // Probabilités win/draw/loss dérivées du modèle Poisson (xG → Poisson convolution)
+    let _ph=0, _pd=0, _pa=0;
+    for(let h=0;h<=8;h++) for(let a=0;a<=8;a++){
+      const p=poissonP(hxg,h)*poissonP(axg,a);
+      if(h>a) _ph+=p; else if(h===a) _pd+=p; else _pa+=p;
+    }
+    const ph=Math.round(_ph*100), pd=Math.round(_pd*100), pa=Math.round(_pa*100);
+
+    // Cotes implicites (1/prob + marge 8%)
+    const oddsH=+((1/_ph)*1.08).toFixed(2);
+    const oddsD=+((1/_pd)*1.08).toFixed(2);
+    const oddsA=+((1/_pa)*1.08).toFixed(2);
+
+    const maxP=Math.max(ph,pd,pa);
+    const pickType=ph===maxP?'1':pa===maxP?'2':'N';
+    const conf=Math.round(42+(maxP-33)*0.9);
+    const risk=conf>=68?'safe':conf>=58?'moyen':'eleve';
 
     const hName=ev.strHomeTeam, aName=ev.strAwayTeam;
-    const mpLabel=`Victoire ${hName.split(' ').pop()}`;
+    const mpLabel=pickType==='1'?`Victoire ${hName.split(' ').pop()}`
+                 :pickType==='2'?`Victoire ${aName.split(' ').pop()}`
+                 :'Match Nul';
+    const pickOdd=pickType==='1'?oddsH:pickType==='2'?oddsA:oddsD;
 
     result.push({
       id:uid++,
@@ -2850,16 +2868,16 @@ function transformTSDB(events){
       home:{name:hName, emoji:teamEmoji(hName), form:teamForm(hName)},
       away:{name:aName, emoji:teamEmoji(aName), form:teamForm(aName)},
       pred:{h:ph,d:pd,a:pa, o25:pred.o25,btts:pred.btts,score:pred.score,conf,hxg,axg},
-      odds:{h:2.10,d:3.30,a:3.40},
+      odds:{h:oddsH,d:oddsD,a:oddsA},
       vb:[],
-      mp:{label:mpLabel,type:'1X2',odd:'×2.10',conf:'5.8',risk:'MOYEN'},
+      mp:{label:mpLabel,type:pickType,odd:'×'+pickOdd.toFixed(2),conf:(conf/10).toFixed(1),risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ'},
       h2h:{h:0,d:0,a:0,list:[]},
       formStats:{hRec:'—',hPts:'—',aRec:'—',aPts:'—'},
       players:{h:[],a:[]},
       tactics:{hForm:'?-?-?',aForm:'?-?-?',mom:50,
         press:[50,50],trans:[50,50],phys:[75,75],
         ou:{o05:pred.o05,o15:pred.o15,o25:pred.o25,o35:pred.o35}},
-      recos:[{name:mpLabel,sub:'IA Aretinofoot',odd:'×2.10'}]
+      recos:[{name:mpLabel,sub:'IA Aretinofoot · Poisson',odd:'×'+pickOdd.toFixed(2)}]
     });
   }
 
