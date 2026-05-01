@@ -2290,19 +2290,50 @@ function _buildAnalysisText(m){
 function transformESPN(events){
   // ESPN league ID → app league info
   const LM={
-    '23':    {ls:'UCL', name:'UEFA Champions League',   lc:'#3b82f6', pri:1},
-    '776':   {ls:'EL',  name:'UEFA Europa League',      lc:'#f59e0b', pri:2},
-    '20296': {ls:'ECL', name:'UEFA Conf. League',       lc:'#10b981', pri:3},
-    '770':   {ls:'PL',  name:'Premier League',           lc:'#9333ea', pri:4},
-    '754':   {ls:'LL',  name:'La Liga',                  lc:'#f97316', pri:5},
-    '771':   {ls:'SA',  name:'Serie A',                  lc:'#06b6d4', pri:6},
-    '775':   {ls:'L1',  name:'Ligue 1',                  lc:'#16a34a', pri:7},
-    '758':   {ls:'BL',  name:'Bundesliga',               lc:'#ef4444', pri:8},
-    '660':   {ls:'PPL', name:'Liga Portugal',            lc:'#ef4444', pri:9},
-    '762':   {ls:'ERE', name:'Eredivisie',               lc:'#f97316', pri:10},
-    '780':   {ls:'SPL', name:'Scottish Prem.',           lc:'#3b82f6', pri:11},
-    '783':   {ls:'LIBT',name:'Copa Libertadores',        lc:'#22c55e', pri:15},
-    '21231': {ls:'SPL', name:'Saudi Pro League',         lc:'#22c55e', pri:16}
+    // ── Coupes européennes ───────────────────────────────────
+    '775':   {ls:'UCL', name:'UEFA Champions League',    lc:'#3b82f6', pri:1},
+    '776':   {ls:'EL',  name:'UEFA Europa League',       lc:'#f59e0b', pri:2},
+    '20296': {ls:'ECL', name:'UEFA Conf. League',        lc:'#10b981', pri:3},
+    '2395':  {ls:'UNL', name:'UEFA Nations League',      lc:'#6366f1', pri:4},
+    // ── Div. 1 Europe ────────────────────────────────────────
+    '700':   {ls:'PL',  name:'Premier League',           lc:'#9333ea', pri:10},
+    '740':   {ls:'LL',  name:'La Liga',                  lc:'#f97316', pri:11},
+    '730':   {ls:'SA',  name:'Serie A',                  lc:'#06b6d4', pri:12},
+    '720':   {ls:'BL',  name:'Bundesliga',               lc:'#ef4444', pri:13},
+    '710':   {ls:'L1',  name:'Ligue 1',                  lc:'#16a34a', pri:14},
+    '715':   {ls:'PPL', name:'Liga Portugal',            lc:'#dc2626', pri:15},
+    '725':   {ls:'ERE', name:'Eredivisie',               lc:'#f97316', pri:16},
+    '735':   {ls:'SPL', name:'Scottish Prem.',           lc:'#003f87', pri:17},
+    '3946':  {ls:'TSL', name:'Türk Süper Lig',           lc:'#dc2626', pri:18},
+    '3901':  {ls:'BEL', name:'Pro League Belgique',      lc:'#f59e0b', pri:19},
+    '3939':  {ls:'RPL', name:'Premier League Russie',    lc:'#ef4444', pri:20},
+    '3955':  {ls:'GSL', name:'Super League Grèce',       lc:'#3b82f6', pri:21},
+    '3944':  {ls:'SUI', name:'Super League Suisse',      lc:'#ef4444', pri:22},
+    '3907':  {ls:'AUT', name:'Bundesliga Autriche',      lc:'#dc2626', pri:23},
+    '3913':  {ls:'DEN', name:'Superliga Danemark',       lc:'#ef4444', pri:24},
+    '3960':  {ls:'NOR', name:'Eliteserien Norvège',      lc:'#ef4444', pri:25},
+    '3945':  {ls:'SWE', name:'Allsvenskan Suède',        lc:'#f59e0b', pri:26},
+    // ── Div. 2 Europe ────────────────────────────────────────
+    '3914':  {ls:'CH',  name:'EFL Championship',         lc:'#7c3aed', pri:30},
+    '3915':  {ls:'EL1', name:'EFL League One',           lc:'#6d28d9', pri:31},
+    '3916':  {ls:'EL2', name:'EFL League Two',           lc:'#5b21b6', pri:32},
+    '3931':  {ls:'SB',  name:'Serie B Italie',           lc:'#0891b2', pri:33},
+    '3927':  {ls:'BL2', name:'2. Bundesliga',            lc:'#b91c1c', pri:34},
+    '3926':  {ls:'L2',  name:'Ligue 2 France',           lc:'#15803d', pri:35},
+    '3921':  {ls:'SD',  name:'Segunda División',         lc:'#ea580c', pri:36},
+    '3933':  {ls:'ED',  name:'Eerste Divisie',           lc:'#d97706', pri:37},
+    '3940':  {ls:'SCH', name:'Scottish Championship',    lc:'#1e40af', pri:38},
+    // ── Autres compétitions ──────────────────────────────────
+    '783':   {ls:'LIB', name:'Copa Libertadores',        lc:'#22c55e', pri:50},
+    '650':   {ls:'COL', name:'Liga BetPlay Colombie',    lc:'#f59e0b', pri:51},
+    '660':   {ls:'ECU', name:'LigaPro Équateur',         lc:'#f59e0b', pri:52},
+    '620':   {ls:'BOL', name:'División Profesional',     lc:'#16a34a', pri:53},
+    '3934':  {ls:'PAR', name:'División Prof. Paraguay',  lc:'#ef4444', pri:54},
+    '3943':  {ls:'ESA', name:'Liga Mayor El Salvador',   lc:'#3b82f6', pri:55},
+    '3930':  {ls:'IRL', name:'League of Ireland',        lc:'#16a34a', pri:56},
+    '21231': {ls:'SPL', name:'Saudi Pro League',         lc:'#22c55e', pri:60},
+    '8097':  {ls:'WSL', name:'Women\'s Super League',    lc:'#ec4899', pri:70},
+    '20956': {ls:'LF',  name:'Liga F (Féminine)',        lc:'#ec4899', pri:71},
   };
   // convert American moneyline → decimal odds
   const ml2dec=ml=>{const n=parseInt(ml);if(!n||isNaN(n))return 0;return n>0?+(n/100+1).toFixed(2):+(100/Math.abs(n)+1).toFixed(2);};
