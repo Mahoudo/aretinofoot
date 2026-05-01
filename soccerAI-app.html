@@ -3009,6 +3009,109 @@ function _iaScore(m){
   return { score, label, labelColor, labelIcon, reasons, edge, maxP, formPts5 };
 }
 
+// ══════════════════════════════════════════════════════════════
+//  PARIS SAFE EXPERT — sélection intelligente par type de match
+// ══════════════════════════════════════════════════════════════
+function _expertSafePick(m){
+  const p  = m.pred;
+  const o  = m.odds;
+  const hr = m.home.record || {};
+  const ar = m.away.record || {};
+
+  const picks = []; // {label, type, odd, safeScore, reason}
+
+  // ── Victoire directe si très dominant (> 68%) ─────────────
+  if(p.ph >= 68){
+    picks.push({
+      label: `Victoire ${m.home.short}`,
+      type: '1', odd: o.h,
+      safeScore: p.ph,
+      reason: `Domicile favori (${Math.round(p.ph)}% — bilan ${hr.label||'—'})`
+    });
+  }
+  if(p.pa >= 68){
+    picks.push({
+      label: `Victoire ${m.away.short}`,
+      type: '2', odd: o.a,
+      safeScore: p.pa,
+      reason: `Extérieur favori (${Math.round(p.pa)}% — bilan ${ar.label||'—'})`
+    });
+  }
+
+  // ── Double Chance 1X si domicile 52–68% ──────────────────
+  if(p.ph >= 52 && p.ph < 68 && o.h > 1){
+    const dc1xOdd = +(1 / Math.max((p.ph + p.pd) / 100, 0.01) * 1.06).toFixed(2);
+    const dc1xOddCapped = Math.max(1.05, Math.min(2.0, dc1xOdd));
+    picks.push({
+      label: `Double Chance 1X (${m.home.short} ou Nul)`,
+      type: '1X', odd: dc1xOddCapped,
+      safeScore: p.ph + p.pd,
+      reason: `Domicile avantagé (${Math.round(p.ph)}%) mais match serré → 1X plus sûr`
+    });
+  }
+
+  // ── Double Chance X2 si extérieur 52–68% ─────────────────
+  if(p.pa >= 52 && p.pa < 68 && o.a > 1){
+    const dcx2Odd = +(1 / Math.max((p.pa + p.pd) / 100, 0.01) * 1.06).toFixed(2);
+    const dcx2OddCapped = Math.max(1.05, Math.min(2.0, dcx2Odd));
+    picks.push({
+      label: `Double Chance X2 (${m.away.short} ou Nul)`,
+      type: 'X2', odd: dcx2OddCapped,
+      safeScore: p.pa + p.pd,
+      reason: `Extérieur avantagé (${Math.round(p.pa)}%) → X2 sécurisé`
+    });
+  }
+
+  // ── Plus de 1.5 buts si les deux équipes attaquent fort ───
+  if(p.o15 >= 78){
+    const o15Odd = +(1 / Math.max(p.o15 / 100, 0.01) * 1.06).toFixed(2);
+    picks.push({
+      label: `Plus de 1.5 buts`,
+      type: '+1.5', odd: Math.max(1.05, Math.min(1.60, o15Odd)),
+      safeScore: p.o15,
+      reason: `${Math.round(p.o15)}% de prob. +1.5 buts — match ouvert attendu`
+    });
+  }
+
+  // ── Moins de 2.5 buts si défenses solides ────────────────
+  const u25 = 100 - (p.o25 || 50);
+  const hDefense = hr.ppg != null ? (hr.l / Math.max(hr.played, 1)) < 0.35 : false;
+  const aDefense = ar.ppg != null ? (ar.l / Math.max(ar.played, 1)) < 0.35 : false;
+  if(u25 >= 58 && (hDefense || aDefense)){
+    const u25Odd = +(1 / Math.max(u25 / 100, 0.01) * 1.06).toFixed(2);
+    picks.push({
+      label: `Moins de 2.5 buts`,
+      type: 'u2.5', odd: Math.max(1.10, Math.min(2.20, u25Odd)),
+      safeScore: u25,
+      reason: `${Math.round(u25)}% de prob. -2.5 — défenses solides en jeu`
+    });
+  }
+
+  // ── BTTS Non si au moins une attaque faible ───────────────
+  const bttsFalse = 100 - (p.btts || 50);
+  const hGoalRatio = hr.played > 3 ? hr.w / hr.played : null;
+  const aGoalRatio = ar.played > 3 ? ar.w / ar.played : null;
+  if(bttsFalse >= 62 && (hGoalRatio !== null && hGoalRatio < 0.35 || aGoalRatio !== null && aGoalRatio < 0.35)){
+    const bttsOdd = +(1 / Math.max(bttsFalse / 100, 0.01) * 1.06).toFixed(2);
+    picks.push({
+      label: `Les deux équipes ne marquent pas`,
+      type: 'noBTTS', odd: Math.max(1.10, Math.min(2.50, bttsOdd)),
+      safeScore: bttsFalse,
+      reason: `${Math.round(bttsFalse)}% chance qu'une équipe reste à 0 — attaque faible détectée`
+    });
+  }
+
+  // Trier par safeScore décroissant → retourner le meilleur
+  picks.sort((a, b) => b.safeScore - a.safeScore);
+  if(picks.length === 0){
+    // Fallback sur la main pick si rien de safe détecté
+    const rawOdd = parseFloat((m.mp.odd||'×1.5').replace('×',''))||1.5;
+    return { label: m.mp.label, type: m.mp.type, odd: rawOdd,
+             safeScore: Math.max(p.ph,p.pd,p.pa), reason: 'Meilleur paris selon les probabilités', isFallback: true };
+  }
+  return picks[0];
+}
+
 function renderIaList(){
   const base = MATCHES.filter(m => m.status !== 'finished');
   let pool   = base.filter(m => m.pred.conf >= confMinFilter);
@@ -3050,11 +3153,27 @@ function renderIaList(){
   }
 
   const html = list.map(({m, s}) => {
-    const p = m.pred, mp = m.mp;
-    const pickOddF = parseFloat((mp.odd||'×0').replace('×',''));
+    const p  = m.pred;
+    // Pour le filtre Safe → utiliser le pick expert sûr, sinon le pick principal
+    const isSafeFilter = (iaFilter === 'safe');
+    const safePick = isSafeFilter ? _expertSafePick(m) : null;
+    const displayPick  = safePick || { label: m.mp.label, type: m.mp.type,
+      odd: parseFloat((m.mp.odd||'×1.5').replace('×',''))||1.5, reason: null };
+    const displayOddStr = '×' + (displayPick.odd||1.5).toFixed(2);
+
     const reasonsHtml = s.reasons.slice(0,3).map(r =>
       `<div style="font-size:8px;color:#666;margin-top:2px">${r}</div>`
     ).join('');
+
+    // Reason safe pick
+    const safeReasonHtml = safePick && safePick.reason
+      ? `<div style="font-size:8px;color:#22c55e;margin-top:3px;font-weight:700">🛡️ ${safePick.reason}</div>`
+      : '';
+
+    // Safe pick badge type
+    const safeTypeBadge = isSafeFilter
+      ? `<span style="font-size:8px;font-weight:900;background:#16a34a22;border:1px solid #16a34a55;color:#22c55e;padding:1px 6px;border-radius:4px;margin-left:4px">${displayPick.type}</span>`
+      : '';
 
     // Score bar fill
     const barColor = s.score>=80?'#f59e0b':s.score>=65?'#22c55e':s.score>=50?'#3b82f6':'#555';
@@ -3065,6 +3184,7 @@ function renderIaList(){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
         <div style="display:flex;align-items:center;gap:5px">
           <span style="font-size:9px;font-weight:900;color:${s.labelColor};background:${s.labelColor}18;border:1px solid ${s.labelColor}33;padding:2px 7px;border-radius:5px;letter-spacing:.5px">${s.labelIcon} ${s.label}</span>
+          ${isSafeFilter?'<span style="font-size:8px;color:#22c55e;font-weight:900">🛡️ SAFE</span>':''}
           ${m.oddSource==='betclic'?'<span style="font-size:7px;color:#e83214;font-weight:900">🎲 Betclic</span>':''}
         </div>
         <div style="display:flex;align-items:center;gap:4px">
@@ -3081,16 +3201,19 @@ function renderIaList(){
         ${_logo(m.away.logo, m.away.emoji, 20)}
         <span>${m.away.name}</span>
       </div>
-      <div class="ias-bet" style="color:#f97316;margin:3px 0 4px">${mp.label} ${mp.odd} · ${m.ls} · ${m.time}</div>
+      <div class="ias-bet" style="color:${isSafeFilter?'#22c55e':'#f97316'};margin:3px 0 2px;font-weight:900">
+        ${displayPick.label} ${displayOddStr}${safeTypeBadge} · ${m.ls} · ${m.time}
+      </div>
+      ${safeReasonHtml}
       ${reasonsHtml}
       <div class="ias-footer" style="margin-top:6px">
         <span class="ias-conf">🎯 ${p.conf}% · Edge ${s.edge>=0?'+':''}${s.edge.toFixed(1)}%</span>
         <span style="display:flex;align-items:center;gap:6px">
           ${m.vb.length?`<span style="font-size:7px;color:#a78bfa;font-weight:900">💎 VB</span>`:''}
-          <span class="ias-odd">${mp.odd}</span>
+          <span class="ias-odd" style="color:${isSafeFilter?'#22c55e':'#f97316'}">${displayOddStr}</span>
         </span>
       </div>
-      <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="toggleIaCoupon(event,${m.id})">
+      <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="toggleIaCouponSafe(event,${m.id})">
         ${inCoupon ? '✅ Dans le coupon — retirer' : '＋ Ajouter au coupon'}
       </div>
     </div>`;
@@ -3402,7 +3525,10 @@ function toggleMatchSel(id){
 }
 
 // Ajouter/retirer depuis l'onglet IA
-function toggleIaCoupon(e, id){
+// Alias utilisé depuis les cartes IA (Safe ou standard)
+function toggleIaCouponSafe(e, id){ toggleIaCoupon(e, id, iaFilter === 'safe'); }
+
+function toggleIaCoupon(e, id, useSafe=false){
   e.stopPropagation();
   const m = MATCHES.find(x => x.id === id);
   if(!m) return;
@@ -3410,9 +3536,16 @@ function toggleIaCoupon(e, id){
     delete COUPON[id];
     showToast('🗑 Retiré du coupon');
   } else {
-    const mp = m.mp;
-    const rawOdd = parseFloat((mp.odd||'×1').replace('×',''))||1.50;
-    COUPON[id] = { bet: mp.type||'1', label: mp.label, odd: rawOdd, matchRef: m };
+    let bet, label, odd;
+    if(useSafe){
+      const sp = _expertSafePick(m);
+      bet = sp.type; label = sp.label; odd = sp.odd;
+    } else {
+      const mp = m.mp;
+      odd = parseFloat((mp.odd||'×1').replace('×',''))||1.50;
+      bet = mp.type||'1'; label = mp.label;
+    }
+    COUPON[id] = { bet, label, odd, matchRef: m };
     showToast('✅ Ajouté au coupon !');
   }
   _updateCouponBar();
