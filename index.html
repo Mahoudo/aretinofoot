@@ -2632,9 +2632,10 @@ function transformTSDB(events){
 
     const li=tsdbLeagueInfo(ev.strLeague);
 
-    // Time
+    // Time — TheSportsDB renvoie l'heure en UTC → convertir en heure locale
     const rawTime=ev.strTime||'00:00:00';
-    const timeStr=rawTime.slice(0,5);
+    const dtLocal=new Date(`${ev.dateEvent||todayStr}T${rawTime}Z`);
+    const timeStr=dtLocal.getHours().toString().padStart(2,'0')+':'+dtLocal.getMinutes().toString().padStart(2,'0');
 
     // Status + score
     const status=ev.strStatus;
