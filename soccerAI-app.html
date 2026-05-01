@@ -2926,7 +2926,11 @@ function transformESPN(events){
       else if(sn==='STATUS_PENALTIES'){status='live';period='PKS';}
       else if(['STATUS_FULL_TIME','STATUS_FINAL_PEN','STATUS_POSTPONED','STATUS_ABANDONED'].includes(sn)){status='finished';}
 
-      const liveMin=parseInt(comp.status.displayClock)||0;
+      // displayClock format: "MM:SS" (ex: "45:32") → parseInt donne les minutes
+      // Si jamais ESPN renvoie un entier pur en secondes (>120), on convertit
+      const _rawClock=comp.status.displayClock||'0';
+      const _parsedClock=parseInt(_rawClock)||0;
+      const liveMin=_parsedClock>120?Math.floor(_parsedClock/60):_parsedClock;
       const scoreH=parseInt(home.score)||0;
       const scoreA=parseInt(away.score)||0;
 
@@ -3427,6 +3431,21 @@ async function fetchAllMatchesToday(forceYmd){
         const oddsMatches=transformOddsData(allEvents);
         if(oddsMatches.length) newMatches=mergeOddsIntoMatches(newMatches,oddsMatches);
       } catch(e){ console.warn('[Odds enrichment]',e); }
+    }
+
+    // ── Préserver le chrono local pour les matchs live déjà trackés ──
+    // ESPN API gratuit a ~3-5 min de délai → on garde la valeur la plus haute
+    // entre ce que l'API renvoie et ce que notre ticker local a calculé.
+    {
+      const liveMinCache={};
+      MATCHES.forEach(m=>{
+        if(m.status==='live' && m.espnId) liveMinCache[m.espnId]=m.liveMin||0;
+      });
+      newMatches.forEach(m=>{
+        if(m.status==='live' && m.espnId && liveMinCache[m.espnId]!==undefined){
+          m.liveMin=Math.max(m.liveMin||0, liveMinCache[m.espnId]);
+        }
+      });
     }
 
     MATCHES=newMatches;
