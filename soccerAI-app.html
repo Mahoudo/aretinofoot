@@ -1195,6 +1195,19 @@ const _MATCHES_PLACEHOLDER=[
 
 let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0;
 
+// ── Compétitions favorites ──────────────────────────────
+let FAVE_LEAGUES = new Set(JSON.parse(localStorage.getItem('fave_leagues')||'[]'));
+
+function toggleFaveLeague(ls, e){
+  if(e){ e.stopPropagation(); e.preventDefault(); }
+  if(FAVE_LEAGUES.has(ls)) FAVE_LEAGUES.delete(ls);
+  else FAVE_LEAGUES.add(ls);
+  localStorage.setItem('fave_leagues', JSON.stringify([...FAVE_LEAGUES]));
+  renderLeagueChips();
+  renderMatches();
+  showToast(FAVE_LEAGUES.has(ls) ? `⭐ ${ls} ajouté aux favoris` : `${ls} retiré des favoris`, 'info', 1500);
+}
+
 // ── Helpers ──
 function riskBadge(r){
   if(r==='safe'||r==='SAFE') return `<span class="rb rb-safe">✓ SAFE</span>`;
@@ -1381,7 +1394,7 @@ function renderMatches(){
     if(matchFilter==='top') return m.pred.conf>=75;
     if(matchFilter==='ia') return m.vb.length>0;
     return true;
-  }).filter(m=> leagueFilter==='all' || m.ls===leagueFilter
+  }).filter(m=> leagueFilter==='all' || (leagueFilter==='faves' ? FAVE_LEAGUES.has(m.ls) : m.ls===leagueFilter)
   ).filter(m=>!searchVal||
     m.home.name.toLowerCase().includes(searchVal)||
     m.away.name.toLowerCase().includes(searchVal)||
@@ -1409,21 +1422,16 @@ function filterSearch(v){searchVal=v.toLowerCase();renderMatches();}
 
 function setLeagueFilter(ls, btn){
   leagueFilter = ls;
-  document.querySelectorAll('#league-chips .chip').forEach(c=>{
-    c.style.background=''; c.style.borderColor=''; c.style.color='';
-    c.classList.remove('active');
-  });
-  btn.style.background = ls==='all' ? '#f97316' : btn.dataset.lc+'33';
-  btn.style.borderColor = ls==='all' ? '#f97316' : btn.dataset.lc;
-  btn.style.color = '#fff';
+  renderLeagueChips(); // re-render to apply active state cleanly
   renderMatches();
 }
 
 function renderLeagueChips(){
   const el = document.getElementById('league-chips');
   if(!el) return;
+
   // Collect unique leagues present in today's matches
-  const seen = new Map(); // ls → { ls, name, lc, count }
+  const seen = new Map();
   for(const m of MATCHES.filter(x=>x.status!=='finished')){
     if(!seen.has(m.ls)){
       seen.set(m.ls, { ls:m.ls, name:m.league.replace(/^[🌍🏆⭐🔵🟢🔴🇭🇳🇨🇮🇸🇳🇲🇦🇩🇿🇹🇳🇨🇲🇲🇱🇧🇫]\s*/,'').split('—')[0].trim(), lc:m.lc, count:0 });
@@ -1431,14 +1439,42 @@ function renderLeagueChips(){
     seen.get(m.ls).count++;
   }
   if(seen.size === 0){ el.innerHTML=''; return; }
-  const leagues = [...seen.values()].sort((a,b)=>b.count-a.count);
-  const activeIs = leagueFilter==='all';
-  let html = `<div class="chip${activeIs?' active':''}" onclick="setLeagueFilter('all',this)" data-lc="#f97316" style="${activeIs?'background:#f97316;border-color:#f97316;color:#fff':''}">Tous (${MATCHES.filter(m=>m.status!=='finished').length})</div>`;
+
+  // Favoris en premier, puis par nombre de matchs
+  const leagues = [...seen.values()].sort((a,b)=>{
+    const fa = FAVE_LEAGUES.has(a.ls)?0:1, fb = FAVE_LEAGUES.has(b.ls)?0:1;
+    if(fa!==fb) return fa-fb;
+    return b.count - a.count;
+  });
+
+  const totalVisible = MATCHES.filter(m=>m.status!=='finished').length;
+  const faveCount    = MATCHES.filter(m=>m.status!=='finished' && FAVE_LEAGUES.has(m.ls)).length;
+  const activeAll    = leagueFilter==='all';
+  const activeFaves  = leagueFilter==='faves';
+
+  let html = `<div class="chip${activeAll?' active':''}" onclick="setLeagueFilter('all',this)"
+    style="${activeAll?'background:#f97316;border-color:#f97316;color:#fff':''}">
+    Tous (${totalVisible})
+  </div>`;
+
+  // Chip "Mes Ligues" si au moins 1 favori
+  if(FAVE_LEAGUES.size > 0){
+    html += `<div class="chip${activeFaves?' active':''}" onclick="setLeagueFilter('faves',this)"
+      style="${activeFaves?'background:#f59e0b;border-color:#f59e0b;color:#fff':'border-color:#f59e0b;color:#d97706;background:#FFFBEB'}">
+      ⭐ Mes Ligues (${faveCount})
+    </div>`;
+  }
+
   for(const l of leagues){
     const isActive = leagueFilter===l.ls;
-    html += `<div class="chip" onclick="setLeagueFilter('${l.ls}',this)" data-lc="${l.lc}"
-      style="${isActive?`background:${l.lc}33;border-color:${l.lc};color:#fff`:''}"
-      >${l.name} <span style="opacity:.6;font-size:13px">(${l.count})</span></div>`;
+    const isFave   = FAVE_LEAGUES.has(l.ls);
+    html += `<div class="chip${isActive?' active':''}" onclick="setLeagueFilter('${l.ls}',this)"
+      style="${isActive?`background:${l.lc}33;border-color:${l.lc};color:${l.lc}`:isFave?`border-color:${l.lc};background:${l.lc}11`:''};display:flex;align-items:center;gap:5px;padding-right:6px">
+      <span>${l.name} <span style="opacity:.55;font-size:13px">(${l.count})</span></span>
+      <span onclick="toggleFaveLeague('${l.ls}',event)"
+        style="font-size:15px;line-height:1;cursor:pointer;opacity:${isFave?1:.35};transition:.15s"
+        title="${isFave?'Retirer des favoris':'Ajouter aux favoris'}">${isFave?'⭐':'☆'}</span>
+    </div>`;
   }
   el.innerHTML = html;
 }
