@@ -3751,92 +3751,155 @@ async function fetchAllMatchesToday(forceYmd){
 //  Score multi-critères 0–100 pour chaque match
 // ══════════════════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════════════════
+//  ARETINOFOOT EXPERT ENGINE v2  — algo de scoring IA de rang 1
+//  5 piliers indépendants + pénalités calibrées
+// ══════════════════════════════════════════════════════════════
 function _iaScore(m){
-  const p   = m.pred;
-  const mp  = m.mp;
-  const hr  = m.home.record || {};
-  const ar  = m.away.record || {};
+  const p  = m.pred;
+  const mp = m.mp;
+  const hr = m.home.record || {};
+  const ar = m.away.record || {};
   let score = 0;
   const reasons = [];
 
-  // ── 1. Domination probabiliste (0–25 pts) ──────────────────
-  // Plus la probabilité favorite est élevée et claire, meilleure la sélection
-  const maxP   = Math.max(p.ph, p.pd, p.pa);
-  const domination = Math.max(0, maxP - 40); // au-delà de 40% de prob → signal
-  const domPts = Math.min(25, domination * 0.8);
-  score += domPts;
-  if(maxP >= 65) reasons.push(`🎯 Favori dominant (${Math.round(maxP)}% prob.)`);
-  else if(maxP >= 55) reasons.push(`📊 Léger avantage (${Math.round(maxP)}% prob.)`);
+  // ── Identification du favori ───────────────────────────────
+  const maxP     = Math.max(p.ph, p.pd, p.pa);
+  const pickType = mp.type || (p.ph===maxP?'1':p.pa===maxP?'2':'N');
+  const pickOddF = parseFloat((mp.odd||'×1.5').replace('×','')) || 1.5;
+  const trueP    = pickType==='1'?p.ph : pickType==='2'?p.pa : p.pd;
+  const isBetclic= m.oddSource==='betclic';
 
-  // ── 2. Edge value bet (0–25 pts) ──────────────────────────
-  // L'edge est la mesure clé : prob_réelle × cote > 1
-  const pickOddF = parseFloat((mp.odd||'×0').replace('×',''));
-  const pickType = mp.type;
-  const trueP    = pickType==='1'?p.ph:pickType==='2'?p.pa:p.pd;
-  const edge     = calcEdge(trueP, pickOddF); // en %
-  const edgePts  = edge > 0 ? Math.min(25, edge * 1.8) : 0;
-  score += edgePts;
-  if(edge >= 8)  reasons.push(`💎 Value bet fort (edge +${edge.toFixed(1)}%)`);
-  else if(edge >= 4) reasons.push(`📈 Edge positif (+${edge.toFixed(1)}%)`);
+  // ════════════════════════════════════════════════════════════
+  // PILIER A — Probabilité calibrée (0–28 pts)
+  //   Seuil 50% minimum (33% = hasard pur en 3-way)
+  //   Bonus clarté si le 2e favori est très loin
+  // ════════════════════════════════════════════════════════════
+  let probPts = 0;
+  if(maxP >= 50){
+    probPts = Math.min(28, (maxP - 50) / 50 * 28);
+    // Bonus clarté : écart net entre 1er et 2e probable
+    const probs = [p.ph, p.pd, p.pa].sort((a,b)=>b-a);
+    const clarity = probs[0] - probs[1]; // écart 1er-2e
+    if(clarity >= 20) { probPts = Math.min(32, probPts + 4); reasons.push(`🎯 Favori très dominant (${Math.round(maxP)}% — écart +${Math.round(clarity)}%)`); }
+    else if(maxP >= 65) reasons.push(`🎯 Favori solide (${Math.round(maxP)}%)`);
+    else if(maxP >= 55) reasons.push(`📊 Avantage probabiliste (${Math.round(maxP)}%)`);
+    else reasons.push(`📊 Légère préférence (${Math.round(maxP)}%)`);
+  } else {
+    reasons.push(`⚠️ Match incertain (${Math.round(maxP)}% max — signal faible)`);
+  }
+  probPts = Math.min(28, Math.max(0, probPts));
+  score += probPts;
 
-  // ── 3. Qualité des cotes (0–15 pts) ───────────────────────
-  // Sweet spot : 1.50–2.80 (bon rapport risque/rendement)
-  let oddPts = 0;
-  if(pickOddF >= 1.50 && pickOddF <= 2.80){ oddPts = 15; reasons.push(`✅ Cote idéale ×${pickOddF.toFixed(2)}`); }
-  else if(pickOddF > 2.80 && pickOddF <= 3.50){ oddPts = 10; }
-  else if(pickOddF >= 1.30 && pickOddF < 1.50){ oddPts = 7; }
-  else if(pickOddF < 1.30){ oddPts = 2; reasons.push(`⚠️ Cote très courte (×${pickOddF.toFixed(2)})`); }
-  score += oddPts;
+  // ════════════════════════════════════════════════════════════
+  // PILIER B — Expected Value réel (0–25 pts)
+  //   Si Betclic → edge = trueP × cote_marché - 100  (indépendant)
+  //   Sinon → proxy conservateur (cotes = modèle → edge faible)
+  // ════════════════════════════════════════════════════════════
+  let edge = 0, evPts = 0;
+  if(isBetclic){
+    edge = calcEdge(trueP, pickOddF);          // edge réel vs marché
+    evPts = edge > 0 ? Math.min(25, edge * 2.5) : 0;
+    if(edge >= 10) reasons.push(`💎 Value bet premium (edge +${edge.toFixed(1)}% vs Betclic)`);
+    else if(edge >= 5) reasons.push(`📈 Edge positif Betclic (+${edge.toFixed(1)}%)`);
+    else if(edge >= 2) reasons.push(`📊 Légère value Betclic (+${edge.toFixed(1)}%)`);
+  } else {
+    // Proxy : dispersion de probabilité (plus c'est net, plus il y a d'EV implicite)
+    const dispersion = maxP >= 50 ? (maxP - 50) * 0.25 : 0;
+    evPts = Math.min(10, dispersion);          // plafonné à 10 (pas d'indépendance)
+    edge  = +(evPts / 2.5).toFixed(1);
+  }
+  evPts = Math.max(0, evPts);
+  score += evPts;
 
-  // ── 4. Écart de niveau — records de saison (0–15 pts) ─────
+  // ════════════════════════════════════════════════════════════
+  // PILIER C — Forme momentum pondérée (0–20 pts)
+  //   Poids exponentiels [4, 2.5, 1.5, 1, 0.5] — le dernier match
+  //   = 8× plus important que le 5e dans l'algo précédent
+  // ════════════════════════════════════════════════════════════
+  const favTeam = (p.ph >= p.pa ? m.home : m.away);
+  const favForm = favTeam.form || [];
+  const W_FORM  = [4.0, 2.5, 1.5, 1.0, 0.5];  // poids décroissants
+  const MAX_FORM= W_FORM.reduce((s,w)=>s+w*3, 0); // max théorique = 28.5
+  let wFormPts = 0;
+  favForm.slice(0,5).forEach((res,i)=>{
+    const pts = res==='W'?3 : res==='D'?1 : 0;
+    wFormPts += pts * (W_FORM[i]||0);
+  });
+  const formMomentum = wFormPts / MAX_FORM;     // 0–1
+  const formPts20 = Math.round(formMomentum * 20);
+  score += formPts20;
+  if(formMomentum >= 0.75) reasons.push(`🔥 Forme excellente du favori (momentum ${Math.round(formMomentum*100)}%)`);
+  else if(formMomentum >= 0.55) reasons.push(`✅ Bonne dynamique récente`);
+  else if(formMomentum <= 0.25) reasons.push(`⚠️ Favori en méforme — momentum faible`);
+  // Pour compatibilité avec _updateIaHero
+  const formPts5 = Math.round(wFormPts / W_FORM[0]); // valeur approx
+
+  // ════════════════════════════════════════════════════════════
+  // PILIER D — Bilan bayésien (0–15 pts)
+  //   Shrinkage vers 1.45 pts/match (moyenne ligue) quand n < 10
+  //   Évite que 2 victoires en 2 matchs donnent ppg=3.0
+  // ════════════════════════════════════════════════════════════
   let recPts = 0;
-  if(hr.played > 3 && ar.played > 3){
-    const gap = Math.abs(hr.ppg - ar.ppg);
-    if(gap >= 1.0){ recPts = 15; reasons.push(`🏆 Écart de niveau clair (Δ${gap.toFixed(2)} pts/match)`); }
-    else if(gap >= 0.6){ recPts = 10; reasons.push(`📊 Avantage au bilan (Δ${gap.toFixed(2)} pts/match)`); }
-    else if(gap >= 0.3){ recPts = 5; }
-    else { reasons.push(`⚖️ Équipes proches au classement`); }
+  const PRIOR_PPG = 1.45, BAYES_K = 7;
+  if(hr.played >= 2 && ar.played >= 2){
+    const adjH = (hr.played * hr.ppg + BAYES_K * PRIOR_PPG) / (hr.played + BAYES_K);
+    const adjA = (ar.played * ar.ppg + BAYES_K * PRIOR_PPG) / (ar.played + BAYES_K);
+    const favPPG = p.ph >= p.pa ? adjH : adjA;
+    const oppPPG = p.ph >= p.pa ? adjA : adjH;
+    const gap = favPPG - oppPPG;
+    if(gap >= 0.8) { recPts = 15; reasons.push(`🏆 Nette supériorité au bilan (Δ${gap.toFixed(2)} pts/match adj.)`); }
+    else if(gap >= 0.5){ recPts = 11; reasons.push(`📊 Avantage au bilan (Δ${gap.toFixed(2)})`); }
+    else if(gap >= 0.25){ recPts = 6; }
+    else if(gap < -0.1){ reasons.push(`⚖️ Outsider statistiquement plus fort`); }
+    else { reasons.push(`⚖️ Équipes de niveau équivalent`); }
   }
   score += recPts;
 
-  // ── 5. Forme récente du favori (0–10 pts) ─────────────────
-  const favForm = (p.ph >= p.pa ? m.home : m.away).form || [];
-  const formPts5 = _formPts(favForm.slice(0,5));
-  const formScore = Math.round(formPts5 / 15 * 10); // max 15pts sur 5 matchs
-  score += formScore;
-  if(formPts5 >= 12) reasons.push(`🔥 Favori en grande forme (${formPts5}/15 pts sur 5 matchs)`);
-  else if(formPts5 >= 9) reasons.push(`✅ Bonne forme récente (${formPts5}/15)`);
-  else if(formPts5 <= 4) reasons.push(`⚠️ Forme irrégulière du favori`);
+  // ════════════════════════════════════════════════════════════
+  // PILIER E — H2H (0–7 pts)
+  //   Victoires du favori dans les 5 derniers duels directs
+  // ════════════════════════════════════════════════════════════
+  let h2hPts = 0;
+  const h2h = m.h2h || {};
+  if(h2h.list && h2h.list.length > 0){
+    const favWins = h2h.list.slice(0,5).filter(r=> r.w === (p.ph>=p.pa?'h':'a')).length;
+    h2hPts = Math.min(7, favWins * 1.4);
+    if(favWins >= 4) reasons.push(`⚔️ Domination H2H (${favWins}/5 victoires en duel direct)`);
+    else if(favWins >= 3) reasons.push(`⚔️ Avantage H2H (${favWins}/5)`);
+  } else if(h2h.h != null){
+    // Format simplifié {h, d, a}
+    const total = (h2h.h||0)+(h2h.d||0)+(h2h.a||0);
+    if(total > 0){
+      const favWinsSimple = p.ph >= p.pa ? (h2h.h||0) : (h2h.a||0);
+      h2hPts = Math.min(7, (favWinsSimple / total) * 7);
+      if(favWinsSimple/total >= 0.6) reasons.push(`⚔️ Avantage H2H (${favWinsSimple}/${total})`);
+    }
+  }
+  score += h2hPts;
 
-  // ── 6. Fiabilité de la source des cotes (0–5 pts) ─────────
-  const srcPts = m.oddSource === 'betclic' ? 5 : 2;
-  score += srcPts;
-  if(m.oddSource === 'betclic') reasons.push(`🎲 Cotes Betclic.ci (bookmaker local fiable)`);
+  // ════════════════════════════════════════════════════════════
+  // PÉNALITÉS — calibrées experts
+  // ════════════════════════════════════════════════════════════
+  if(pickOddF < 1.20){ score -= 25; reasons.push(`❌ Cote trop courte ×${pickOddF.toFixed(2)} — rendement négatif`); }
+  else if(pickOddF < 1.35){ score -= 12; reasons.push(`⚠️ Cote très courte ×${pickOddF.toFixed(2)}`); }
+  else if(pickOddF < 1.50){ score -= 5; }
+  else if(pickOddF >= 1.55 && pickOddF <= 2.40){ score += 3; reasons.push(`✅ Cote optimale ×${pickOddF.toFixed(2)}`); }
+  else if(pickOddF > 3.50){ score -= 5; reasons.push(`⚠️ Cote risquée ×${pickOddF.toFixed(2)}`); }
 
-  // ── 7. Cohérence multi-signaux (0–5 pts bonus) ────────────
-  // Tous les signaux pointent dans le même sens → bonus
-  const signalCount = [
-    maxP >= 55,           // prob élevée
-    edge >= 4,            // edge positif
-    recPts >= 10,         // avantage au bilan
-    formPts5 >= 9,        // bonne forme
-    pickOddF >= 1.50      // cote acceptable
-  ].filter(Boolean).length;
-  if(signalCount >= 4){ score += 5; reasons.push(`⭐ ${signalCount}/5 signaux alignés`); }
-  else if(signalCount >= 3){ score += 2; }
-
-  // ── Pénalités ─────────────────────────────────────────────
-  if(m.status === 'live'){ score -= 8; } // odds bougeantes en live
-  if(pickOddF < 1.20){ score -= 15; reasons.push(`❌ Cote trop courte — risque/rendement défavorable`); }
+  if(m.status === 'live'){ score -= 12; reasons.push(`🔴 Match live — cotes volatiles (-12 pts)`); }
+  if(!isBetclic){ score -= 3; }   // cotes synthétiques moins fiables
+  if(formMomentum <= 0.20){ score -= 5; }  // favori en méforme sévère
+  if(maxP < 45){ score -= 8; }   // match trop incertain
 
   score = Math.max(0, Math.min(100, Math.round(score)));
 
-  // Label selon score
+  // ── Labels (seuils plus exigeants) ────────────────────────
   let label, labelColor, labelIcon;
-  if(score >= 80){ label='BANKER'; labelColor='#f59e0b'; labelIcon='🏆'; }
-  else if(score >= 65){ label='PREMIUM'; labelColor='#22c55e'; labelIcon='⭐'; }
-  else if(score >= 50){ label='SOLIDE'; labelColor='#3b82f6'; labelIcon='✅'; }
-  else if(score >= 35){ label='À SURVEILLER'; labelColor='#888'; labelIcon='👁'; }
+  if(score >= 78){ label='BANKER';  labelColor='#f59e0b'; labelIcon='🏆'; }
+  else if(score >= 64){ label='PREMIUM'; labelColor='#22c55e'; labelIcon='⭐'; }
+  else if(score >= 50){ label='SOLIDE';  labelColor='#3b82f6'; labelIcon='✅'; }
+  else if(score >= 36){ label='À SURVEILLER'; labelColor='#888'; labelIcon='👁'; }
   else { label='FAIBLE'; labelColor='#555'; labelIcon='📉'; }
 
   return { score, label, labelColor, labelIcon, reasons, edge, maxP, formPts5 };
@@ -4044,7 +4107,7 @@ function renderIaList(){
   if(iaFilter === 'standard'){
     list = scored.filter(x => x.s.score >= 50);
   } else if(iaFilter === 'banker'){
-    list = scored.filter(x => x.s.label === 'BANKER');
+    list = scored.filter(x => x.s.score >= 78);
   } else if(iaFilter === 'safe'){
     list = scored.filter(x => x.m.risk === 'safe' && x.s.score >= 40);
   } else if(iaFilter === 'vb'){
@@ -4229,7 +4292,7 @@ function setIaFilter(f,el){
   // Update section title
   const titles={
     standard:'⭐ Sélections IA Expert — Aujourd\'hui',
-    banker:'🏆 Bankers du jour (score ≥ 80/100)',
+    banker:'🏆 Bankers du jour (score ≥ 78/100 — v2)',
     vb:'💎 Value Bets — Edge positif détecté',
     safe:'🛡️ Paris Sûrs — Risque faible',
     cote15:'⚡ Cotes ≥ 1.5 — Bon rapport R/R',
