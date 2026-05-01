@@ -1317,7 +1317,11 @@ function card(m){
 // ── renderAll : repaints all data-driven sections ──
 function renderAll(){
   // Garde-fou : ne jamais afficher un match terminé
-  const visible=MATCHES.filter(m=>m.status!=='finished');
+  const visible=MATCHES.filter(m=>m.status!=='finished').sort((a,b)=>{
+    const la=a.status==='live'?0:1, lb=b.status==='live'?0:1;
+    if(la!==lb) return la-lb;
+    return (a.time||'99:99').localeCompare(b.time||'99:99');
+  });
   document.getElementById('home-matches').innerHTML=visible.length
     ? visible.map(card).join('')+'<div style="height:4px"></div>'
     : '<div style="text-align:center;padding:50px 20px;opacity:.4"><div style="font-size:36px">⏳</div><div style="font-size:18px;font-weight:700;color:#666;margin-top:8px">Chargement des matchs…</div></div>';
@@ -1381,7 +1385,14 @@ function renderMatches(){
   ).filter(m=>!searchVal||
     m.home.name.toLowerCase().includes(searchVal)||
     m.away.name.toLowerCase().includes(searchVal)||
-    m.league.toLowerCase().includes(searchVal));
+    m.league.toLowerCase().includes(searchVal)
+  ).sort((a,b)=>{
+    // 1. Matchs en direct → en tête
+    const la = a.status==='live'?0:1, lb = b.status==='live'?0:1;
+    if(la!==lb) return la-lb;
+    // 2. Trier par heure de coup d'envoi (HH:MM)
+    return (a.time||'99:99').localeCompare(b.time||'99:99');
+  });
   document.getElementById('matches-list').innerHTML=list.length
     ? list.map(card).join('')+'<div style="height:8px"></div>'
     : '<div style="display:flex;flex-direction:column;align-items:center;padding:40px 20px;gap:8px;opacity:.5"><div style="font-size:36px">🔍</div><div style="font-size:18px;font-weight:700;color:#666">Aucun match trouvé</div><div style="font-size:14px;color:#555;text-align:center">Essayez un autre filtre ou une autre recherche.</div></div>';
