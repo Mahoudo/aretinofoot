@@ -2718,6 +2718,58 @@ const TSDB = {
     'Coupe de France':                {ls:'CDF', lc:'#16a34a', pri:20},
     'DFB-Pokal':                      {ls:'DFB', lc:'#ef4444', pri:21},
     'Copa del Rey':                   {ls:'CDR', lc:'#f97316', pri:22},
+    // ── Amérique du Sud ─────────────────────────────────────
+    'Bolivian División Profesional':  {ls:'BOL', lc:'#16a34a', pri:55},
+    'Bolivia División Profesional':   {ls:'BOL', lc:'#16a34a', pri:55},
+    'Liga Profesional Argentina':     {ls:'ARG', lc:'#3b82f6', pri:56},
+    'Argentine Primera División':     {ls:'ARG', lc:'#3b82f6', pri:56},
+    'Brasileirão Série A':            {ls:'BRA', lc:'#16a34a', pri:57},
+    'Brazil Serie A':                 {ls:'BRA', lc:'#16a34a', pri:57},
+    'Chilean Primera División':       {ls:'CHL', lc:'#ef4444', pri:58},
+    'Peruvian Primera División':      {ls:'PER', lc:'#ef4444', pri:59},
+    'Uruguayan Primera División':     {ls:'URU', lc:'#3b82f6', pri:60},
+    'Paraguayan Primera División':    {ls:'PAR', lc:'#ef4444', pri:61},
+    'Ecuadorian Serie A':             {ls:'ECU', lc:'#f59e0b', pri:62},
+    'Venezuelan Primera División':    {ls:'VEN', lc:'#f59e0b', pri:63},
+    'Colombian Primera A':            {ls:'COL', lc:'#eab308', pri:64},
+    // ── Amérique Centrale / CONCACAF ────────────────────────
+    'Honduran Liga Nacional':         {ls:'HON', lc:'#3b82f6', pri:70},
+    'Guatemala Liga Nacional':        {ls:'GUA', lc:'#3b82f6', pri:71},
+    'Costa Rican Primera División':   {ls:'CRC', lc:'#ef4444', pri:72},
+    'Panama Liga Panamena':           {ls:'PAN', lc:'#ef4444', pri:73},
+    'CONCACAF Champions Cup':         {ls:'CCL', lc:'#f59e0b', pri:74},
+    'Mexican Liga MX':                {ls:'MEX', lc:'#ef4444', pri:75},
+    'Liga MX':                        {ls:'MEX', lc:'#ef4444', pri:75},
+    // ── Afrique ─────────────────────────────────────────────
+    'Ivory Coast Ligue 1':            {ls:'CIV', lc:'#f97316', pri:80},
+    'Senegalese Ligue Professionnelle 1':{ls:'SEN',lc:'#16a34a',pri:81},
+    'Senegal Ligue 1':                {ls:'SEN', lc:'#16a34a', pri:81},
+    'Egyptian Premier League':        {ls:'EGY', lc:'#ef4444', pri:82},
+    'South African PSL':              {ls:'RSA', lc:'#16a34a', pri:83},
+    'Moroccan Botola Pro':            {ls:'MAR', lc:'#ef4444', pri:84},
+    'Tunisian Ligue Professionnelle 1':{ls:'TUN',lc:'#ef4444', pri:85},
+    'Nigerian Premier League':        {ls:'NGA', lc:'#16a34a', pri:86},
+    'Ghanaian Premier League':        {ls:'GHA', lc:'#f59e0b', pri:87},
+    'Algerian Ligue Professionnelle 1':{ls:'DZA',lc:'#16a34a', pri:88},
+    'Cameroon MTN Elite One':         {ls:'CMR', lc:'#16a34a', pri:89},
+    // ── Asie / Moyen-Orient ─────────────────────────────────
+    'Saudi Pro League':               {ls:'KSA', lc:'#22c55e', pri:90},
+    'UAE Arabian Gulf League':        {ls:'UAE', lc:'#ef4444', pri:91},
+    'Qatar Stars League':             {ls:'QAT', lc:'#9333ea', pri:92},
+    'Iranian Persian Gulf Pro League':{ls:'IRN', lc:'#ef4444', pri:93},
+    'Korean K League 1':              {ls:'KOR', lc:'#ef4444', pri:94},
+    'Chinese Super League':           {ls:'CHN', lc:'#dc2626', pri:95},
+    'Indian Super League':            {ls:'ISL', lc:'#f97316', pri:96},
+    'Thai League 1':                  {ls:'THL', lc:'#16a34a', pri:97},
+    // ── Autres Europe ───────────────────────────────────────
+    'Romanian Liga 1':                {ls:'ROU', lc:'#f59e0b', pri:100},
+    'Polish Ekstraklasa':             {ls:'POL', lc:'#ef4444', pri:101},
+    'Czech Fortuna Liga':             {ls:'CZE', lc:'#ef4444', pri:102},
+    'Hungarian OTP Bank Liga':        {ls:'HUN', lc:'#ef4444', pri:103},
+    'Croatian HNL':                   {ls:'CRO', lc:'#ef4444', pri:104},
+    'Serbian SuperLiga':              {ls:'SRB', lc:'#ef4444', pri:105},
+    'Ukrainian Premier League':       {ls:'UKR', lc:'#3b82f6', pri:106},
+    'Scottish Premiership':           {ls:'SPL', lc:'#3b82f6', pri:107},
   }
 };
 
@@ -2823,6 +2875,42 @@ function mergeOddsIntoMatches(tsdbMatches, oddsMatches){
     }
     return m;
   });
+}
+
+// ── TheSportsDB : livescores globaux + matchs du jour ──────────
+// Retourne les matchs TSDB absents de la liste existante (dedup par noms d'équipes)
+function _tsdbDedupMerge(existing, tsdbMatches){
+  const norm=s=>(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const existingKeys=new Set(existing.map(m=>norm(m.home.name)+norm(m.away.name)));
+  return tsdbMatches.filter(m=>!existingKeys.has(norm(m.home.name)+norm(m.away.name)));
+}
+
+async function _fetchTSDBLiveScores(existingMatches){
+  try{
+    const r=await fetch(`${TSDB.base}/livescores.php?sport=Soccer`);
+    if(!r.ok) return 0;
+    const d=await r.json();
+    const events=(d.livescores||d.events||[]).filter(Boolean);
+    if(!events.length) return 0;
+    const tsdbLive=transformTSDB(events);
+    const newOnes=_tsdbDedupMerge(existingMatches, tsdbLive);
+    newOnes.forEach(m=>existingMatches.push(m));
+    return newOnes.length;
+  }catch(e){ console.warn('[TSDB livescores]',e); return 0; }
+}
+
+async function _fetchTSDBToday(existingMatches, ymd){
+  try{
+    const r=await fetch(`${TSDB.base}/eventsday.php?d=${ymd}&s=Soccer`);
+    if(!r.ok) return 0;
+    const d=await r.json();
+    const events=(d.events||[]).filter(Boolean);
+    if(!events.length) return 0;
+    const tsdbAll=transformTSDB(events);
+    const newOnes=_tsdbDedupMerge(existingMatches, tsdbAll);
+    newOnes.forEach(m=>existingMatches.push(m));
+    return newOnes.length;
+  }catch(e){ console.warn('[TSDB today]',e); return 0; }
 }
 
 // ── ESPN transform ────────────────────────────────────────
@@ -3505,7 +3593,20 @@ async function fetchAllMatchesToday(forceYmd){
 
     let newMatches=transformESPN(espnEvents);
 
-    // 2️⃣  Betclic.ci — cotes locales via proxy (http://localhost:5502)
+    // 2️⃣  TheSportsDB — live scores globaux (Bolivie, Afrique, CONCACAF…)
+    //     Capture les matchs en live absents de l'API ESPN
+    try{
+      const liveAdded = await _fetchTSDBLiveScores(newMatches);
+      if(liveAdded>0) showToast(`🌍 ${liveAdded} match(s) live supplémentaire(s) détecté(s)`,'info',2000);
+    }catch(e){ console.warn('[TSDB live]',e); }
+
+    // 2b️⃣  TheSportsDB — tous les matchs du jour (ligues non couvertes par ESPN)
+    try{
+      const todayAdded = await _fetchTSDBToday(newMatches, ymd);
+      if(todayAdded>0) showToast(`📅 ${todayAdded} match(s) supplémentaire(s) (TSDB)`,'info',2200);
+    }catch(e){ console.warn('[TSDB today]',e); }
+
+    // 4️⃣  Betclic.ci — cotes locales via proxy (http://localhost:5502)
     try {
       const betclicData = await _fetchBetclicOdds(newMatches);
       if(betclicData.merged > 0){
@@ -3513,7 +3614,7 @@ async function fetchAllMatchesToday(forceYmd){
       }
     } catch(e){ console.warn('[Betclic odds]', e.message); }
 
-    // 3️⃣  API-Football — ligues supplémentaires (Honduras, CI, Sénégal…)
+    // 5️⃣  API-Football — ligues supplémentaires (Honduras, CI, Sénégal…)
     if(APIFOOTBALL_KEY){
       try {
         const afAdded = await _fetchApiFootballMatches(newMatches, ymd);
@@ -3525,7 +3626,7 @@ async function fetchAllMatchesToday(forceYmd){
       } catch(e){ console.warn('[API-Football]', e.message); }
     }
 
-    // 4️⃣  Odds API — enrichissement si clé disponible
+    // 6️⃣  Odds API — enrichissement si clé disponible
     if(API_CFG.key){
       try {
         const from=ymd+'T00:00:00Z', to=ymd+'T23:59:59Z';
