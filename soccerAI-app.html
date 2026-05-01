@@ -590,6 +590,7 @@ mark{background:none;color:#f97316;font-weight:900}
       <div class="chip" onclick="setMatchFilter('ia',this)">⭐ IA</div>
       <div class="sel-btn" id="sel-btn" onclick="toggleSelMode()">☑ Sélection</div>
     </div>
+    <div class="filter-chips" id="league-chips" style="padding:0 12px 6px;border-bottom:1px solid #12121c"></div>
     <div class="search-bar">
       <span class="sb-icon">🔍</span>
       <input class="sb-input" placeholder="Équipe, ligue..." oninput="filterSearch(this.value)"/>
@@ -935,7 +936,7 @@ const _MATCHES_PLACEHOLDER=[
   }
 ];/* end _MATCHES_PLACEHOLDER */
 
-let currentTab='home', matchFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0;
+let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0;
 
 // ── Helpers ──
 function riskBadge(r){
@@ -1062,6 +1063,7 @@ function renderAll(){
   document.getElementById('home-matches').innerHTML=visible.length
     ? visible.map(card).join('')+'<div style="height:4px"></div>'
     : '<div style="text-align:center;padding:50px 20px;opacity:.4"><div style="font-size:36px">⏳</div><div style="font-size:13px;font-weight:700;color:#666;margin-top:8px">Chargement des matchs…</div></div>';
+  renderLeagueChips();
   renderIaList();
   const liveCount=visible.filter(m=>m.status==='live').length;
   // Cap odds to avoid skewing from matches with no bookmaker data (max 8.00)
@@ -1117,7 +1119,8 @@ function renderMatches(){
     if(matchFilter==='top') return m.pred.conf>=75;
     if(matchFilter==='ia') return m.vb.length>0;
     return true;
-  }).filter(m=>!searchVal||
+  }).filter(m=> leagueFilter==='all' || m.ls===leagueFilter
+  ).filter(m=>!searchVal||
     m.home.name.toLowerCase().includes(searchVal)||
     m.away.name.toLowerCase().includes(searchVal)||
     m.league.toLowerCase().includes(searchVal));
@@ -1127,11 +1130,49 @@ function renderMatches(){
 }
 function setMatchFilter(f,btn){
   matchFilter=f;
+  leagueFilter='all'; // reset league filter
   document.querySelectorAll('#match-chips .chip').forEach(c=>c.classList.remove('active'));
   btn.classList.add('active');
+  renderLeagueChips();
   renderMatches();
 }
 function filterSearch(v){searchVal=v.toLowerCase();renderMatches();}
+
+function setLeagueFilter(ls, btn){
+  leagueFilter = ls;
+  document.querySelectorAll('#league-chips .chip').forEach(c=>{
+    c.style.background=''; c.style.borderColor=''; c.style.color='';
+    c.classList.remove('active');
+  });
+  btn.style.background = ls==='all' ? '#f97316' : btn.dataset.lc+'33';
+  btn.style.borderColor = ls==='all' ? '#f97316' : btn.dataset.lc;
+  btn.style.color = '#fff';
+  renderMatches();
+}
+
+function renderLeagueChips(){
+  const el = document.getElementById('league-chips');
+  if(!el) return;
+  // Collect unique leagues present in today's matches
+  const seen = new Map(); // ls → { ls, name, lc, count }
+  for(const m of MATCHES.filter(x=>x.status!=='finished')){
+    if(!seen.has(m.ls)){
+      seen.set(m.ls, { ls:m.ls, name:m.league.replace(/^[🌍🏆⭐🔵🟢🔴🇭🇳🇨🇮🇸🇳🇲🇦🇩🇿🇹🇳🇨🇲🇲🇱🇧🇫]\s*/,'').split('—')[0].trim(), lc:m.lc, count:0 });
+    }
+    seen.get(m.ls).count++;
+  }
+  if(seen.size === 0){ el.innerHTML=''; return; }
+  const leagues = [...seen.values()].sort((a,b)=>b.count-a.count);
+  const activeIs = leagueFilter==='all';
+  let html = `<div class="chip${activeIs?' active':''}" onclick="setLeagueFilter('all',this)" data-lc="#f97316" style="${activeIs?'background:#f97316;border-color:#f97316;color:#fff':''}">Tous (${MATCHES.filter(m=>m.status!=='finished').length})</div>`;
+  for(const l of leagues){
+    const isActive = leagueFilter===l.ls;
+    html += `<div class="chip" onclick="setLeagueFilter('${l.ls}',this)" data-lc="${l.lc}"
+      style="${isActive?`background:${l.lc}33;border-color:${l.lc};color:#fff`:''}"
+      >${l.name} <span style="opacity:.6;font-size:9px">(${l.count})</span></div>`;
+  }
+  el.innerHTML = html;
+}
 
 
 // ── Detail ──
