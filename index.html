@@ -716,6 +716,16 @@ mark{background:none;color:#f97316;font-weight:900}
         <input id="profil-api-key" class="field-input" placeholder="Ex: abc123def456..." type="text"/>
         <button class="btn-primary" onclick="saveApiKeyFromProfil()" style="background:#7c3aed">🔄 Enregistrer et charger les matchs</button>
         <div id="api-credits" style="font-size:9px;color:#555;text-align:center;margin-top:-4px"></div>
+
+        <div style="width:260px;height:1px;background:#1e1e2e;margin:14px 0"></div>
+        <div style="font-size:11px;font-weight:900;color:#16a34a;margin-bottom:8px;align-self:flex-start;width:260px">🌍 API-Football (Honduras, CI, Sénégal…)</div>
+        <div style="font-size:9px;color:#555;margin-bottom:8px;align-self:flex-start;width:260px;line-height:1.5">
+          Clé gratuite sur <span style="color:#3b82f6">rapidapi.com/api-sports/api/api-football</span><br>
+          100 requêtes/jour · Couvre 900+ ligues 🌍
+        </div>
+        <input id="profil-af-key" class="field-input" placeholder="Clé RapidAPI API-Football…" type="text"/>
+        <button class="btn-primary" onclick="saveAfKeyFromProfil()" style="background:#16a34a">🌍 Enregistrer (Honduras, CI, Sénégal…)</button>
+        <div id="af-key-status" style="font-size:9px;color:#555;text-align:center;margin-top:-4px"></div>
       </div>
     </div>
   </div>
@@ -1790,6 +1800,17 @@ function saveApiKeyFromProfil(){
   fetchAllMatchesToday(); // charge TheSportsDB + Odds API
 }
 
+function saveAfKeyFromProfil(){
+  const v=document.getElementById('profil-af-key')?.value?.trim();
+  if(!v){showToast('Colle ta clé API-Football d\'abord.','warn');return;}
+  APIFOOTBALL_KEY=v;
+  localStorage.setItem('apifootball_key', v);
+  const st=document.getElementById('af-key-status');
+  if(st) st.textContent='✅ Clé enregistrée !';
+  showToast('🌍 Clé API-Football enregistrée — rechargement…','info',1500);
+  setTimeout(()=>fetchAllMatchesToday(), 1200);
+}
+
 // ── Main fetch ─────────────────────────────────────────
 
 async function fetchLiveMatches(){
@@ -2422,6 +2443,152 @@ const BETCLIC_PROXY = (location.hostname === 'localhost' || location.hostname ==
   ? 'http://localhost:5502'
   : 'https://aretinofoot-proxy.onrender.com';
 
+// ══════════════════════════════════════════════════════════════
+//  API-FOOTBALL — Ligues supplémentaires (Honduras, CI, etc.)
+//  Clé gratuite sur : rapidapi.com/api-sports/api/api-football
+// ══════════════════════════════════════════════════════════════
+let APIFOOTBALL_KEY = localStorage.getItem('apifootball_key') || '';
+
+// Ligues à récupérer depuis API-Football (non couvertes par ESPN)
+const AF_EXTRA_LEAGUES = {
+  268:  { ls:'HON',  name:'Liga Nacional Honduras',   lc:'#1e40af', pri:40, flag:'🇭🇳' },
+  383:  { ls:'LIPR', name:'Ligue Pro Côte d\'Ivoire',  lc:'#f97316', pri:41, flag:'🇨🇮' },
+  368:  { ls:'SEN',  name:'Ligue 1 Sénégal',           lc:'#16a34a', pri:42, flag:'🇸🇳' },
+  200:  { ls:'BOTO', name:'Botola Pro Maroc',           lc:'#dc2626', pri:43, flag:'🇲🇦' },
+  197:  { ls:'ALGR', name:'Ligue Pro Algérie',          lc:'#16a34a', pri:44, flag:'🇩🇿' },
+  204:  { ls:'TUN',  name:'Ligue 1 Tunisie',            lc:'#dc2626', pri:45, flag:'🇹🇳' },
+  381:  { ls:'CMR',  name:'Elite One Cameroun',         lc:'#16a34a', pri:46, flag:'🇨🇲' },
+  480:  { ls:'MLI',  name:'Ligue 1 Mali',               lc:'#f97316', pri:47, flag:'🇲🇱' },
+  374:  { ls:'BUR',  name:'Ligue Pro Burkina Faso',     lc:'#dc2626', pri:48, flag:'🇧🇫' },
+};
+
+// Mapping statut API-Football → notre format
+function _afStatus(short, elapsed){
+  if(['1H','2H','ET','P','BT','LIVE','SUSP','INT'].includes(short))
+    return { status:'live', period: short==='BT'?'HT': short==='P'?'PKS': short };
+  if(['FT','AET','PEN','PST','CANC','ABD','AWD','WO'].includes(short))
+    return { status:'finished', period:'FT' };
+  return { status:'scheduled', period:'1H' };
+}
+
+async function _fetchApiFootballMatches(existingMatches, dateStr){
+  if(!APIFOOTBALL_KEY) return 0;
+  const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${dateStr}`;
+  const res  = await fetch(url, {
+    headers: {
+      'X-RapidAPI-Key':  APIFOOTBALL_KEY,
+      'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com'
+    },
+    signal: AbortSignal.timeout(12000)
+  });
+  if(!res.ok) throw new Error(`API-Football ${res.status}`);
+  const json = await res.json();
+  const fixtures = json.response || [];
+
+  // Set of team names already in ESPN (normalised)
+  const existingNames = new Set(
+    existingMatches.flatMap(m => [m.home.name.toLowerCase(), m.away.name.toLowerCase()])
+  );
+
+  let added = 0;
+  let uidC  = 90000;
+
+  for(const fx of fixtures){
+    try{
+      const lid  = fx.league?.id;
+      const li   = AF_EXTRA_LEAGUES[lid];
+      if(!li) continue; // skip leagues not in our extra list
+
+      const hName = fx.teams?.home?.name || '';
+      const aName = fx.teams?.away?.name || '';
+      if(!hName || !aName) continue;
+
+      // Skip if already present from ESPN
+      if(existingNames.has(hName.toLowerCase()) || existingNames.has(aName.toLowerCase())) continue;
+
+      // Status
+      const shortSt = fx.fixture?.status?.short || 'NS';
+      const elapsed  = fx.fixture?.status?.elapsed || 0;
+      const { status, period } = _afStatus(shortSt, elapsed);
+
+      // Score
+      const scoreH = fx.goals?.home  ?? 0;
+      const scoreA = fx.goals?.away ?? 0;
+
+      // Time
+      const dt  = new Date(fx.fixture?.date || dateStr+'T12:00:00Z');
+      const timeStr = dt.getHours().toString().padStart(2,'0')+':'+dt.getMinutes().toString().padStart(2,'0');
+
+      // Form from fixture (if provided)
+      const toFormArr = s => s ? s.split('').map(c=>c==='W'?'W':c==='L'?'L':'D').slice(0,5) : [];
+      const hFormArr  = toFormArr(fx.teams?.home?.form || '');
+      const aFormArr  = toFormArr(fx.teams?.away?.form || '');
+      const hFormPts  = _formPts(hFormArr);
+      const aFormPts  = _formPts(aFormArr);
+
+      // Neutral home-advantage odds (aucune cote dispo en plan gratuit)
+      const oddsH = 2.10, oddsD = 3.30, oddsA = 3.50;
+      const {ph,pd,pa} = oddsToProbs(oddsH,oddsD,oddsA);
+      const {hxg,axg}  = probsToXG(ph,pa);
+      const matchPred  = calcMatchPred(hxg,axg);
+      const edge  = calcEdge(ph,oddsH);
+      const conf  = calcConf(ph,pd,pa,edge);
+      const risk  = conf>=72?'safe':conf>=60?'moyen':'eleve';
+
+      const maxP     = Math.max(ph,pd,pa);
+      const pickType = ph===maxP?'1':pa===maxP?'2':'N';
+      const pickOdd  = pickType==='1'?oddsH:pickType==='2'?oddsA:oddsD;
+      const hShort   = hName.split(' ').slice(-1)[0];
+      const aShort   = aName.split(' ').slice(-1)[0];
+      const pickLabel= pickType==='1'?`Victoire ${hShort}`:pickType==='2'?`Victoire ${aShort}`:'Match Nul';
+
+      const vb = [];
+      if(calcEdge(ph,oddsH)>4) vb.push({label:`Vic. ${hShort}`,type:'1',odd:oddsH,kelly:+(calcEdge(ph,oddsH)/100*0.5).toFixed(3)});
+      if(calcEdge(pd,oddsD)>4) vb.push({label:'Match Nul',type:'N',odd:oddsD,kelly:+(calcEdge(pd,oddsD)/100*0.5).toFixed(3)});
+      if(calcEdge(pa,oddsA)>4) vb.push({label:`Vic. ${aShort}`,type:'2',odd:oddsA,kelly:+(calcEdge(pa,oddsA)/100*0.5).toFixed(3)});
+
+      const hRecord = {w:0,d:0,l:0,pts:0,played:0,ppg:0,pct:0,label:'—'};
+      const aRecord = {w:0,d:0,l:0,pts:0,played:0,ppg:0,pct:0,label:'—'};
+
+      const matchObj = {
+        id: fx.fixture?.id || uidC++,
+        espnId: null,
+        league: `${li.flag} ${li.name}`,
+        ls: li.ls, lc: li.lc, pri: li.pri,
+        time: timeStr, status, period, liveMin: elapsed,
+        score: { h: scoreH, a: scoreA },
+        home: { name:hName, short:hShort, emoji:'⚽', form:hFormArr, logo: fx.teams?.home?.logo||'', record:hRecord },
+        away: { name:aName, short:aShort, emoji:'⚽', form:aFormArr, logo: fx.teams?.away?.logo||'', record:aRecord },
+        odds: { h:oddsH, d:oddsD, a:oddsA },
+        pred: { ph,pd,pa,hxg,axg,conf,
+          o25:matchPred.o25, o15:matchPred.o15, o05:matchPred.o05, o35:matchPred.o35,
+          btts:matchPred.btts, score:matchPred.score },
+        mp: { label:pickLabel,type:pickType,odd:'×'+pickOdd.toFixed(2),conf:(conf/10).toFixed(1),risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ' },
+        risk, vb, h2h:{h:0,d:0,a:0,list:[]},
+        oddSource: 'apifootball',
+        formStats:{
+          hRec:hRecord.label, hPts:hFormPts,
+          aRec:aRecord.label, aPts:aFormPts,
+          hSeason:'—', aSeason:'—',
+          hPlayed:0, aPlayed:0
+        },
+        players:{h:[],a:[]},
+        tactics:{
+          hForm:'—',aForm:'—', mom:Math.round(ph),
+          press:[55,50], trans:[50,50], phys:[70,70],
+          ou:{o05:matchPred.o05,o15:matchPred.o15,o25:matchPred.o25,o35:matchPred.o35}
+        },
+        recos:[{name:pickLabel,sub:`Aretinofoot · ${li.flag} ${li.ls}`,odd:'×'+pickOdd.toFixed(2)}],
+        espnStats:{hPoss:50,aPoss:50,hShots:0,aShots:0,hSOT:0,aSOT:0,hCorners:0,aCorners:0,hFouls:0,aFouls:0}
+      };
+      matchObj.aiAnalysis = _buildAnalysisText(matchObj);
+      existingMatches.push(matchObj);
+      added++;
+    }catch(e){ console.warn('[API-Football fixture]', e); }
+  }
+  return added;
+}
+
 // Map ESPN league short code → Betclic.ci URL slug
 const BETCLIC_SLUGS = {
   'PL':  'angl-premier-league-c3',
@@ -2585,7 +2752,19 @@ async function fetchAllMatchesToday(forceYmd){
       }
     } catch(e){ console.warn('[Betclic odds]', e.message); }
 
-    // 3️⃣  Odds API — enrichissement si clé disponible
+    // 3️⃣  API-Football — ligues supplémentaires (Honduras, CI, Sénégal…)
+    if(APIFOOTBALL_KEY){
+      try {
+        const afAdded = await _fetchApiFootballMatches(newMatches, ymd);
+        if(afAdded > 0){
+          showToast(`🌍 ${afAdded} matchs supplémentaires (API-Football)`, 'info', 2200);
+          // re-sort after adding
+          newMatches.sort((a,b)=>(a.pri-b.pri)||a.time.localeCompare(b.time));
+        }
+      } catch(e){ console.warn('[API-Football]', e.message); }
+    }
+
+    // 4️⃣  Odds API — enrichissement si clé disponible
     if(API_CFG.key){
       try {
         const from=ymd+'T00:00:00Z', to=ymd+'T23:59:59Z';
@@ -2635,6 +2814,14 @@ async function fetchAllMatchesToday(forceYmd){
   const k=API_CFG.key;
   const p=document.getElementById('profil-api-key');
   if(p&&k) p.value=k;
+
+  // Restore API-Football key
+  const afP=document.getElementById('profil-af-key');
+  if(afP && APIFOOTBALL_KEY){
+    afP.value=APIFOOTBALL_KEY;
+    const st=document.getElementById('af-key-status');
+    if(st) st.textContent='✅ Clé enregistrée';
+  }
 
   setTimeout(()=>{
     startAutoRefresh();
