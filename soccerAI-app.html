@@ -251,6 +251,7 @@ body{background:#FAF8F4;display:flex;align-items:center;justify-content:center;m
 .chat-status::before{content:'';width:5px;height:5px;border-radius:50%;background:#22c55e;display:inline-block}
 .chat-messages{flex:1;overflow-y:auto;padding:12px}
 .chat-msg{background:#FFFFFF;border:1px solid #EDE9E3;border-radius:14px;border-bottom-left-radius:4px;padding:10px 14px;max-width:88%;margin-bottom:10px}
+.chat-msg.user{background:#FFF4E8;border-color:#FDBA74;border-bottom-left-radius:14px;border-bottom-right-radius:4px;margin-left:auto;color:#EA580C}
 .chat-msg-text{font-size:15px;color:#ccc;line-height:1.55}
 .quick-chips{display:flex;gap:6px;overflow-x:auto;padding:6px 12px;border-top:1px solid #EDE9E3;flex-shrink:0}
 .qc{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700;background:#F4F1EB;border:1px solid #D9D4CC;color:#888;cursor:pointer;white-space:nowrap;flex-shrink:0}
@@ -770,14 +771,14 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
   <div class="screen active" id="screen-home">
     <div class="scroll">
       <div class="hero-banner">
-        <div class="hb-tag"><div class="hb-tag-dot"></div><span class="hb-tag-text">🔴 4 LIVE EN CE MOMENT</span></div>
+        <div class="hb-tag"><div class="hb-tag-dot"></div><span class="hb-tag-text lp-text">⏳ Chargement…</span></div>
         <div class="hb-date" id="hb-date">📅 Chargement…</div>
         <div class="hb-title">Matchs du Jour</div>
-        <div class="hb-sub">4 matchs · 4 en cours</div>
+        <div class="hb-sub">— matchs · — live</div>
         <div class="hb-stats">
-          <div><div class="hbs-val">4</div><div class="hbs-lbl">Matchs</div></div>
-          <div><div class="hbs-val">63%</div><div class="hbs-lbl">Confiance IA</div></div>
-          <div><div class="hbs-val">×2.80</div><div class="hbs-lbl">Cote max</div></div>
+          <div><div class="hbs-val">—</div><div class="hbs-lbl">Matchs</div></div>
+          <div><div class="hbs-val">—</div><div class="hbs-lbl">Confiance IA</div></div>
+          <div><div class="hbs-val">—</div><div class="hbs-lbl">Cote max</div></div>
         </div>
       </div>
       <div class="tiles-grid">
@@ -790,27 +791,8 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
         <span class="sec-title">📰 Actu &amp; Analyses du Jour</span>
         <span class="ah-ico" style="font-size:20px">🔄</span>
       </div>
-      <div class="news-scroll">
-        <div class="news-card" onclick="showDetail(2)">
-          <div class="nc-tag live">🔴 LIVE 16'</div>
-          <div class="nc-title">Braga 1-0 Fribourg</div>
-          <div class="nc-sub">Europa League · Demi-finale</div>
-        </div>
-        <div class="news-card" onclick="showDetail(4)">
-          <div class="nc-tag live">🔴 LIVE 15'</div>
-          <div class="nc-title">Shakhtar 0-1 Crystal Palace</div>
-          <div class="nc-sub">Conference League · Demi-finale</div>
-        </div>
-        <div class="news-card" onclick="showDetail(1)">
-          <div class="nc-tag vb">💎 VALUE BET</div>
-          <div class="nc-title">Value : Victoire Braga</div>
-          <div class="nc-sub">EL · Edge +9.6% · ×2.20</div>
-        </div>
-        <div class="news-card" onclick="showDetail(3)">
-          <div class="nc-tag form">⚔️ DEMI-FINALE</div>
-          <div class="nc-title">Rayo 0-0 Strasbourg</div>
-          <div class="nc-sub">Conference League · 13e min</div>
-        </div>
+      <div class="news-scroll" id="news-scroll-content">
+        <div style="opacity:.5;padding:20px 12px;font-size:13px;color:#888">⏳ Chargement…</div>
       </div>
       <div class="sec-header">
         <span class="sec-title" style="display:flex;align-items:center;gap:6px">
@@ -1331,6 +1313,82 @@ function card(m){
   </div>`;
 }
 
+// ── Actu & Analyses du Jour — cartes dynamiques ───────────────
+function renderNewsCards(){
+  const el = document.getElementById('news-scroll-content');
+  if(!el) return;
+  const visible = MATCHES.filter(m => m.status !== 'finished');
+  if(!visible.length){
+    el.innerHTML = '<div style="opacity:.5;padding:20px 12px;font-size:13px;color:#888">⏳ En attente des matchs du jour…</div>';
+    return;
+  }
+
+  const cards = [];
+
+  // 1️⃣ Matchs en LIVE (jusqu'à 3)
+  visible.filter(m => m.status === 'live').slice(0,3).forEach(m => {
+    const sc = m.score ? `${m.score.h}-${m.score.a}` : '?-?';
+    const min = m.liveMin ? m.liveMin+"'" : '';
+    cards.push(`
+      <div class="news-card" onclick="showDetail(${m.id})">
+        <div class="nc-tag live">🔴 LIVE ${min}</div>
+        <div class="nc-title">${m.home.short||m.home.name} ${sc} ${m.away.short||m.away.name}</div>
+        <div class="nc-sub">${m.ls} · ${m.league.split('—')[0].trim()}</div>
+      </div>`);
+  });
+
+  // 2️⃣ Value bets du jour (jusqu'à 2)
+  visible.filter(m => m.vb && m.vb.length > 0).slice(0,2).forEach(m => {
+    const vb = m.vb[0];
+    const edge = vb.kelly ? (vb.kelly * 100).toFixed(1) : '?';
+    cards.push(`
+      <div class="news-card" onclick="showDetail(${m.id})">
+        <div class="nc-tag vb">💎 VALUE BET</div>
+        <div class="nc-title">${vb.label}</div>
+        <div class="nc-sub">${m.ls} · Edge +${edge}% · ×${(vb.odd||0).toFixed(2)}</div>
+      </div>`);
+  });
+
+  // 3️⃣ Top confiance (picks IA BANKER ou PREMIUM, jusqu'à 2)
+  const scored = visible.map(m => ({m, s:_iaScore(m)})).sort((a,b)=>b.s.score-a.s.score);
+  scored.filter(x => x.s.score >= 64 && x.m.status !== 'live').slice(0,2).forEach(({m,s}) => {
+    const tagLabel = s.label === 'BANKER' ? '🏆 BANKER' : '⭐ PREMIUM';
+    const tagClass = s.label === 'BANKER' ? 'vb' : 'form';
+    cards.push(`
+      <div class="news-card" onclick="showDetail(${m.id})">
+        <div class="nc-tag ${tagClass}">${tagLabel} ${s.score}/100</div>
+        <div class="nc-title">${m.home.short||m.home.name} vs ${m.away.short||m.away.name}</div>
+        <div class="nc-sub">${m.ls} · ${m.mp.label} · ${m.mp.odd}</div>
+      </div>`);
+  });
+
+  // 4️⃣ BTTS intéressant (prob ≥ 72%, jusqu'à 1)
+  const bttsM = visible.filter(m => m.status !== 'live' && (m.pred.btts||0) >= 72)
+    .sort((a,b) => (b.pred.btts||0) - (a.pred.btts||0))[0];
+  if(bttsM){
+    cards.push(`
+      <div class="news-card" onclick="showDetail(${bttsM.id})">
+        <div class="nc-tag form">⚽ BTTS ${bttsM.pred.btts}%</div>
+        <div class="nc-title">${bttsM.home.short||bttsM.home.name} vs ${bttsM.away.short||bttsM.away.name}</div>
+        <div class="nc-sub">${bttsM.ls} · Les deux équipes marquent</div>
+      </div>`);
+  }
+
+  // 5️⃣ Si rien, afficher les 4 meilleurs matchs
+  if(!cards.length){
+    visible.slice(0,4).forEach(m => {
+      cards.push(`
+        <div class="news-card" onclick="showDetail(${m.id})">
+          <div class="nc-tag form">📅 À VENIR ${m.time}</div>
+          <div class="nc-title">${m.home.short||m.home.name} vs ${m.away.short||m.away.name}</div>
+          <div class="nc-sub">${m.ls} · ${m.mp.label}</div>
+        </div>`);
+    });
+  }
+
+  el.innerHTML = cards.join('') || '<div style="opacity:.5;padding:20px 12px;font-size:13px;color:#888">Aucun match à afficher</div>';
+}
+
 // ── renderAll : repaints all data-driven sections ──
 function renderAll(){
   // Garde-fou : ne jamais afficher un match terminé
@@ -1342,6 +1400,7 @@ function renderAll(){
   document.getElementById('home-matches').innerHTML=visible.length
     ? visible.map(card).join('')+'<div style="height:4px"></div>'
     : '<div style="text-align:center;padding:50px 20px;opacity:.4"><div style="font-size:36px">⏳</div><div style="font-size:18px;font-weight:700;color:#666;margin-top:8px">Chargement des matchs…</div></div>';
+  renderNewsCards();
   renderLeagueChips();
   renderIaList();
   const liveCount=visible.filter(m=>m.status==='live').length;
@@ -1396,7 +1455,7 @@ function renderMatches(){
     if(matchFilter==='moyen') return m.risk==='moyen';
     if(matchFilter==='eleve') return m.risk==='eleve';
     if(matchFilter==='top') return m.pred.conf>=75;
-    if(matchFilter==='ia') return m.vb.length>0;
+    if(matchFilter==='ia') return (m.vb||[]).length>0;
     return true;
   }).filter(m=> leagueFilter==='all' || (leagueFilter==='faves' ? FAVE_LEAGUES.has(m.ls) : m.ls===leagueFilter)
   ).filter(m=>!searchVal||
@@ -2279,7 +2338,7 @@ function transformOddsData(allEvents){
 
 // ── UI helpers ─────────────────────────────────────────
 
-function showToast(msg, type='ok'){
+function showToast(msg, type='ok', duration=4000){
   let t=document.getElementById('app-toast');
   if(!t){
     t=document.createElement('div');
@@ -2287,12 +2346,17 @@ function showToast(msg, type='ok'){
     t.style.cssText='position:absolute;bottom:82px;left:14px;right:14px;border-radius:12px;padding:10px 14px;font-size:14px;font-weight:700;z-index:400;text-align:center;transition:opacity .4s;pointer-events:none';
     document.querySelector('.phone').appendChild(t);
   }
-  const colors={ok:['#0a1e0a','#22c55e','#4ade80'],warn:['#1a1400','#eab308','#fde047'],error:['#1a0505','#ef4444','#f87171']};
+  const colors={
+    ok:  ['#0a1e0a','#22c55e','#4ade80'],
+    info:['#0a1220','#3b82f6','#93c5fd'],
+    warn:['#1a1400','#eab308','#fde047'],
+    error:['#1a0505','#ef4444','#f87171']
+  };
   const [bg,border,color]=colors[type]||colors.ok;
   Object.assign(t.style,{background:bg,border:`1px solid ${border}`,color,opacity:'1'});
   t.textContent=msg;
   clearTimeout(t._t);
-  t._t=setTimeout(()=>{t.style.opacity='0';},4000);
+  t._t=setTimeout(()=>{t.style.opacity='0';},duration);
 }
 
 function setRefreshState(loading){
@@ -2505,7 +2569,7 @@ function _liveAdverseWarning(m, betType){
   let detail  = '';
 
   if(type === '1'){
-    if(h < a){ adverse = true; detail = `${m.home.name} mène ${h}-${a} ❌`; }
+    if(h < a){ adverse = true; detail = `${m.home.name} est mené ${h}-${a} ❌`; }
     else if(h === a){ detail = `Score nul ${h}-${a} pour l'instant ⏱`; adverse = false; }
   } else if(type === '2'){
     if(a < h){ adverse = true; detail = `${m.away.name} est mené ${a}-${h} ❌`; }
@@ -2781,7 +2845,7 @@ const TSDB = {
     'Croatian HNL':                   {ls:'CRO', lc:'#ef4444', pri:104},
     'Serbian SuperLiga':              {ls:'SRB', lc:'#ef4444', pri:105},
     'Ukrainian Premier League':       {ls:'UKR', lc:'#3b82f6', pri:106},
-    'Scottish Premiership':           {ls:'SPL', lc:'#3b82f6', pri:107},
+    'Scottish Cup':                   {ls:'SCO', lc:'#3b82f6', pri:107},
   }
 };
 
@@ -3617,7 +3681,6 @@ async function fetchAllMatchesToday(forceYmd){
       MATCHES=[];
       renderAll();
       setRefreshState(false);
-      renderAll();
       return;
     }
 
@@ -4419,13 +4482,14 @@ async function toggleNotifications(){
   showToast('🔔 Notifications activées — vous serez alerté pour chaque but !','ok');
   // Snapshot des scores actuels (pour ne pas notifier l'état initial)
   MATCHES.forEach(m => {
-    _notifGoals[m.id] = `${m.score.h}-${m.score.a}`;
+    _notifGoals[m.id] = m.score ? `${m.score.h}-${m.score.a}` : '0-0';
   });
 }
 
 function _checkGoalNotifs(){
   if(!_notifEnabled || Notification.permission !== 'granted') return;
   MATCHES.filter(m => m.status === 'live').forEach(m => {
+    if(!m.score) return;
     const prev = _notifGoals[m.id];
     const curr = `${m.score.h}-${m.score.a}`;
     if(prev === undefined){ _notifGoals[m.id] = curr; return; }
@@ -4445,7 +4509,7 @@ function _checkGoalNotifs(){
     }
   });
   // Notifier aussi matchs commençant (status passe à live)
-  MATCHES.filter(m => m.status === 'live' && _notifGoals[m.id] === undefined).forEach(m => {
+  MATCHES.filter(m => m.status === 'live' && _notifGoals[m.id] === undefined && m.score).forEach(m => {
     _notifGoals[m.id] = `${m.score.h}-${m.score.a}`;
     new Notification(`🟢 Match débuté : ${m.home.name} vs ${m.away.name}`, {
       body: `${m.league} — coup d'envoi !`,
@@ -4459,11 +4523,14 @@ function _checkGoalNotifs(){
 // Appeler _checkGoalNotifs dans le tick existant
 const _origTickLive = _tickLive;
 // Injecter dans startAutoRefresh via le setInterval existant (patch propre)
+// Fix BUG-C5 : stocker la référence pour éviter l'empilement de timers
+let _notifTimer = null;
 (function patchNotifCheck(){
   const origStart = startAutoRefresh;
   startAutoRefresh = function(){
     origStart();
-    setInterval(_checkGoalNotifs, 12000); // vérif toutes les 12s
+    if(_notifTimer) clearInterval(_notifTimer);
+    _notifTimer = setInterval(_checkGoalNotifs, 12000);
   };
 })();
 
