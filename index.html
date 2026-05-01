@@ -229,6 +229,10 @@ body{background:#07070d;display:flex;align-items:center;justify-content:center;m
 .cf.active{background:#7c3aed;border-color:#7c3aed;color:#fff}
 .ia-selection{margin:0 12px 8px;background:#13131f;border:1px solid #1e1e2e;border-radius:14px;padding:10px 12px;cursor:pointer;transition:.12s}
 .ia-selection:active{transform:scale(.985)}
+.ia-selection.ia-selected{border-color:#f97316;background:#1a0d00}
+.ia-coupon-btn{margin-top:8px;width:100%;background:#f9731618;border:1px solid #f9731640;border-radius:8px;color:#f97316;font-size:10px;font-weight:900;padding:6px;text-align:center;cursor:pointer;transition:.12s}
+.ia-coupon-btn:active{transform:scale(.97)}
+.ia-coupon-btn.in-coupon{background:#16a34a22;border-color:#16a34a55;color:#22c55e}
 .ias-tag{font-size:8px;font-weight:900;color:#a78bfa;letter-spacing:.5px;margin-bottom:5px}
 .ias-match{font-size:12px;font-weight:800;color:#fff;margin-bottom:3px}
 .ias-bet{font-size:10px;color:#888;margin-bottom:6px}
@@ -2786,8 +2790,9 @@ function renderIaList(){
     // Score bar fill
     const barColor = s.score>=80?'#f59e0b':s.score>=65?'#22c55e':s.score>=50?'#3b82f6':'#555';
 
+    const inCoupon = !!COUPON[m.id];
     return `
-    <div class="ia-selection" onclick="showDetail(${m.id})">
+    <div class="ia-selection${inCoupon?' ia-selected':''}" id="ia-card-${m.id}" onclick="showDetail(${m.id})">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
         <div style="display:flex;align-items:center;gap:5px">
           <span style="font-size:9px;font-weight:900;color:${s.labelColor};background:${s.labelColor}18;border:1px solid ${s.labelColor}33;padding:2px 7px;border-radius:5px;letter-spacing:.5px">${s.labelIcon} ${s.label}</span>
@@ -2809,6 +2814,9 @@ function renderIaList(){
           ${m.vb.length?`<span style="font-size:7px;color:#a78bfa;font-weight:900">💎 VB</span>`:''}
           <span class="ias-odd">${mp.odd}</span>
         </span>
+      </div>
+      <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="toggleIaCoupon(event,${m.id})">
+        ${inCoupon ? '✅ Dans le coupon — retirer' : '＋ Ajouter au coupon'}
       </div>
     </div>`;
   }).join('') + '<div style="height:8px"></div>';
@@ -3115,6 +3123,41 @@ function toggleMatchSel(id){
     if(chk) chk.classList.toggle('checked', isSel);
     const cta=card.querySelector('.card-cta');
     if(cta) cta.textContent=isSel?'✅ Dans le coupon — appuyez pour retirer':'👆 Appuyez pour plus de détails';
+  }
+}
+
+// Ajouter/retirer depuis l'onglet IA
+function toggleIaCoupon(e, id){
+  e.stopPropagation();
+  const m = MATCHES.find(x => x.id === id);
+  if(!m) return;
+  if(COUPON[id]){
+    delete COUPON[id];
+    showToast('🗑 Retiré du coupon');
+  } else {
+    const mp = m.mp;
+    const rawOdd = parseFloat((mp.odd||'×1').replace('×',''))||1.50;
+    COUPON[id] = { bet: mp.type||'1', label: mp.label, odd: rawOdd, matchRef: m };
+    showToast('✅ Ajouté au coupon !');
+  }
+  _updateCouponBar();
+  // Mise à jour visuelle carte IA sans re-render complet
+  const card = document.getElementById(`ia-card-${id}`);
+  const btn  = document.getElementById(`ia-cb-${id}`);
+  const inC  = !!COUPON[id];
+  if(card){ card.classList.toggle('ia-selected', inC); }
+  if(btn){
+    btn.classList.toggle('in-coupon', inC);
+    btn.textContent = inC ? '✅ Dans le coupon — retirer' : '＋ Ajouter au coupon';
+  }
+  // Sync carte matchs si visible
+  const matchCard = document.querySelector(`[data-id="${id}"]`);
+  if(matchCard){
+    matchCard.classList.toggle('selected', inC);
+    const chk = matchCard.querySelector('.card-check');
+    if(chk) chk.classList.toggle('checked', inC);
+    const cta = matchCard.querySelector('.card-cta');
+    if(cta) cta.textContent = inC ? '✅ Dans le coupon — appuyez pour retirer' : '👆 Appuyez pour plus de détails';
   }
 }
 
