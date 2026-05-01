@@ -1309,6 +1309,7 @@ function card(m){
         <span class="mp-badge ${mp.risk==='SAFE'?'rb-safe':'rb-moyen'}">${mp.risk}</span>
       </div>
     </div>
+    ${_liveAdverseWarning(m, mp.type)}
     <div class="card-cta" id="cta-${m.id}">${isSel?'✅ Dans le coupon — appuyez pour retirer':'👆 Appuyez pour plus de détails'}</div>
   </div>`;
 }
@@ -1766,7 +1767,7 @@ function renderDBody(m,tab){
 
     body.innerHTML=`
       <div class="ai-pronostic">
-        <div class="aip-label">🎯 PRONOSTIC ARETINOFOOT</div>
+        <div class="aip-label">🎯 PRONOSTIC ARETINOFOOT${m.status==='live'?' · 🔴 EN DIRECT':''}</div>
         <div class="aip-pred">${pronoText}</div>
         <div class="aip-bar"><div class="aip-fill" style="width:${p.conf}%"></div></div>
         <div class="aip-foot">
@@ -1774,6 +1775,7 @@ function renderDBody(m,tab){
           <span class="aip-badge" style="color:${cc};background:${cc}22;border-color:${cc}44">${p.conf>=75?'⚡ Haute':p.conf>=60?'⚡ Moyenne':'⚡ Faible'}</span>
         </div>
       </div>
+      ${_liveAdverseWarning(m, m.mp?.type)}
 
       <div class="dsec"><div class="dsec-title">📋 ANALYSE COMPLÈTE</div>
         <div style="background:#F4F1EB;border:1px solid #EDE9E3;border-radius:12px;padding:12px">
@@ -2314,6 +2316,52 @@ function _couponEV(){
     evPer1000: Math.round(ev * 1000),
     isPositive: ev > 0
   };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ⚠️  ALERTE PRÉDICTION ADVERSE EN LIVE
+// ══════════════════════════════════════════════════════════════
+function _liveAdverseWarning(m, betType){
+  if(m.status !== 'live' || !m.score) return '';
+  const h = m.score.h, a = m.score.a;
+  const type = betType || m.mp?.type || '1';
+
+  // Détecter si le pari est en mauvaise posture
+  let adverse = false;
+  let detail  = '';
+
+  if(type === '1'){
+    if(h < a){ adverse = true; detail = `${m.home.name} mène ${h}-${a} ❌`; }
+    else if(h === a){ detail = `Score nul ${h}-${a} pour l'instant ⏱`; adverse = false; }
+  } else if(type === '2'){
+    if(a < h){ adverse = true; detail = `${m.away.name} est mené ${a}-${h} ❌`; }
+    else if(h === a){ detail = `Score nul ${h}-${a} pour l'instant ⏱`; adverse = false; }
+  } else if(type === 'N'){
+    if(h !== a){ adverse = true; detail = `Score ${h}-${a} — pas nul ❌`; }
+  } else if(type === '1X'){
+    if(h < a){ adverse = true; detail = `${m.home.name} est mené ${h}-${a} ❌`; }
+  } else if(type === 'X2'){
+    if(h > a){ adverse = true; detail = `${m.home.name} mène ${h}-${a}, ext. perdant ❌`; }
+  } else if(type === '+1.5' || type === '+2.5'){
+    // pas de sens adverse simple, pas d'alerte
+  }
+
+  if(!adverse && !detail) return '';
+  const color   = adverse ? '#DC2626' : '#CA8A04';
+  const bgColor = adverse ? '#FEF2F2' : '#FFFBEB';
+  const border  = adverse ? '#FCA5A5' : '#FDE68A';
+  const icon    = adverse ? '⚠️' : '⏱';
+  const msg     = adverse
+    ? `Prédiction initiale — score actuel défavorable`
+    : `Prédiction initiale — score en cours équilibré`;
+
+  return `<div style="margin-top:5px;background:${bgColor};border:1px solid ${border};border-radius:8px;padding:5px 10px;display:flex;align-items:center;gap:7px">
+    <span style="font-size:15px">${icon}</span>
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:900;color:${color}">${msg}</div>
+      <div style="font-size:11px;color:#78726D;margin-top:1px">${detail} · Score live : ${h}-${a}  (${m.liveMin||'?'}')</div>
+    </div>
+  </div>`;
 }
 
 // ── Main fetch ─────────────────────────────────────────
@@ -3765,6 +3813,7 @@ function renderIaList(){
       </div>
       ${safeReasonHtml}
       ${reasonsHtml}
+      ${_liveAdverseWarning(m, displayPick.type)}
       <div class="ias-footer" style="margin-top:6px">
         <span class="ias-conf">🎯 ${p.conf}% · Edge ${s.edge>=0?'+':''}${s.edge.toFixed(1)}%</span>
         <span style="display:flex;align-items:center;gap:6px">
