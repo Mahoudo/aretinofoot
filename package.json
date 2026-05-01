@@ -1,0 +1,12 @@
+{
+  "name": "aretinofoot",
+  "version": "1.0.0",
+  "description": "Aretinofoot — Analyse football & cotes Betclic.ci",
+  "main": "betclic-proxy.js",
+  "scripts": {
+    "start": "node betclic-proxy.js",
+    "proxy": "node betclic-proxy.js",
+    "dev": "npx serve -l 5500 ."
+  },
+  "engines": { "node": ">=18" }
+}

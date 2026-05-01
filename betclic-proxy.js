@@ -13,7 +13,7 @@ const http  = require('http');
 const https = require('https');
 const url   = require('url');
 
-const PORT = 5502;
+const PORT = process.env.PORT || 5502;
 
 // Betclic CI → league slugs (URL path after /football-sfootball/)
 const LEAGUE_SLUGS = {

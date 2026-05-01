@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: aretinofoot-proxy
+    env: node
+    plan: free
+    buildCommand: ""
+    startCommand: node betclic-proxy.js
+    envVars:
+      - key: PORT
+        value: 10000

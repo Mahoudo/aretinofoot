@@ -4,6 +4,13 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Aretinofoot</title>
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aretinofoot">
+<meta name="theme-color" content="#f97316">
+<link rel="apple-touch-icon" href="icon-192.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:#07070d;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif}
@@ -2406,7 +2413,10 @@ function transformESPN(events){
 // ══════════════════════════════════════════════════════════════
 //  BETCLIC.CI — INTÉGRATION COTES LOCALES
 // ══════════════════════════════════════════════════════════════
-const BETCLIC_PROXY = 'http://localhost:5502';
+// Auto-detect: use deployed proxy on production, local proxy in dev
+const BETCLIC_PROXY = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:5502'
+  : 'https://aretinofoot-proxy.onrender.com';
 
 // Map ESPN league short code → Betclic.ci URL slug
 const BETCLIC_SLUGS = {
@@ -3582,6 +3592,13 @@ function _filterByLeague(leagueName){
 function _esc(str){
   if(!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── PWA service worker ──────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
 }
 </script>
 </body>
