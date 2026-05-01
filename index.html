@@ -609,9 +609,12 @@ mark{background:none;color:#f97316;font-weight:900}
   <!-- ═══════ COUPON ═══════ -->
   <div class="screen" id="screen-coupon">
     <div class="coupon-header" style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div class="coupon-title">🎫 Mon Coupon</div>
-        <div class="coupon-sub" id="coupon-sub">Sélectionnez des matchs depuis l'onglet Matchs</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="switchTab('matches')" style="display:flex;align-items:center;gap:4px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:10px;padding:6px 10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer">‹ Retour</button>
+        <div>
+          <div class="coupon-title">🎫 Mon Coupon</div>
+          <div class="coupon-sub" id="coupon-sub">Sélectionnez des matchs depuis l'onglet Matchs</div>
+        </div>
       </div>
       <div style="font-size:11px;font-weight:800;color:#f97316;cursor:pointer;padding:6px 10px;background:#f9731622;border-radius:10px;border:1px solid #f97316" onclick="switchTab('matches');setTimeout(toggleSelMode,100)">+ Ajouter</div>
     </div>
@@ -734,6 +737,10 @@ mark{background:none;color:#f97316;font-weight:900}
   <div class="detail-overlay" id="detail-overlay">
     <div class="detail-handle-row" onclick="closeDetail()">
       <div class="detail-handle"></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 4px;flex-shrink:0">
+      <button onclick="closeDetail()" style="display:flex;align-items:center;gap:5px;background:#1e1e2e;border:1px solid #2a2a3a;border-radius:10px;padding:6px 12px;color:#fff;font-size:12px;font-weight:800;cursor:pointer">‹ Retour</button>
+      <div></div>
     </div>
     <div class="detail-top">
       <div class="dt-league" id="d-league"></div>
