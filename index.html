@@ -733,6 +733,18 @@ mark{background:none;color:#f97316;font-weight:900}
         <input id="profil-af-key" class="field-input" placeholder="Clé RapidAPI API-Football…" type="text"/>
         <button class="btn-primary" onclick="saveAfKeyFromProfil()" style="background:#16a34a">🌍 Enregistrer (Honduras, CI, Sénégal…)</button>
         <div id="af-key-status" style="font-size:9px;color:#555;text-align:center;margin-top:-4px"></div>
+
+        <div style="width:260px;height:1px;background:#1e1e2e;margin:14px 0"></div>
+        <div style="font-size:11px;font-weight:900;color:#f59e0b;margin-bottom:8px;align-self:flex-start;width:260px">💰 Bankroll Manager</div>
+        <div style="font-size:9px;color:#555;margin-bottom:8px;align-self:flex-start;width:260px;line-height:1.5">
+          Entrez votre bankroll pour des recommandations de mises (Kelly Criterion)
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;width:260px;margin-bottom:8px">
+          <input id="profil-bankroll" class="field-input" placeholder="Ex: 50000" type="number" style="flex:1;margin-bottom:0"/>
+          <span style="font-size:11px;color:#888;flex-shrink:0">FCFA</span>
+        </div>
+        <button class="btn-primary" onclick="saveBankroll()" style="background:#f59e0b;color:#000">💰 Enregistrer la bankroll</button>
+        <div id="bankroll-status" style="font-size:9px;color:#555;text-align:center;margin-top:-4px"></div>
       </div>
     </div>
   </div>
@@ -1179,7 +1191,7 @@ function renderLeagueChips(){
 
 
 // ── Detail ──
-const DTABS=['Stats','H2H','Forme','Score Exact','Value','Analyse IA','Joueurs','Tactique','Chat IA'];
+const DTABS=['Stats','H2H','Forme','Score Exact','Value','⚡ Sharp','Analyse IA','Joueurs','Tactique','Chat IA'];
 
 function showDetail(id){
   const m=MATCHES.find(x=>x.id===id); if(!m) return;
@@ -1397,6 +1409,85 @@ function renderDBody(m,tab){
             <div class="xg-box"><div class="xg-val" style="color:#eab308">${m.vb.length?Math.round(m.vb[0].kelly*10000/4)+' FCFA':'—'}</div><div class="xg-lbl">Mise ¼ Kelly</div></div>
           </div>
         </div>
+      </div>`;
+  }
+  else if(tab==='⚡ Sharp'){
+    const sigs = _sharpSignal(m);
+    const ah   = _calcAsianHandicap(m);
+    const kelly1 = _kellyCFA(p.ph, m.odds.h, BANKROLL);
+    const kellyD = _kellyCFA(p.pd, m.odds.d, BANKROLL);
+    const kelly2 = _kellyCFA(p.pa, m.odds.a, BANKROLL);
+
+    const sigHtml = sigs.length ? sigs.map(s=>`
+      <div style="background:#0a0a18;border:1px solid ${s.color}44;border-radius:10px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:18px">${s.edge>=8?'⚡':'🚫'}</div>
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:900;color:${s.color}">${s.label}</div>
+          <div style="font-size:9px;color:#666;margin-top:2px">Cote marché ×${s.odd.toFixed(2)} · Edge ${s.edge>=0?'+':''}${s.edge.toFixed(1)}%</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;font-weight:900;color:${s.color}">×${s.odd.toFixed(2)}</div>
+          <div style="font-size:8px;color:#555">Côte marché</div>
+        </div>
+      </div>`).join('') : `
+      <div style="display:flex;flex-direction:column;align-items:center;padding:14px;gap:5px;opacity:.55">
+        <div style="font-size:28px">🔍</div>
+        <div style="font-size:11px;color:#666;font-weight:600">Aucun signal sharp détecté</div>
+        <div style="font-size:9px;color:#444;text-align:center">Le marché évalue ce match de manière cohérente avec notre modèle.</div>
+      </div>`;
+
+    const kellyRows = [
+      {label:`1 — ${m.home.name}`, trueP: p.ph, odd: m.odds.h, k: kelly1, col:'#3b82f6'},
+      {label:`N — Nul`,            trueP: p.pd, odd: m.odds.d, k: kellyD, col:'#888'},
+      {label:`2 — ${m.away.name}`, trueP: p.pa, odd: m.odds.a, k: kelly2, col:'#f97316'},
+    ].map(row=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1e1e2e">
+        <div style="font-size:9px;font-weight:800;color:${row.col};min-width:90px">${row.label}</div>
+        <div style="font-size:10px;color:#fff;flex:1">Prob. ${row.trueP}% · ×${row.odd.toFixed(2)}</div>
+        <div style="text-align:right">
+          ${row.k ? `<div style="font-size:11px;font-weight:900;color:#f59e0b">${row.k.half.toLocaleString('fr-FR')} FCFA</div>
+            <div style="font-size:8px;color:#666">½ Kelly (${row.k.pct}%)</div>`
+            : `<div style="font-size:9px;color:#444">Pas d'edge</div>`}
+        </div>
+      </div>`).join('');
+
+    const ahHtml = ah.lines.map(line=>{
+      const isBest = line.line === ah.best.line;
+      const label = line.line > 0 ? `+${line.line}` : `${line.line}`;
+      const barW  = Math.round(line.pCover);
+      const col   = line.pCover >= 60 ? '#22c55e' : line.pCover >= 45 ? '#eab308' : '#ef4444';
+      return `
+        <div style="background:${isBest?'#1a1a0a':'#0d0d18'};border:1px solid ${isBest?'#f59e0b44':'#1e1e2e'};border-radius:8px;padding:7px 10px;margin-bottom:5px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div style="font-size:11px;font-weight:900;color:${isBest?'#f59e0b':'#fff'}">AH ${label} (Dom.) ${isBest?'⭐':''}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:10px;font-weight:800;color:${col}">${line.pCover}%</div>
+              <div style="font-size:11px;font-weight:900;color:#f97316">×${line.odd.toFixed(2)}</div>
+            </div>
+          </div>
+          <div style="height:4px;background:#1e1e2e;border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${barW}%;background:${col};border-radius:2px;transition:.3s"></div>
+          </div>
+          <div style="font-size:8px;color:#555;margin-top:3px">Diff. xG : ${ah.diff>=0?'+':''}${ah.diff} · ${line.pCover>=55?'Couverture favorable':'Marché équilibré'}</div>
+        </div>`;
+    }).join('');
+
+    body.innerHTML=`
+      <div class="dsec"><div class="dsec-title">⚡ SHARP SIGNAL — LIGNES MAL ÉVALUÉES</div>
+        <div style="font-size:9px;color:#666;line-height:1.5;margin-bottom:8px">Détecte quand notre modèle diverge de ≥8% avec le marché → potentiel value.</div>
+        ${sigHtml}
+      </div>
+      <div class="dsec"><div class="dsec-title">💰 MISE OPTIMALE — KELLY CRITERION${BANKROLL?` (Bankroll : ${BANKROLL.toLocaleString('fr-FR')} FCFA)`:' (configurez votre bankroll dans Profil)'}</div>
+        ${BANKROLL ? kellyRows : `<div style="display:flex;flex-direction:column;align-items:center;padding:14px;gap:5px;opacity:.55">
+          <div style="font-size:28px">💰</div>
+          <div style="font-size:11px;color:#666;font-weight:600">Bankroll non configurée</div>
+          <div style="font-size:9px;color:#444;text-align:center">Allez dans l'onglet <strong style="color:#f97316">Profil → Bankroll</strong> pour activer les conseils de mise.</div>
+        </div>`}
+      </div>
+      <div class="dsec"><div class="dsec-title">📐 ASIAN HANDICAP — DOMICILE</div>
+        <div style="font-size:9px;color:#666;line-height:1.5;margin-bottom:8px">Probabilité que le domicile couvre la ligne de handicap (diff. xG : ${ah.diff>=0?'+':''}${ah.diff}).</div>
+        ${ahHtml}
+        <div style="font-size:8px;color:#555;padding:4px 0">⭐ = ligne la plus proche de 50/50 (marché le plus équilibré)</div>
       </div>`;
   }
   else if(tab==='Analyse IA'){
@@ -1860,6 +1951,127 @@ function saveAfKeyFromProfil(){
   if(st) st.textContent='✅ Clé enregistrée !';
   showToast('🌍 Clé API-Football enregistrée — rechargement…','info',1500);
   setTimeout(()=>fetchAllMatchesToday(), 1200);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  💰 BANKROLL MANAGER
+// ══════════════════════════════════════════════════════════════
+let BANKROLL = parseInt(localStorage.getItem('bankroll')) || 0;
+
+function saveBankroll(){
+  const v = parseInt(document.getElementById('profil-bankroll')?.value)||0;
+  if(v < 1000){ showToast('Entrez au moins 1 000 FCFA','warn'); return; }
+  BANKROLL = v;
+  localStorage.setItem('bankroll', v);
+  const st = document.getElementById('bankroll-status');
+  if(st) st.textContent = `✅ Bankroll : ${v.toLocaleString('fr-FR')} FCFA`;
+  showToast(`💰 Bankroll ${v.toLocaleString('fr-FR')} FCFA enregistrée !`,'info',2000);
+  renderAll();
+}
+
+// Kelly Criterion → mise optimale en FCFA
+function _kellyCFA(trueP, odd, bankroll){
+  if(!bankroll || bankroll < 1000) return null;
+  const b = odd - 1;
+  const q = 1 - trueP / 100;
+  const k = (b * (trueP/100) - q) / b;
+  if(k <= 0) return null;
+  const fullKelly = k * bankroll;
+  const halfKelly = fullKelly * 0.5; // demi-Kelly = plus prudent
+  return {
+    full: Math.round(fullKelly / 100) * 100,
+    half: Math.round(halfKelly / 100) * 100,
+    pct:  +(k * 100).toFixed(1)
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  📐 ASIAN HANDICAP — lignes calculées depuis le modèle
+// ══════════════════════════════════════════════════════════════
+function _calcAsianHandicap(m){
+  const p = m.pred;
+  // Différence de buts attendus
+  const diff = p.hxg - p.axg; // positif = favori domicile
+
+  // Lignes AH standards
+  const lines = [-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5];
+  const ah = lines.map(line => {
+    // Pour AH = line (du domicile), probabilité que le domicile couvre
+    // Ex: AH -0.5 domicile = domicile doit gagner
+    // Ex: AH +0.5 domicile = domicile doit gagner ou nul
+    let pCover;
+    if(line === 0)        pCover = p.ph + p.pd / 2;         // push sur nul
+    else if(line > 0)     pCover = p.ph + p.pd;             // DC 1X
+    else if(line === -0.5) pCover = p.ph;
+    else if(line === -1)  pCover = p.ph * (1 - 0.3 / Math.max(1, Math.abs(diff))); // gagner d'au moins 2
+    else if(line === -1.5) pCover = p.ph * (1 - 0.5 / Math.max(1, Math.abs(diff)));
+    else if(line === 0.5) pCover = p.ph + p.pd + p.pa * 0.1;
+    else                  pCover = Math.min(95, p.ph + p.pd + 5);
+    pCover = Math.max(5, Math.min(95, pCover));
+    const odd = +(1 / (pCover/100) * 1.06).toFixed(2);
+    return { line, pCover: Math.round(pCover), odd: Math.min(9.9, odd) };
+  });
+
+  // Recommandation : ligne la plus proche de 50/50 (marché équilibré)
+  const balanced = ah.reduce((b, x) => Math.abs(x.pCover - 50) < Math.abs(b.pCover - 50) ? x : b, ah[0]);
+  return { lines: ah, best: balanced, diff: +diff.toFixed(2) };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ⚡ SHARP SIGNAL — cote mal évaluée par le marché
+// ══════════════════════════════════════════════════════════════
+function _sharpSignal(m){
+  const p = m.pred;
+  const o = m.odds;
+  const signals = [];
+
+  // Probabilité implicite du marché (avec marge)
+  const impliedH = o.h > 1 ? +(100 / o.h).toFixed(1) : 0;
+  const impliedD = o.d > 1 ? +(100 / o.d).toFixed(1) : 0;
+  const impliedA = o.a > 1 ? +(100 / o.a).toFixed(1) : 0;
+
+  const diffH = p.ph - impliedH;
+  const diffD = p.pd - impliedD;
+  const diffA = p.pa - impliedA;
+
+  if(diffH >= 8)  signals.push({ type:'1', label:`Domicile sous-coté +${diffH.toFixed(0)}%`, edge: diffH, odd: o.h, color:'#22c55e' });
+  if(diffD >= 8)  signals.push({ type:'N', label:`Nul sous-coté +${diffD.toFixed(0)}%`, edge: diffD, odd: o.d, color:'#3b82f6' });
+  if(diffA >= 8)  signals.push({ type:'2', label:`Extérieur sous-coté +${diffA.toFixed(0)}%`, edge: diffA, odd: o.a, color:'#a78bfa' });
+  if(diffH <= -10) signals.push({ type:'lay1', label:`Domicile sur-coté (fuyez !)`, edge: diffH, odd: o.h, color:'#ef4444' });
+  if(diffA <= -10) signals.push({ type:'layA', label:`Extérieur sur-coté (fuyez !)`, edge: diffA, odd: o.a, color:'#ef4444' });
+
+  signals.sort((a,b)=> Math.abs(b.edge) - Math.abs(a.edge));
+  return signals;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  📊 EV COUPON — espérance de gain du combiné
+// ══════════════════════════════════════════════════════════════
+function _couponEV(){
+  const items = Object.values(COUPON);
+  if(!items.length) return null;
+
+  // Probabilité réelle de gagner le combiné = produit des probs
+  let combinedProb = 1;
+  let combinedOdd  = 1;
+  items.forEach(c => {
+    const m = c.matchRef; if(!m) return;
+    const p = m.pred;
+    const trueP = c.bet === '1' ? p.ph : c.bet === '2' ? p.pa : c.bet === 'N' ? p.pd
+                : c.bet === '1X' ? p.ph + p.pd : c.bet === 'X2' ? p.pa + p.pd
+                : c.bet === '+1.5' ? (p.o15||50) : c.bet === '+2.5' ? (p.o25||50)
+                : c.bet === 'btts' ? (p.btts||50) : 50;
+    combinedProb *= trueP / 100;
+    combinedOdd  *= c.odd;
+  });
+
+  const ev = +(combinedProb * combinedOdd - 1).toFixed(3); // EV par unité misée
+  const winProb = +(combinedProb * 100).toFixed(1);
+  return {
+    ev, winProb, combinedOdd: +combinedOdd.toFixed(2),
+    evPer1000: Math.round(ev * 1000),
+    isPositive: ev > 0
+  };
 }
 
 // ── Main fetch ─────────────────────────────────────────
@@ -2916,6 +3128,14 @@ async function fetchAllMatchesToday(forceYmd){
     if(st) st.textContent='✅ Clé enregistrée';
   }
 
+  // Restore bankroll
+  if(BANKROLL){
+    const br=document.getElementById('profil-bankroll');
+    if(br) br.value=BANKROLL;
+    const bst=document.getElementById('bankroll-status');
+    if(bst) bst.textContent=`✅ Bankroll : ${BANKROLL.toLocaleString('fr-FR')} FCFA`;
+  }
+
   setTimeout(()=>{
     startAutoRefresh();
     // Fetch ALL matches automatically (free, no key needed)
@@ -3279,10 +3499,11 @@ function renderIaList(){
     return `
     <div class="ia-selection${inCoupon?' ia-selected':''}" id="ia-card-${m.id}" onclick="showDetail(${m.id})">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-        <div style="display:flex;align-items:center;gap:5px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
           <span style="font-size:9px;font-weight:900;color:${s.labelColor};background:${s.labelColor}18;border:1px solid ${s.labelColor}33;padding:2px 7px;border-radius:5px;letter-spacing:.5px">${s.labelIcon} ${s.label}</span>
           ${isSafeFilter?'<span style="font-size:8px;color:#22c55e;font-weight:900">🛡️ SAFE</span>':''}
           ${m.oddSource==='betclic'?'<span style="font-size:7px;color:#e83214;font-weight:900">🎲 Betclic</span>':''}
+          ${(()=>{const ss=_sharpSignal(m);const bestS=ss.filter(x=>x.edge>=8);return bestS.length?`<span style="font-size:7px;font-weight:900;background:#f59e0b22;border:1px solid #f59e0b55;color:#f59e0b;padding:1px 6px;border-radius:4px;letter-spacing:.3px">⚡ SHARP +${bestS[0].edge.toFixed(0)}%</span>`:''})()}
         </div>
         <div style="display:flex;align-items:center;gap:4px">
           <div style="font-size:9px;font-weight:900;color:${barColor}">${s.score}/100</div>
@@ -3327,6 +3548,26 @@ function renderIaList(){
           </div>`;
         })()}
       </div>
+      ${(()=>{
+        if(!BANKROLL) return '';
+        // True probability for the displayed pick
+        let trueP;
+        if(isSafeFilter && safePick){
+          const tp = safePick.type;
+          trueP = tp==='1'?p.ph : tp==='2'?p.pa : tp==='N'?p.pd
+                : tp==='1X'?(p.ph+p.pd) : tp==='X2'?(p.pa+p.pd)
+                : tp==='+1.5'?(p.o15||60) : tp==='u2.5'?(100-(p.o25||50))
+                : tp==='noBTTS'?(100-(p.btts||50)) : p.ph;
+        } else {
+          trueP = p.ph > p.pa ? p.ph : p.pa;
+        }
+        const k = _kellyCFA(trueP, displayPick.odd||1.5, BANKROLL);
+        if(!k || k.half < 100) return '';
+        return `<div style="margin-top:5px;background:#1a1a0a;border:1px solid #f59e0b33;border-radius:8px;padding:5px 10px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:8px;color:#888;font-weight:700">💰 Mise conseillée (½ Kelly)</span>
+          <span style="font-size:11px;font-weight:900;color:#f59e0b">${k.half.toLocaleString('fr-FR')} FCFA</span>
+        </div>`;
+      })()}
       <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="toggleIaCouponSafe(event,${m.id})">
         ${inCoupon ? '✅ Dans le coupon — retirer' : '＋ Ajouter au coupon'}
       </div>
@@ -3819,6 +4060,45 @@ function renderCoupon(){
     </div>
     <div class="ct-val">×${tot}</div>
   </div>
+  ${(()=>{
+    const ev = _couponEV();
+    if(!ev) return '';
+    const evColor = ev.isPositive ? '#22c55e' : '#ef4444';
+    const evSign  = ev.ev >= 0 ? '+' : '';
+    const kellyC  = BANKROLL ? _kellyCFA(ev.winProb, ev.combinedOdd, BANKROLL) : null;
+    return `
+  <div style="margin:0 12px 8px;background:${ev.isPositive?'#0a1a0a':'#1a0a0a'};border:1px solid ${evColor}44;border-radius:14px;padding:12px 14px">
+    <div style="font-size:10px;font-weight:900;color:${evColor};margin-bottom:8px;letter-spacing:.4px">📊 ANALYSE DU COUPON — ESPÉRANCE DE GAIN</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <div style="text-align:center;background:#0d0d18;border-radius:8px;padding:7px 4px">
+        <div style="font-size:15px;font-weight:900;color:${evColor}">${evSign}${(ev.ev*100).toFixed(1)}%</div>
+        <div style="font-size:7px;color:#555;margin-top:2px">EV / unité</div>
+      </div>
+      <div style="text-align:center;background:#0d0d18;border-radius:8px;padding:7px 4px">
+        <div style="font-size:15px;font-weight:900;color:#3b82f6">${ev.winProb}%</div>
+        <div style="font-size:7px;color:#555;margin-top:2px">Prob. de gain</div>
+      </div>
+      <div style="text-align:center;background:#0d0d18;border-radius:8px;padding:7px 4px">
+        <div style="font-size:15px;font-weight:900;color:#f97316">×${ev.combinedOdd}</div>
+        <div style="font-size:7px;color:#555;margin-top:2px">Cote réelle</div>
+      </div>
+    </div>
+    ${kellyC ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#1a1a0a;border:1px solid #f59e0b33;border-radius:8px;padding:7px 10px">
+      <div>
+        <div style="font-size:8px;color:#888;font-weight:700">💰 Mise conseillée (½ Kelly)</div>
+        <div style="font-size:8px;color:#555;margin-top:1px">Sur bankroll ${BANKROLL.toLocaleString('fr-FR')} FCFA</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:900;color:#f59e0b">${kellyC.half.toLocaleString('fr-FR')} FCFA</div>
+        <div style="font-size:8px;color:#666">${kellyC.pct}% Kelly</div>
+      </div>
+    </div>` : (!BANKROLL ? `<div style="font-size:9px;color:#555;text-align:center">Configurez votre <strong style="color:#f97316">bankroll dans Profil</strong> pour voir la mise idéale en FCFA.</div>` : '')}
+    <div style="font-size:9px;color:${evColor};margin-top:8px;font-weight:700;text-align:center">
+      ${ev.isPositive ? `✅ Coupon EV positif — espérance de ${evSign}${ev.evPer1000.toLocaleString('fr-FR')} FCFA pour 1 000 misés` : `⚠️ EV négatif — espérance de ${ev.evPer1000.toLocaleString('fr-FR')} FCFA pour 1 000 misés`}
+    </div>
+  </div>`;
+  })()}
   <div class="coupon-actions">
     <button class="ca-btn ca-share" onclick="shareCoupon()">📤 Partager</button>
     <button class="ca-btn ca-copy" onclick="copyCoupon()">📋 Copier</button>
