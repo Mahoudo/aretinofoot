@@ -2738,6 +2738,10 @@ function _mergeBetclicOdds(espnMatches, betclicMatches){
       m.odds.d = best.oddD;
       m.odds.a = best.oddA;
       m.oddSource = 'betclic';
+      // Stocker les noms EXACTS Betclic pour le coupon
+      m.betclicHome = best.home;
+      m.betclicAway = best.away;
+      m.betclicSlug = best.slug || null; // slug ligue si dispo
 
       // Recompute predictions with new odds
       const {ph,pd,pa} = oddsToProbs(best.oddH, best.oddD, best.oddA);
@@ -3764,6 +3768,13 @@ function renderCoupon(){
       <div class="ci-bet${c.bet===b.key?' active':''}" onclick="setCouponBet(${m.id},'${b.key}',${b.odd},'${b.label.replace(/'/g,"\\'")}')">
         ${b.label} <span style="opacity:.7">×${b.odd.toFixed(2)}</span>
       </div>`).join('');
+    // Noms Betclic exacts pour recopier facilement
+    const bcHome = m.betclicHome || m.home.name;
+    const bcAway = m.betclicAway || m.away.name;
+    const hasBc  = !!m.betclicHome;
+    const bcUrl  = BETCLIC_LEAGUE_URLS[m.ls] || 'https://www.betclic.ci/football-sfootball';
+    const betTypeLabel = {'1':'Victoire Dom.','2':'Victoire Ext.','N':'Nul','1X':'Double Chance 1X','X2':'Double Chance X2','+1.5':'+1.5 buts','+2.5':'+2.5 buts','btts':'BTTS','u2.5':'-2.5 buts','noBTTS':'BTTS Non'}[c.bet] || c.bet;
+
     html+=`
     <div class="coupon-item">
       <div class="ci-top">
@@ -3771,7 +3782,22 @@ function renderCoupon(){
         <div class="ci-league">${m.ls} · ${m.league} · ${m.time}</div>
         <div class="ci-remove" onclick="removeCouponItem(${m.id})" title="Retirer">✕</div>
       </div>
-      <div class="ci-teams">${m.home.name} <span style="color:#444">vs</span> ${m.away.name}</div>
+      <div class="ci-teams" style="display:flex;align-items:center;gap:6px">
+        ${_logo(m.home.logo, m.home.emoji, 22)}
+        <span>${m.home.name}</span>
+        <span style="color:#444;font-size:10px">vs</span>
+        ${_logo(m.away.logo, m.away.emoji, 22)}
+        <span>${m.away.name}</span>
+      </div>
+      ${hasBc ? `
+      <div style="margin:4px 14px;background:#0a1a0a;border:1px solid #16a34a33;border-radius:8px;padding:5px 10px">
+        <div style="font-size:8px;color:#4ade80;font-weight:900;margin-bottom:3px">🎲 NOM EXACT BETCLIC — à rechercher sur le site</div>
+        <div style="font-size:11px;font-weight:800;color:#fff">${bcHome} <span style="color:#333">-</span> ${bcAway}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          <div style="font-size:9px;color:#888">Paris : <span style="color:#f97316;font-weight:800">${betTypeLabel}</span></div>
+          <a href="${bcUrl}" target="_blank" onclick="event.stopPropagation()" style="font-size:9px;font-weight:900;color:#22c55e;background:#16a34a22;border:1px solid #16a34a44;border-radius:6px;padding:2px 8px;text-decoration:none">🔗 Ouvrir Betclic</a>
+        </div>
+      </div>` : ''}
       <div class="ci-bets">
         ${betHtml}
         <div class="ci-odd">×${c.odd.toFixed(2)}</div>
@@ -3798,9 +3824,43 @@ function renderCoupon(){
     <button class="ca-btn ca-copy" onclick="copyCoupon()">📋 Copier</button>
     <button class="ca-btn ca-clear" onclick="clearCoupon();renderCoupon()">🗑 Vider</button>
   </div>
+  <div style="margin:0 12px 8px;background:#0a1a0a;border:1px solid #16a34a44;border-radius:14px;padding:12px 14px">
+    <div style="font-size:10px;font-weight:900;color:#4ade80;margin-bottom:8px">📋 GUIDE — Recopier sur Betclic.ci</div>
+    <div style="font-size:10px;color:#888;line-height:1.7">
+      <span style="color:#f97316;font-weight:800">1.</span> Appuyez <strong style="color:#fff">📋 Copier</strong> ci-dessus<br>
+      <span style="color:#f97316;font-weight:800">2.</span> Ouvrez <strong style="color:#22c55e">betclic.ci</strong> dans votre navigateur<br>
+      <span style="color:#f97316;font-weight:800">3.</span> Pour chaque match → utilisez le <strong style="color:#fff">nom exact</strong> affiché en vert ci-dessus<br>
+      <span style="color:#f97316;font-weight:800">4.</span> Sélectionnez le même type de pari (<strong style="color:#f97316">1X2, DC, Over…</strong>)<br>
+      <span style="color:#f97316;font-weight:800">5.</span> Validez votre combiné ✅
+    </div>
+    <a href="https://www.betclic.ci/football-sfootball" target="_blank" style="display:block;margin-top:10px;text-align:center;background:#16a34a;color:#fff;font-size:12px;font-weight:900;padding:8px;border-radius:8px;text-decoration:none">🎲 Ouvrir Betclic.ci →</a>
+  </div>
   <div style="height:16px"></div>`;
 
   container.innerHTML=html;
+}
+
+// Map ls → URL Betclic.ci pour chaque championnat
+const BETCLIC_LEAGUE_URLS = {
+  'PL':  'https://www.betclic.ci/football-sfootball/angl-premier-league-c3',
+  'LL':  'https://www.betclic.ci/football-sfootball/espa-primera-division-c4',
+  'SA':  'https://www.betclic.ci/football-sfootball/ital-serie-a-c5',
+  'BL':  'https://www.betclic.ci/football-sfootball/alle-bundesliga-c6',
+  'L1':  'https://www.betclic.ci/football-sfootball/fran-ligue-1-c7',
+  'UCL': 'https://www.betclic.ci/football-sfootball/euro-uefa-champions-league-c23',
+  'EL':  'https://www.betclic.ci/football-sfootball/euro-ligue-europa-c24',
+  'ECL': 'https://www.betclic.ci/football-sfootball/euro-ligue-conference-c1600',
+  'PPL': 'https://www.betclic.ci/football-sfootball/port-primeira-liga-c17',
+  'ERE': 'https://www.betclic.ci/football-sfootball/pays-eredivisie-c10',
+};
+
+function _betclicMatchName(c){
+  const m = c.matchRef;
+  if(!m) return '';
+  // Utilise les noms Betclic exacts si disponibles, sinon noms ESPN
+  const home = m.betclicHome || m.home.name;
+  const away = m.betclicAway || m.away.name;
+  return `${home} - ${away}`;
 }
 
 function _couponText(){
@@ -3816,9 +3876,14 @@ function _couponText(){
   items.forEach((c,i)=>{
     const m=c.matchRef;
     if(!m) return;
-    txt+=`${i+1}. ${m.home.name} vs ${m.away.name}\n`;
+    const matchName = _betclicMatchName(c);
+    const hasBetclic = !!m.betclicHome;
+    txt+=`${i+1}. ${matchName}${hasBetclic?' 🎲':''}\n`;
     txt+=`   📌 ${c.label} · Cote ×${c.odd.toFixed(2)}\n`;
     txt+=`   🏆 ${m.league} · ${m.time}\n`;
+    if(hasBetclic && BETCLIC_LEAGUE_URLS[m.ls]){
+      txt+=`   🔗 ${BETCLIC_LEAGUE_URLS[m.ls]}\n`;
+    }
   });
   txt+=`${'─'.repeat(32)}\n`;
   txt+=`📊 Cote combinée : ×${_couponTotal()}\n`;
