@@ -1263,11 +1263,14 @@ async function selectDate(ymd){
 }
 
 // ── Match Card ──
+const TOP5_LS = new Set(['PL','LL','SA','BL','L1']);
+
 function card(m){
   const p=m.pred, mp=m.mp;
   const isLive=m.status==='live';
   const isDone=m.status==='finished';
   const isHT=m.period==='HT';
+  const isTop5=TOP5_LS.has(m.ls);
   const period=isHT?'Mi-temps':m.liveMin>45?'2e mi-temps':'1ère mi-temps';
 
   const liveOrTime=isDone
@@ -1281,12 +1284,13 @@ function card(m){
     :`<div class="sc-vs">VS</div><div style="font-size:15px;color:#444;margin-top:2px">⚔️</div><div class="sc-pred">${p.score}</div>`;
   const isSel=!!COUPON[m.id];
   return `
-  <div class="match-card${isSel?' selected':''}" data-id="${m.id}" style="position:relative" onclick="_cardClick(event,${m.id})">
+  <div class="match-card${isSel?' selected':''}" data-id="${m.id}" style="position:relative${isTop5?';border-left:3px solid '+m.lc+';border-radius:14px':''}" onclick="_cardClick(event,${m.id})">
     <div class="card-check${isSel?' checked':''}"><span class="card-check-ico">✓</span></div>
     <div class="card-top">
       <div class="ct-left">
         <div class="league-dot" style="background:${m.lc}"></div>
         <span class="league-name">${m.ls} · ${m.league}</span>
+        ${isTop5?`<span style="font-size:10px;font-weight:900;color:${m.lc};background:${m.lc}18;border-radius:4px;padding:1px 5px;margin-left:4px">TOP 5</span>`:''}
       </div>
       <div class="ct-right">${liveOrTime}${m.oddSource==='betclic'?'<span class="bc-badge">🎲 Betclic</span>':''}${riskBadge(m.risk)}</div>
     </div>
@@ -1400,10 +1404,18 @@ function renderMatches(){
     m.away.name.toLowerCase().includes(searchVal)||
     m.league.toLowerCase().includes(searchVal)
   ).sort((a,b)=>{
-    // 1. Matchs en direct → en tête
+    // 1. Live avant tout
     const la = a.status==='live'?0:1, lb = b.status==='live'?0:1;
     if(la!==lb) return la-lb;
-    // 2. Trier par heure de coup d'envoi (HH:MM)
+    // 2. Top 5 avant les autres ligues
+    const ta = TOP5_LS.has(a.ls)?0:1, tb = TOP5_LS.has(b.ls)?0:1;
+    if(ta!==tb) return ta-tb;
+    // 3. Parmi les non-Top5 : trier par priorité de ligue (pri)
+    if(ta===1 && tb===1){
+      const pa=a.pri||a._pri||99, pb=b.pri||b._pri||99;
+      if(pa!==pb) return pa-pb;
+    }
+    // 4. Trier par heure de coup d'envoi (HH:MM)
     return (a.time||'99:99').localeCompare(b.time||'99:99');
   });
   document.getElementById('matches-list').innerHTML=list.length
