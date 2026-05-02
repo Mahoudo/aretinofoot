@@ -1434,7 +1434,16 @@ function card(m){
       </div>
     </div>
     ${_liveAdverseWarning(m, mp.type)}
-    <div class="card-cta" id="cta-${m.id}">${isSel?'✅ Dans le coupon — appuyez pour retirer':'👆 Appuyez pour plus de détails'}</div>
+    <div style="display:flex;gap:7px;padding:6px 10px 2px;align-items:center">
+      <div onclick="event.stopPropagation();toggleMatchSel(${m.id})" id="coupon-btn-${m.id}"
+        style="flex:1;text-align:center;padding:7px 0;border-radius:10px;font-size:13px;font-weight:900;cursor:pointer;transition:.15s;
+        ${isSel
+          ? 'background:#FEF2F2;border:1.5px solid #FCA5A5;color:#DC2626'
+          : 'background:#FFF4E8;border:1.5px solid #FDBA74;color:#EA580C'}">
+        ${isSel ? '✅ Retirer du coupon' : '➕ Ajouter au coupon'}
+      </div>
+    </div>
+    <div class="card-cta" id="cta-${m.id}" style="padding-top:2px">👆 Appuyez pour plus de détails</div>
   </div>`;
 }
 
@@ -4895,6 +4904,13 @@ function toggleMatchSel(id){
     if(chk) chk.classList.toggle('checked', isSel);
     const cta=card.querySelector('.card-cta');
     if(cta) cta.textContent=isSel?'✅ Dans le coupon — appuyez pour retirer':'👆 Appuyez pour plus de détails';
+    const couponBtn=document.getElementById(`coupon-btn-${id}`);
+    if(couponBtn){
+      couponBtn.textContent=isSel?'✅ Retirer du coupon':'➕ Ajouter au coupon';
+      couponBtn.style.background=isSel?'#FEF2F2':'#FFF4E8';
+      couponBtn.style.border=isSel?'1.5px solid #FCA5A5':'1.5px solid #FDBA74';
+      couponBtn.style.color=isSel?'#DC2626':'#EA580C';
+    }
   }
 }
 
