@@ -106,6 +106,8 @@ body{background:#FAF8F4;display:flex;align-items:center;justify-content:center;m
 /* Match Card */
 .match-card{margin:0 12px 10px;border-radius:18px;background:#FFFFFF;border:1px solid #EDE9E3;overflow:hidden;cursor:pointer;transition:.12s}
 .match-card:active{transform:scale(.985)}
+.match-card.finishing{animation:matchFadeOut 1.2s ease forwards}
+@keyframes matchFadeOut{0%{opacity:1;transform:scaleY(1);max-height:300px}60%{opacity:.3;transform:scaleY(.85);max-height:150px}100%{opacity:0;transform:scaleY(.5);max-height:0;margin-bottom:0;padding:0;border-width:0}}
 .card-top{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 6px}
 .ct-left{display:flex;align-items:center;gap:6px}
 .league-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -2812,10 +2814,17 @@ let _autoLiveTimer = null;   // Live score simulation (60 s)
 // ── Suppression automatique des matchs terminés ────────
 function _removeFinished(){
   const before=MATCHES.length;
+  // Animer toutes les cartes finishing restantes avant suppression
+  document.querySelectorAll('.match-card.finishing').forEach(c=>{
+    c.style.pointerEvents='none';
+  });
   MATCHES=MATCHES.filter(m=>m.status!=='finished');
   if(MATCHES.length<before) renderAll();
   // Ferme le détail si le match affiché est terminé
-  if(detailId!=null&&!MATCHES.find(m=>m.id===detailId)) closeDetail();
+  if(detailId!=null&&!MATCHES.find(m=>m.id===detailId)){
+    showToast('ℹ️ Ce match est maintenant terminé','info',3000);
+    closeDetail();
+  }
 }
 
 // ════════════════════════════════════════════════════════
@@ -2852,8 +2861,14 @@ function _tickLive(){
       if(m.liveMin>93){
         m.status='finished';
         m.liveMin=90;
-        showToast(`⏱ Fin : ${m.home.name} ${m.score.h}-${m.score.a} ${m.away.name} — retiré dans 8s`);
-        setTimeout(_removeFinished,8000);
+        const sc=`${m.score.h}-${m.score.a}`;
+        showToast(`⏱️ FT : ${m.home.name} ${sc} ${m.away.name}`,'info',5000);
+        // Animer la carte avant suppression
+        setTimeout(()=>{
+          const card=document.querySelector(`[data-id="${m.id}"]`);
+          if(card) card.classList.add('finishing');
+        }, 200);
+        setTimeout(_removeFinished, 1600);
         return;
       }
     }
@@ -3892,16 +3907,45 @@ async function fetchAllMatchesToday(forceYmd){
       });
     }
 
+    // ── Détection des matchs qui viennent de se terminer ──────────
+    const _prevStatus={};
+    MATCHES.forEach(m=>{ _prevStatus[m.id]=m.status; });
+
     MATCHES=newMatches;
     renderAll();
     setRefreshState(false);
+
+    // Trouver matchs passés de live/scheduled → finished depuis le dernier fetch
+    const newlyFinished=MATCHES.filter(m=>
+      m.status==='finished' &&
+      _prevStatus[m.id] &&
+      _prevStatus[m.id]!=='finished'
+    );
+    if(newlyFinished.length){
+      newlyFinished.forEach((m,i)=>{
+        const sc=m.score?`${m.score.h}-${m.score.a}`:'FT';
+        setTimeout(()=>{
+          showToast(`⏱️ FT : ${m.home.name} ${sc} ${m.away.name}`,'info',5000);
+          // Animer la carte avant suppression
+          const card=document.querySelector(`[data-id="${m.id}"]`);
+          if(card) card.classList.add('finishing');
+        }, i*600);
+      });
+      // Supprimer de MATCHES après l'animation
+      setTimeout(()=>{
+        _removeFinished();
+        if(newlyFinished.length>1)
+          showToast(`🗑 ${newlyFinished.length} matchs terminés retirés de la liste`,'info',3000);
+      }, newlyFinished.length*600 + 1400);
+    }
 
     const liveC=MATCHES.filter(m=>m.status==='live').length;
     const doneC=MATCHES.filter(m=>m.status==='finished').length;
     const schedC=MATCHES.filter(m=>m.status==='scheduled').length;
     const _isToday3=ymd===_fmtYMD(new Date());
     const _dateTxt=_isToday3?'aujourd\'hui':ymd.split('-').reverse().slice(0,2).join('/');
-    showToast(`✅ ${liveC+schedC} matchs ${_dateTxt} · 🔴 ${liveC} live · ⏳ ${schedC} à venir`);
+    if(!newlyFinished.length)
+      showToast(`✅ ${liveC+schedC} matchs ${_dateTxt} · 🔴 ${liveC} live · ⏳ ${schedC} à venir`);
 
     const cr=document.getElementById('api-credits');
     if(cr&&API_CFG.remaining!=null)
