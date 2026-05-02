@@ -259,6 +259,37 @@ body{background:#FAF8F4;display:flex;align-items:center;justify-content:center;m
 .chat-input{flex:1;background:#F4F1EB;border:1px solid #D9D4CC;border-radius:20px;padding:8px 14px;font-size:15px;color:#ccc;outline:none;font-family:inherit}
 .chat-send{width:32px;height:32px;border-radius:50%;background:#f97316;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;flex-shrink:0;color:#fff;font-weight:900}
 
+/* ── Notifications overlay ── */
+.notif-overlay{position:absolute;inset:0;background:#F9F7F3;z-index:60;display:none;flex-direction:column;animation:slideUp .25s ease}
+.notif-overlay.open{display:flex}
+.notif-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;flex-shrink:0}
+.notif-title{font-size:22px;font-weight:900;color:#1C1917;display:flex;align-items:center;gap:8px}
+.notif-close{font-size:24px;cursor:pointer;opacity:.6;padding:4px 8px}
+.notif-tabs{display:flex;background:#EDE9E3;border-radius:12px;margin:0 14px 12px;padding:3px;flex-shrink:0}
+.notif-tab{flex:1;padding:8px;text-align:center;border-radius:9px;font-size:15px;font-weight:800;color:#888;cursor:pointer;transition:.15s}
+.notif-tab.active{background:#f97316;color:#fff;box-shadow:0 2px 8px rgba(249,115,22,.4)}
+.notif-activate-bar{margin:0 14px 10px;background:#1C130A;border:1px solid #f9731640;border-radius:12px;padding:12px 14px;color:#f97316;font-size:14px;font-weight:700;text-align:center;flex-shrink:0}
+.notif-activate-btn{margin:0 14px 16px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:14px;padding:14px;color:#fff;font-size:17px;font-weight:900;text-align:center;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.4);flex-shrink:0}
+.notif-activate-btn:active{transform:scale(.97)}
+.notif-list{flex:1;overflow-y:auto;padding:0 14px 20px}
+.notif-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #EDE9E3}
+.notif-item:last-child{border-bottom:none}
+.notif-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.notif-info{flex:1}
+.notif-name{font-size:16px;font-weight:800;color:#1C1917}
+.notif-desc{font-size:13px;color:#888;margin-top:2px}
+.notif-toggle{width:50px;height:28px;border-radius:14px;background:#D1D5DB;cursor:pointer;position:relative;transition:.2s;flex-shrink:0}
+.notif-toggle.on{background:#f97316}
+.notif-toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.notif-toggle.on::after{left:25px}
+.notif-test-btn{margin:10px 14px 0;background:#f9731618;border:1px solid #f9731640;border-radius:12px;padding:12px;color:#f97316;font-size:15px;font-weight:900;text-align:center;cursor:pointer}
+.notif-history-item{padding:10px 0;border-bottom:1px solid #EDE9E3;display:flex;gap:10px;align-items:flex-start}
+.notif-history-item:last-child{border-bottom:none}
+.notif-hist-ico{font-size:22px;flex-shrink:0;margin-top:2px}
+.notif-hist-text{flex:1}
+.notif-hist-title{font-size:14px;font-weight:800;color:#1C1917}
+.notif-hist-sub{font-size:12px;color:#888;margin-top:2px}
+.notif-hist-time{font-size:12px;color:#aaa;flex-shrink:0}
 /* Profil */
 .profil-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
 .profil-logo{width:64px;height:64px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:45px;margin-bottom:10px}
@@ -630,6 +661,16 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
 .btn-google{background:#F5F2EB!important;border-color:#E0DBD3!important;color:#374151!important}
 .bankroll-note{background:#F5F2EB!important;border-top-color:#EDE9E3!important;color:#B5B0A8!important}
 
+/* Notification Overlay light theme */
+.notif-overlay{background:#F9F7F3!important}
+.notif-title{color:#1C1917!important}
+.notif-tabs{background:#EDE9E3!important}
+.notif-tab{color:#78726D!important}
+.notif-activate-bar{background:#FFF4E8!important;border-color:#FDBA74!important;color:#EA580C!important}
+.notif-item{border-color:#EDE9E3!important}
+.notif-name{color:#1C1917!important}
+.notif-desc{color:#78726D!important}
+
 /* Detail Overlay */
 .detail-overlay{background:#F9F7F3!important}
 .detail-handle{background:#D9D4CC!important}
@@ -760,7 +801,7 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
       </div>
       <span class="ah-ico" onclick="openSearch()" title="Rechercher" style="cursor:pointer">🔍</span>
       <span class="ah-ico" id="refresh-btn" onclick="fetchAllMatchesToday()" style="cursor:pointer" title="Actualiser">🔄</span>
-      <span class="ah-ico" id="notif-btn" onclick="toggleNotifications()" title="Notifications"></span>
+      <span class="ah-ico" id="notif-btn" onclick="openNotifScreen()" title="Notifications"></span>
     </div>
   </div>
 
@@ -969,6 +1010,88 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
         </div>
         <button class="btn-primary" onclick="saveBankroll()" style="background:#f59e0b;color:#000">💰 Enregistrer la bankroll</button>
         <div id="bankroll-status" style="font-size:13px;color:#555;text-align:center;margin-top:-4px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ NOTIFICATIONS OVERLAY ═══════ -->
+  <div class="notif-overlay" id="notif-overlay">
+    <div class="notif-header">
+      <div class="notif-title">🔔 Notifications</div>
+      <span class="notif-close" onclick="closeNotifScreen()">✕</span>
+    </div>
+    <div class="notif-tabs">
+      <div class="notif-tab active" id="ntab-settings" onclick="switchNotifTab('settings',this)">⚙️ Réglages</div>
+      <div class="notif-tab" id="ntab-history" onclick="switchNotifTab('history',this)">📋 Historique</div>
+    </div>
+
+    <!-- Settings tab -->
+    <div id="notif-settings-content">
+      <div class="notif-activate-bar" id="notif-status-bar">⏳ Cliquez ci-dessous pour activer les notifications</div>
+      <div class="notif-activate-btn" onclick="activateNotifications()">🔔 Activer les notifications navigateur</div>
+
+      <div class="notif-list">
+        <div class="notif-item">
+          <div class="notif-ico" style="background:#16a34a22">⚽</div>
+          <div class="notif-info">
+            <div class="notif-name">Coup d'envoi</div>
+            <div class="notif-desc">Quand un match du coupon commence</div>
+          </div>
+          <div class="notif-toggle on" id="ntog-kickoff" onclick="toggleNotifPref('kickoff')"></div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-ico" style="background:#ef444422">🥅</div>
+          <div class="notif-info">
+            <div class="notif-name">But marqué</div>
+            <div class="notif-desc">Changement de score pendant le match</div>
+          </div>
+          <div class="notif-toggle on" id="ntog-goal" onclick="toggleNotifPref('goal')"></div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-ico" style="background:#3b82f622">⏸️</div>
+          <div class="notif-info">
+            <div class="notif-name">Mi-temps</div>
+            <div class="notif-desc">Notification à la mi-temps (≥45')</div>
+          </div>
+          <div class="notif-toggle" id="ntog-halftime" onclick="toggleNotifPref('halftime')"></div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-ico" style="background:#f59e0b22">🔔</div>
+          <div class="notif-info">
+            <div class="notif-name">Fin du match</div>
+            <div class="notif-desc">Résultat gagné/perdu pour chaque match</div>
+          </div>
+          <div class="notif-toggle on" id="ntog-fulltime" onclick="toggleNotifPref('fulltime')"></div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-ico" style="background:#7c3aed22">🎫</div>
+          <div class="notif-info">
+            <div class="notif-name">Résultat du coupon</div>
+            <div class="notif-desc">Quand tous les matchs sont terminés</div>
+          </div>
+          <div class="notif-toggle on" id="ntog-coupon" onclick="toggleNotifPref('coupon')"></div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-ico" style="background:#ef444422">⏰</div>
+          <div class="notif-info">
+            <div class="notif-name">15 min avant le match</div>
+            <div class="notif-desc">Rappel avant le coup d'envoi</div>
+          </div>
+          <div class="notif-toggle" id="ntog-reminder15" onclick="toggleNotifPref('reminder15')"></div>
+        </div>
+      </div>
+
+      <div class="notif-test-btn" onclick="sendTestNotification()">🧪 Envoyer une notification test</div>
+    </div>
+
+    <!-- History tab -->
+    <div id="notif-history-content" style="display:none;flex:1;overflow-y:auto;padding:0 14px 20px">
+      <div id="notif-history-list">
+        <div style="text-align:center;padding:40px 20px;opacity:.4">
+          <div style="font-size:36px">🔕</div>
+          <div style="font-size:16px;font-weight:700;color:#666;margin-top:8px">Aucune notification reçue</div>
+          <div style="font-size:13px;color:#888;margin-top:4px">Activez les notifications pour commencer</div>
+        </div>
       </div>
     </div>
   </div>
@@ -4439,103 +4562,264 @@ function sendChatMessage(text,containerId,inputEl){
 }
 
 // ── Notifications ──────────────────────────────────────────
-let _notifEnabled = false;
-let _notifGoals   = {};   // { matchId: lastScore } pour éviter les doublons
+// ══════════════════════════════════════════════════════════════
+//  SYSTÈME DE NOTIFICATIONS — Aretinofoot v2
+//  6 types : coup d'envoi, but, mi-temps, fin, coupon, rappel 15min
+// ══════════════════════════════════════════════════════════════
 
+const NOTIF_ICON = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚽</text></svg>';
+
+// Préférences (persistantes)
+const _notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || JSON.stringify({
+  kickoff: true, goal: true, halftime: false, fulltime: true, coupon: true, reminder15: false
+}));
+function _saveNotifPrefs(){ localStorage.setItem('notifPrefs', JSON.stringify(_notifPrefs)); }
+
+// État interne
+let _notifEnabled   = Notification?.permission === 'granted' && JSON.parse(localStorage.getItem('notifEnabled')||'false');
+let _notifGoals     = {};  // { matchId: 'h-a' } snapshot scores
+let _notifPeriods   = {};  // { matchId: period } snapshot périodes
+let _notifStatuses  = {};  // { matchId: status } snapshot statuts
+let _notifReminders = {};  // { matchId: true } rappels déjà envoyés
+let _notifHistory   = JSON.parse(localStorage.getItem('notifHistory')||'[]');
+let _notifTimer     = null;
+
+function _saveNotifEnabled(v){ localStorage.setItem('notifEnabled', JSON.stringify(v)); }
+
+// ── Bouton header ─────────────────────────────────────────────
 function _updateNotifBtn(){
   const btn = document.getElementById('notif-btn');
   if(!btn) return;
-  if(_notifEnabled){
-    btn.textContent = '🔔';
-    btn.style.opacity = '1';
-    btn.style.filter  = 'drop-shadow(0 0 6px #f97316)';
-  } else {
-    btn.textContent = '🔕';
-    btn.style.opacity = '.5';
-    btn.style.filter  = '';
-  }
+  btn.textContent = _notifEnabled ? '🔔' : '🔕';
+  btn.style.opacity = _notifEnabled ? '1' : '.5';
+  btn.style.filter  = _notifEnabled ? 'drop-shadow(0 0 6px #f97316)' : '';
 }
 
-async function toggleNotifications(){
-  if(_notifEnabled){
-    // Désactiver
-    _notifEnabled = false;
-    _updateNotifBtn();
-    showToast('🔕 Notifications désactivées','warn');
+// ── Overlay notifications ─────────────────────────────────────
+function openNotifScreen(){
+  document.getElementById('notif-overlay').classList.add('open');
+  _refreshNotifStatusBar();
+  _applyNotifToggles();
+  renderNotifHistory();
+}
+function closeNotifScreen(){
+  document.getElementById('notif-overlay').classList.remove('open');
+}
+function switchNotifTab(tab, el){
+  document.querySelectorAll('.notif-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('notif-settings-content').style.display = tab==='settings'?'':'none';
+  document.getElementById('notif-history-content').style.display  = tab==='history'?'':'none';
+}
+function _refreshNotifStatusBar(){
+  const bar = document.getElementById('notif-status-bar');
+  const btn = document.querySelector('.notif-activate-btn');
+  if(!bar || !btn) return;
+  if(!('Notification' in window)){
+    bar.textContent = '❌ Notifications non supportées sur ce navigateur';
+    bar.style.color = '#ef4444';
+    btn.style.display = 'none';
     return;
   }
-  // Demander la permission au navigateur
+  if(Notification.permission === 'granted' && _notifEnabled){
+    bar.textContent = '✅ Notifications activées — vous recevrez toutes les alertes';
+    bar.style.color = '#22c55e';
+    btn.style.display = 'none';
+  } else if(Notification.permission === 'denied'){
+    bar.textContent = '❌ Permission refusée — activez dans les réglages du navigateur';
+    bar.style.color = '#ef4444';
+    btn.textContent = '⚙️ Ouvrir les réglages du navigateur';
+  } else {
+    bar.textContent = '⏳ Cliquez ci-dessous pour activer les notifications';
+    bar.style.color = '#f97316';
+    btn.style.display = '';
+  }
+}
+function _applyNotifToggles(){
+  Object.keys(_notifPrefs).forEach(key => {
+    const el = document.getElementById('ntog-'+key);
+    if(el){ el.className = 'notif-toggle' + (_notifPrefs[key]?' on':''); }
+  });
+}
+function toggleNotifPref(key){
+  _notifPrefs[key] = !_notifPrefs[key];
+  _saveNotifPrefs();
+  _applyNotifToggles();
+}
+
+// ── Activation ────────────────────────────────────────────────
+async function activateNotifications(){
   if(!('Notification' in window)){
-    showToast('⚠️ Notifications non supportées sur ce navigateur','warn');
-    return;
+    showToast('⚠️ Notifications non supportées','warn'); return;
   }
   const perm = Notification.permission === 'granted'
     ? 'granted'
     : await Notification.requestPermission();
-
   if(perm !== 'granted'){
-    showToast('❌ Permission refusée — activez-les dans les réglages','warn');
-    return;
+    showToast('❌ Permission refusée — activez dans les réglages','warn');
+    _refreshNotifStatusBar(); return;
   }
   _notifEnabled = true;
+  _saveNotifEnabled(true);
   _updateNotifBtn();
-  showToast('🔔 Notifications activées — vous serez alerté pour chaque but !','ok');
-  // Snapshot des scores actuels (pour ne pas notifier l'état initial)
+  _refreshNotifStatusBar();
+  // Snapshot initial
   MATCHES.forEach(m => {
-    _notifGoals[m.id] = m.score ? `${m.score.h}-${m.score.a}` : '0-0';
+    _notifGoals[m.id]    = m.score ? `${m.score.h}-${m.score.a}` : '0-0';
+    _notifPeriods[m.id]  = m.period || '';
+    _notifStatuses[m.id] = m.status;
   });
+  _addNotifHistory('✅','Notifications activées','Coup d\'envoi, buts et fins de match');
+  showToast('🔔 Notifications activées !','ok');
 }
+// Compatibilité avec l'ancienne fonction (appelée ailleurs)
+async function toggleNotifications(){ openNotifScreen(); }
 
-function _checkGoalNotifs(){
+// ── Envoi d'une notification ──────────────────────────────────
+function _sendNotif(title, body, tag, matchId){
   if(!_notifEnabled || Notification.permission !== 'granted') return;
-  MATCHES.filter(m => m.status === 'live').forEach(m => {
-    if(!m.score) return;
-    const prev = _notifGoals[m.id];
-    const curr = `${m.score.h}-${m.score.a}`;
-    if(prev === undefined){ _notifGoals[m.id] = curr; return; }
-    if(curr !== prev){
-      // But marqué !
-      const ph = parseInt(prev.split('-')[0]), pa = parseInt(prev.split('-')[1]);
-      const ch = m.score.h, ca = m.score.a;
-      let scorerTeam = ch > ph ? m.home.name : m.away.name;
-      const notif = new Notification(`⚽ But ! ${m.home.name} ${ch}–${ca} ${m.away.name}`, {
-        body: `${scorerTeam} marque à la ${m.liveMin}' — ${m.league}`,
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚽</text></svg>',
-        tag:  `goal-${m.id}-${curr}`,
-        silent: false
-      });
-      notif.onclick = () => { window.focus(); showDetail(m.id); notif.close(); };
-      _notifGoals[m.id] = curr;
-    }
-  });
-  // Notifier aussi matchs commençant (status passe à live)
-  MATCHES.filter(m => m.status === 'live' && _notifGoals[m.id] === undefined && m.score).forEach(m => {
-    _notifGoals[m.id] = `${m.score.h}-${m.score.a}`;
-    new Notification(`🟢 Match débuté : ${m.home.name} vs ${m.away.name}`, {
-      body: `${m.league} — coup d'envoi !`,
-      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚽</text></svg>',
-      tag:  `kickoff-${m.id}`,
-      silent: false
-    });
-  });
+  try{
+    const n = new Notification(title, { body, icon: NOTIF_ICON, tag, silent: false });
+    n.onclick = () => { window.focus(); if(matchId) showDetail(matchId); n.close(); };
+  }catch(e){ console.warn('[Notif]', e); }
+}
+function _addNotifHistory(icon, title, sub){
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  _notifHistory.unshift({ icon, title, sub, time });
+  if(_notifHistory.length > 50) _notifHistory.pop();
+  localStorage.setItem('notifHistory', JSON.stringify(_notifHistory));
+}
+function renderNotifHistory(){
+  const el = document.getElementById('notif-history-list');
+  if(!el) return;
+  if(!_notifHistory.length){
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;opacity:.4"><div style="font-size:36px">🔕</div><div style="font-size:16px;font-weight:700;color:#666;margin-top:8px">Aucune notification reçue</div><div style="font-size:13px;color:#888;margin-top:4px">Activez les notifications pour commencer</div></div>';
+    return;
+  }
+  el.innerHTML = _notifHistory.map(h => `
+    <div class="notif-history-item">
+      <div class="notif-hist-ico">${h.icon}</div>
+      <div class="notif-hist-text">
+        <div class="notif-hist-title">${h.title}</div>
+        <div class="notif-hist-sub">${h.sub}</div>
+      </div>
+      <div class="notif-hist-time">${h.time}</div>
+    </div>`).join('');
+}
+function sendTestNotification(){
+  if(Notification.permission !== 'granted'){
+    showToast('⚠️ Activez d\'abord les notifications','warn'); return;
+  }
+  _sendNotif('⚽ Test Aretinofoot', 'Les notifications fonctionnent correctement !', 'test-notif', null);
+  _addNotifHistory('🧪','Notification test','Envoyée depuis les réglages');
+  renderNotifHistory();
+  showToast('🧪 Notification test envoyée !','ok');
 }
 
-// Appeler _checkGoalNotifs dans le tick existant
-const _origTickLive = _tickLive;
-// Injecter dans startAutoRefresh via le setInterval existant (patch propre)
-// Fix BUG-C5 : stocker la référence pour éviter l'empilement de timers
-let _notifTimer = null;
-(function patchNotifCheck(){
+// ── Vérification principale (toutes les 10s) ──────────────────
+function _checkAllNotifs(){
+  if(!_notifEnabled || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+
+  MATCHES.forEach(m => {
+    const prevScore  = _notifGoals[m.id];
+    const prevPeriod = _notifPeriods[m.id];
+    const prevStatus = _notifStatuses[m.id];
+
+    // ── 1. COUP D'ENVOI — match passe à live ──────────────────
+    if(_notifPrefs.kickoff && m.status === 'live' && prevStatus !== 'live'){
+      _sendNotif(`🟢 Coup d'envoi ! ${m.home.name} vs ${m.away.name}`,
+        `${m.league} — coup d'envoi !`, `kickoff-${m.id}`, m.id);
+      _addNotifHistory('⚽', `Coup d'envoi`, `${m.home.name} vs ${m.away.name} — ${m.league}`);
+    }
+
+    // ── 2. BUT MARQUÉ — score change ──────────────────────────
+    if(_notifPrefs.goal && m.status === 'live' && m.score){
+      const curr = `${m.score.h}-${m.score.a}`;
+      if(prevScore && prevScore !== curr && prevScore !== '?-?'){
+        const ph = parseInt(prevScore.split('-')[0])||0;
+        const pa = parseInt(prevScore.split('-')[1])||0;
+        const scorer = m.score.h > ph ? m.home.name : m.away.name;
+        _sendNotif(`⚽ But ! ${m.home.name} ${m.score.h}–${m.score.a} ${m.away.name}`,
+          `${scorer} marque à la ${m.liveMin||'?'}' — ${m.league}`,
+          `goal-${m.id}-${curr}`, m.id);
+        _addNotifHistory('⚽', `But de ${scorer}`, `${m.home.name} ${m.score.h}-${m.score.a} ${m.away.name} (${m.liveMin||'?'}')`);
+      }
+      _notifGoals[m.id] = curr;
+    } else if(!_notifGoals[m.id]){
+      _notifGoals[m.id] = m.score ? `${m.score.h}-${m.score.a}` : '0-0';
+    }
+
+    // ── 3. MI-TEMPS ───────────────────────────────────────────
+    if(_notifPrefs.halftime && m.status === 'live' && m.period === 'HT' && prevPeriod !== 'HT'){
+      _sendNotif(`⏸️ Mi-temps — ${m.home.name} ${m.score?.h||0}–${m.score?.a||0} ${m.away.name}`,
+        `${m.league} — mi-temps`, `ht-${m.id}`, m.id);
+      _addNotifHistory('⏸️', 'Mi-temps', `${m.home.name} ${m.score?.h||0}-${m.score?.a||0} ${m.away.name}`);
+    }
+
+    // ── 4. FIN DU MATCH ───────────────────────────────────────
+    if(_notifPrefs.fulltime && m.status === 'finished' && prevStatus !== 'finished' && prevStatus){
+      const sc = m.score ? `${m.score.h}-${m.score.a}` : '?-?';
+      const result = !m.score ? '—' : m.score.h > m.score.a ? `Victoire ${m.home.name}` : m.score.h < m.score.a ? `Victoire ${m.away.name}` : 'Match Nul';
+      _sendNotif(`🏁 Fin : ${m.home.name} ${sc} ${m.away.name}`,
+        `${result} — ${m.league}`, `ft-${m.id}`, m.id);
+      _addNotifHistory('🏁', `Fin du match`, `${m.home.name} ${sc} ${m.away.name} — ${result}`);
+    }
+
+    // ── 5. RAPPEL 15 MIN avant coup d'envoi ───────────────────
+    if(_notifPrefs.reminder15 && m.status === 'scheduled' && m.time && !_notifReminders[m.id]){
+      const [hh, mm] = m.time.split(':').map(Number);
+      const matchMin = hh*60 + mm;
+      const diff = matchMin - nowMin;
+      if(diff >= 14 && diff <= 16){
+        _sendNotif(`⏰ Dans 15 min : ${m.home.name} vs ${m.away.name}`,
+          `${m.league} — coup d'envoi à ${m.time}`, `reminder-${m.id}`, m.id);
+        _addNotifHistory('⏰', `Rappel 15 min`, `${m.home.name} vs ${m.away.name} à ${m.time}`);
+        _notifReminders[m.id] = true;
+      }
+    }
+
+    // Snapshot pour le prochain tick
+    _notifPeriods[m.id]  = m.period || '';
+    _notifStatuses[m.id] = m.status;
+  });
+
+  // ── 6. COUPON TERMINÉ ─────────────────────────────────────
+  if(_notifPrefs.coupon){
+    const couponIds = Object.keys(COUPON).map(Number).filter(id => COUPON[id]);
+    if(couponIds.length > 0){
+      const couponMatches = couponIds.map(id => MATCHES.find(m=>m.id===id)).filter(Boolean);
+      const allDone = couponMatches.length > 0 && couponMatches.every(m => m.status === 'finished');
+      if(allDone && !_notifGoals['coupon_done_'+couponIds.join('_')]){
+        const wins = couponMatches.filter(m => {
+          if(!m.score) return false;
+          const t = m.mp?.type||'1';
+          return (t==='1'&&m.score.h>m.score.a)||(t==='2'&&m.score.a>m.score.h)||(t==='N'&&m.score.h===m.score.a);
+        }).length;
+        _sendNotif(`🎫 Coupon terminé — ${wins}/${couponMatches.length} gagnés`,
+          wins === couponMatches.length ? '🏆 Coupon parfait !' : `${wins} pronostic(s) correct(s) sur ${couponMatches.length}`,
+          'coupon-done', null);
+        _addNotifHistory('🎫', `Coupon terminé`, `${wins}/${couponMatches.length} pronostics gagnés`);
+        _notifGoals['coupon_done_'+couponIds.join('_')] = true;
+      }
+    }
+  }
+}
+
+// ── Init et timer ─────────────────────────────────────────────
+(function initNotifSystem(){
   const origStart = startAutoRefresh;
   startAutoRefresh = function(){
     origStart();
     if(_notifTimer) clearInterval(_notifTimer);
-    _notifTimer = setInterval(_checkGoalNotifs, 12000);
+    _notifTimer = setInterval(_checkAllNotifs, 10000); // toutes les 10s (sync avec fetch)
   };
 })();
 
-// Init bouton
 _updateNotifBtn();
+_applyNotifToggles();
 
 // ── Navigation ──
 function switchTab(name){
