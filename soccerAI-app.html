@@ -919,6 +919,7 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
         <div class="chip" onclick="setIaFilter('vb',this)">💎 Value Bet</div>
         <div class="chip" onclick="setIaFilter('safe',this)">🛡️ Safe</div>
         <div class="chip" onclick="setIaFilter('cote15',this)">⚡ Cote ≥1.5</div>
+        <div class="chip" onclick="setIaFilter('u45',this)">⬇️ Moins de 4.5</div>
       </div>
       <div style="margin:0 12px 8px;background:#F4F1EB;border-radius:12px;display:flex;padding:8px 0">
         <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:#2D2A27">5</div><div style="font-size:11px;color:#B0AA9F;margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Matchs du jour</div></div>
@@ -3949,6 +3950,85 @@ async function fetchAllMatchesToday(forceYmd){
 // ══════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════
+//  MODULE UNDER 4.5 — Analyse défensive experte
+//  Modèle Poisson + xG dual + records défensifs
+// ══════════════════════════════════════════════════════════════
+function _under45Score(m){
+  const hxg = m.pred.hxg || 1.20;
+  const axg = m.pred.axg || 1.00;
+  const lambda = +(hxg + axg).toFixed(2);
+
+  // P(total ≤ 4) via Poisson(λ_total = λ_h + λ_a)
+  let pU45 = 0, fact = 1;
+  for(let k=0;k<=4;k++){
+    if(k>0) fact*=k;
+    pU45 += Math.exp(-lambda)*Math.pow(lambda,k)/fact;
+  }
+  pU45 = Math.round(pU45*100);
+
+  // P(Over 3.5) from ou object or pred
+  const o35 = (m.ou&&m.ou.o35!=null ? m.ou.o35 : m.pred.o35) || 0;
+  const u35 = 100 - o35;
+
+  // P(Over 4.5) — market proxy: 1 / fairOdd * 1.06
+  const fairOdd = +(1/Math.max(pU45/100,0.05)*1.05).toFixed(2);
+
+  let score=0;
+  const reasons=[];
+
+  // ── A) Probabilité Poisson U4.5 (0-45) ──────────────────────
+  if(pU45>=93){ score+=45; reasons.push(`🔒 Proba Poisson Under 4.5 : <b>${pU45}%</b> — quasi certitude`); }
+  else if(pU45>=89){ score+=38; reasons.push(`✅ Proba Poisson Under 4.5 : <b>${pU45}%</b>`); }
+  else if(pU45>=84){ score+=28; reasons.push(`📊 Proba Under 4.5 : <b>${pU45}%</b>`); }
+  else if(pU45>=78){ score+=16; reasons.push(`⚠️ Proba Under 4.5 : <b>${pU45}%</b> — satisfaisant`); }
+  else { score+=5; reasons.push(`⚠️ Proba Under 4.5 : <b>${pU45}%</b> — limite`); }
+
+  // ── B) xG total — intensité offensive (0-25) ─────────────────
+  if(lambda<=1.6){ score+=25; reasons.push(`⚔️ Choc défensif — xG total <b>${lambda}</b> (très faible)`); }
+  else if(lambda<=2.0){ score+=20; reasons.push(`🛡️ Faible intensité offensive — xG <b>${lambda}</b>`); }
+  else if(lambda<=2.5){ score+=14; reasons.push(`📉 xG total modéré : <b>${lambda}</b>`); }
+  else if(lambda<=3.2){ score+=7;  reasons.push(`⚠️ xG élevé : <b>${lambda}</b> — surveiller`); }
+  else { score+=0; reasons.push(`❌ xG total élevé : <b>${lambda}</b> — risque réel`); }
+
+  // ── C) Équilibre défensif (0-15) ─────────────────────────────
+  const diff=Math.abs(hxg-axg);
+  if(diff<0.25){
+    score+=15;
+    reasons.push(`⚖️ Match tactique équilibré — xG ${hxg} vs ${axg}`);
+  } else if(diff<0.5){ score+=10; }
+  else if(diff<0.9){ score+=5;  }
+  else { score+=0; }
+
+  // ── D) Confirmation Under 3.5 (0-10) ─────────────────────────
+  if(u35>=75){ score+=10; reasons.push(`📉 Under 3.5 déjà à <b>${u35}%</b> — U4.5 renforcé`); }
+  else if(u35>=65){ score+=7; }
+  else if(u35>=55){ score+=3; }
+
+  // ── E) Records défensifs (0-5) ────────────────────────────────
+  const hr=m.home.record||{}, ar=m.away.record||{};
+  if(hr.ga_pg!=null && ar.ga_pg!=null){
+    const avgGA=(hr.ga_pg+ar.ga_pg)/2;
+    if(avgGA<0.7){ score+=5; reasons.push(`🧱 Défenses imperméables (${avgGA.toFixed(1)} but/m concédé)`); }
+    else if(avgGA<1.0){ score+=3; reasons.push(`🛡️ Défenses solides (${avgGA.toFixed(1)} but/m)`); }
+  }
+
+  // ── Pénalités ─────────────────────────────────────────────────
+  if(m.status==='live')  score-=10;
+  if(lambda>3.5)         score-=12;
+  if(pU45<75)            score-=15;
+
+  score=Math.max(0,Math.min(100,Math.round(score)));
+
+  let label,labelColor,labelIcon;
+  if(score>=78){ label='TRÈS FIABLE'; labelColor='#16a34a'; labelIcon='🔒'; }
+  else if(score>=62){ label='FIABLE';     labelColor='#22c55e'; labelIcon='✅'; }
+  else if(score>=48){ label='PROBABLE';   labelColor='#3b82f6'; labelIcon='📊'; }
+  else              { label='INCERTAIN';  labelColor='#f59e0b'; labelIcon='⚠️'; }
+
+  return { score, label, labelColor, labelIcon, reasons, pU45, lambda, hxg, axg, u35, fairOdd };
+}
+
+// ══════════════════════════════════════════════════════════════
 //  ARETINOFOOT EXPERT ENGINE v2  — algo de scoring IA de rang 1
 //  5 piliers indépendants + pénalités calibrées
 // ══════════════════════════════════════════════════════════════
@@ -4314,6 +4394,24 @@ function renderIaList(){
     });
   } else if(iaFilter === 'cote15'){
     list = scored.filter(x => parseFloat((x.m.mp.odd||'×0').replace('×','')) >= 1.5);
+  } else if(iaFilter === 'u45'){
+    // Special pipeline: score every non-finished match with Under 4.5 model
+    const u45scored = base.map(m=>({ m, s: _under45Score(m) }))
+                          .filter(x=>x.s.pU45>=78)
+                          .sort((a,b)=>b.s.score-a.s.score);
+    // Render separate card format and return early
+    _updateIaHero(scored);
+    if(!u45scored.length){
+      document.getElementById('ia-list').innerHTML=
+        `<div style="text-align:center;padding:40px 20px;opacity:.4">
+          <div style="font-size:45px;margin-bottom:8px">🔒</div>
+          <div style="font-size:17px;font-weight:800;color:#666">Aucun match éligible Under 4.5</div>
+          <div style="font-size:13px;color:#555;margin-top:4px">Revenez quand plus de matchs sont disponibles</div>
+        </div>`;
+      return;
+    }
+    document.getElementById('ia-list').innerHTML = _renderU45Cards(u45scored) + '<div style="height:8px"></div>';
+    return;
   } else {
     list = scored.filter(x => x.s.score >= 35);
   }
@@ -4440,6 +4538,103 @@ function renderIaList(){
   document.getElementById('ia-list').innerHTML = html;
 }
 
+// ── Cartes spéciales Under 4.5 ────────────────────────────────
+function _renderU45Cards(u45list){
+  return u45list.map(({m, s}) => {
+    const inCoupon = !!COUPON[m.id];
+    const barFill = Math.round(s.hxg/(s.lambda||1)*100);
+    const barColor = s.score>=78?'#16a34a':s.score>=62?'#22c55e':s.score>=48?'#3b82f6':'#f59e0b';
+    const reasonsHtml = s.reasons.slice(0,3).map(r=>
+      `<div style="font-size:12px;color:#555;margin-top:3px;line-height:1.4">${r}</div>`
+    ).join('');
+    // xG meter
+    const xgBar = `
+      <div style="margin:8px 0 4px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:3px">
+          <span>${m.home.short||m.home.name} xG <b style="color:#1C1917">${s.hxg}</b></span>
+          <span>Total λ = <b style="color:#1C1917">${s.lambda}</b></span>
+          <span><b style="color:#1C1917">${s.axg}</b> xG ${m.away.short||m.away.name}</span>
+        </div>
+        <div style="height:6px;background:#EDE9E3;border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${barFill}%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:3px"></div>
+        </div>
+      </div>`;
+    return `
+    <div class="ia-selection${inCoupon?' ia-selected':''}" id="ia-card-${m.id}" onclick="showDetail(${m.id})"
+      style="border-left:3px solid #16a34a">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:900;color:${s.labelColor};background:${s.labelColor}18;border:1px solid ${s.labelColor}44;padding:2px 8px;border-radius:5px">${s.labelIcon} ${s.label}</span>
+          <span style="font-size:12px;font-weight:900;background:#16a34a22;border:1px solid #16a34a55;color:#16a34a;padding:1px 7px;border-radius:4px">⬇️ Under 4.5</span>
+          ${m.oddSource==='betclic'?'<span style="font-size:11px;color:#e83214;font-weight:900">🎲 Betclic</span>':''}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div style="font-size:13px;font-weight:900;color:${barColor}">${s.score}/100</div>
+          <div style="width:36px;height:4px;background:#EDE9E3;border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${s.score}%;background:${barColor}"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ias-match" style="display:flex;align-items:center;gap:6px">
+        ${_logo(m.home.logo,m.home.emoji,20)}
+        <span>${m.home.name}</span>
+        <span style="color:#333;font-size:14px">vs</span>
+        ${_logo(m.away.logo,m.away.emoji,20)}
+        <span>${m.away.name}</span>
+      </div>
+      <div style="margin:3px 0 1px;font-size:13px;font-weight:900;color:#16a34a">
+        Moins de 4.5 buts · ×${s.fairOdd} · ${m.ls} · ${m.time}
+      </div>
+      ${xgBar}
+      <!-- Probabilité visuelle U4.5 -->
+      <div style="display:flex;align-items:center;gap:8px;margin:6px 0 3px">
+        <div style="flex:1;height:8px;background:#EDE9E3;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${s.pU45}%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:4px"></div>
+        </div>
+        <span style="font-size:14px;font-weight:900;color:#16a34a;white-space:nowrap">P(U4.5) = ${s.pU45}%</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <span style="font-size:11px;background:#DCFCE7;color:#16a34a;font-weight:900;padding:2px 7px;border-radius:4px">Under 3.5 : ${s.u35}%</span>
+        <span style="font-size:11px;background:#EFF6FF;color:#3b82f6;font-weight:900;padding:2px 7px;border-radius:4px">xG dom. ${s.hxg}</span>
+        <span style="font-size:11px;background:#EFF6FF;color:#3b82f6;font-weight:900;padding:2px 7px;border-radius:4px">xG ext. ${s.axg}</span>
+      </div>
+      ${reasonsHtml}
+      <!-- Score probable le plus bas -->
+      <div style="margin-top:6px;background:#F0FFF4;border:1px solid #16a34a33;border-radius:8px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:#555;font-weight:700">🎯 Score Poisson le plus probable</span>
+        <span style="font-size:16px;font-weight:900;color:#1C1917">${m.pred.score||'—'}</span>
+      </div>
+      ${(()=>{
+        if(!BANKROLL) return '';
+        const k=_kellyCFA(s.pU45, s.fairOdd, BANKROLL);
+        if(!k||k.half<100) return '';
+        return `<div style="margin-top:5px;background:#FFFBEB;border:1px solid #f59e0b33;border-radius:8px;padding:5px 10px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;color:#888;font-weight:700">💰 Mise conseillée (½ Kelly)</span>
+          <span style="font-size:15px;font-weight:900;color:#f59e0b">${k.half.toLocaleString('fr-FR')} FCFA</span>
+        </div>`;
+      })()}
+      <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="event.stopPropagation();_addU45ToCoupon(${m.id})">
+        ${inCoupon?'✅ Dans le coupon — retirer':'＋ Ajouter U4.5 au coupon'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _addU45ToCoupon(id){
+  const m=MATCHES.find(x=>x.id===id); if(!m) return;
+  if(COUPON[id]){ delete COUPON[id]; showToast('🗑 Retiré du coupon'); }
+  else {
+    const s=_under45Score(m);
+    COUPON[id]={ bet:'u45', label:`Moins de 4.5 buts`, odd:s.fairOdd, matchRef:m };
+    showToast('✅ Under 4.5 ajouté au coupon !');
+  }
+  _updateCouponBar();
+  const btn=document.getElementById(`ia-cb-${id}`);
+  if(btn){ btn.textContent=COUPON[id]?'✅ Dans le coupon — retirer':'＋ Ajouter U4.5 au coupon'; btn.classList.toggle('in-coupon',!!COUPON[id]); }
+  const card=document.getElementById(`ia-card-${id}`);
+  if(card) card.classList.toggle('ia-selected',!!COUPON[id]);
+}
+
 function _updateIaHero(scored){
   // Update the IA hero section with real metrics
   const total = MATCHES.filter(m=>m.status!=='finished').length;
@@ -4493,6 +4688,7 @@ function setIaFilter(f,el){
     vb:'💎 Value Bets — Edge positif détecté',
     safe:'🛡️ Paris Sûrs — Risque faible',
     cote15:'⚡ Cotes ≥ 1.5 — Bon rapport R/R',
+    u45:'⬇️ Moins de 4.5 buts — Analyse défensive Poisson',
   };
   const titleEl=document.querySelector('#screen-ia [style*="font-size:14px"][style*="font-weight:900"]');
   if(titleEl) titleEl.textContent=titles[f]||titles.standard;
