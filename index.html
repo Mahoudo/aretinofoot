@@ -4622,18 +4622,18 @@ function renderIaList(){
   } else if(iaFilter === 'banker'){
     list = scored.filter(x => x.s.score >= 78);
   } else if(iaFilter === 'safe'){
-    list = scored.filter(x => x.m.risk === 'safe' && x.s.score >= 40);
+    list = scored.filter(x => x.m.risk === 'safe' && x.s.score >= 50);
   } else if(iaFilter === 'vb'){
-    list = scored.filter(x => x.m.vb.length > 0).sort((a,b) => {
+    list = scored.filter(x => x.m.vb.length > 0 && x.s.score >= 36).sort((a,b) => {
       const ea = a.m.vb[0]?.kelly||0, eb = b.m.vb[0]?.kelly||0;
       return eb - ea;
     });
   } else if(iaFilter === 'cote15'){
-    list = scored.filter(x => parseFloat((x.m.mp.odd||'×0').replace('×','')) >= 1.5);
+    list = scored.filter(x => parseFloat((x.m.mp.odd||'×0').replace('×','')) >= 1.5 && x.s.score >= 36);
   } else if(iaFilter === 'o15'){
     // Pipeline Over 1.5 — moteur offensif expert
     const o15scored = base.map(m=>({ m, s: _over15Score(m) }))
-                          .filter(x => x.s.pO15 >= 65)
+                          .filter(x => x.s.score >= 48)   // masque INCERTAIN
                           .sort((a,b) => b.s.score - a.s.score);
     _updateIaHero(scored);
     if(!o15scored.length){
@@ -4666,7 +4666,7 @@ function renderIaList(){
     document.getElementById('ia-list').innerHTML = _renderU45Cards(u45scored) + '<div style="height:8px"></div>';
     return;
   } else {
-    list = scored.filter(x => x.s.score >= 35);
+    list = scored.filter(x => x.s.score >= 36);   // masque FAIBLE
   }
 
   // Update IA hero metrics dynamically
