@@ -5137,9 +5137,22 @@ async function activateNotifications(){
 async function toggleNotifications(){ openNotifScreen(); }
 
 // ── Envoi d'une notification ──────────────────────────────────
-function _sendNotif(title, body, tag, matchId){
+async function _sendNotif(title, body, tag, matchId){
   if(!_notifEnabled || Notification.permission !== 'granted') return;
   try{
+    // Priorité SW (obligatoire sur Android/iOS Chrome)
+    if('serviceWorker' in navigator){
+      const reg = await navigator.serviceWorker.ready.catch(()=>null);
+      if(reg && reg.showNotification){
+        await reg.showNotification(title, {
+          body, icon: NOTIF_ICON, badge: NOTIF_ICON,
+          tag, silent: false, renotify: true,
+          data: { matchId, url: self?.location?.href || '/' }
+        });
+        return;
+      }
+    }
+    // Fallback desktop (PC/Mac)
     const n = new Notification(title, { body, icon: NOTIF_ICON, tag, silent: false });
     n.onclick = () => { window.focus(); if(matchId) showDetail(matchId); n.close(); };
   }catch(e){ console.warn('[Notif]', e); }
@@ -5271,16 +5284,30 @@ function _checkAllNotifs(){
 
 // ── Init et timer ─────────────────────────────────────────────
 (function initNotifSystem(){
+  // ① Démarrer le timer immédiatement (autoInit a déjà appelé startAutoRefresh)
+  if(_notifTimer) clearInterval(_notifTimer);
+  _notifTimer = setInterval(_checkAllNotifs, 10000);
+
+  // ② Redémarrer le timer si startAutoRefresh est rappelé (ex: changement de date)
   const origStart = startAutoRefresh;
   startAutoRefresh = function(){
-    origStart();
+    origStart.apply(this, arguments);
     if(_notifTimer) clearInterval(_notifTimer);
-    _notifTimer = setInterval(_checkAllNotifs, 10000); // toutes les 10s (sync avec fetch)
+    _notifTimer = setInterval(_checkAllNotifs, 10000);
   };
 })();
 
 _updateNotifBtn();
 _applyNotifToggles();
+
+// ── Réception message du Service Worker (tap sur notif) ───────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(e.data?.type === 'OPEN_MATCH' && e.data.matchId){
+      showDetail(e.data.matchId);
+    }
+  });
+}
 
 // ── Navigation ──
 function switchTab(name){

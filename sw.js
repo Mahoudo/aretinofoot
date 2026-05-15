@@ -1,4 +1,4 @@
-const CACHE = 'aretinofoot-v1';
+const CACHE = 'aretinofoot-v2';
 const ASSETS = [
   '/soccerAI-app.html',
   '/manifest.json',
@@ -27,5 +27,26 @@ self.addEventListener('fetch', e => {
   }
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
+  );
+});
+
+// ── Clic sur une notification → ouvrir ou focus l'app ─────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const matchId = e.notification.data?.matchId;
+  const url = '/';
+
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // Si l'app est déjà ouverte → la mettre au premier plan
+      const existing = list.find(c => c.url.includes(self.location.origin));
+      if(existing){
+        existing.focus();
+        if(matchId) existing.postMessage({ type: 'OPEN_MATCH', matchId });
+        return;
+      }
+      // Sinon ouvrir un nouvel onglet
+      return clients.openWindow(url);
+    })
   );
 });
