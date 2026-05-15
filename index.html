@@ -921,6 +921,7 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
         <div class="chip" onclick="setIaFilter('vb',this)">💎 Value Bet</div>
         <div class="chip" onclick="setIaFilter('safe',this)">🛡️ Safe</div>
         <div class="chip" onclick="setIaFilter('cote15',this)">⚡ Cote ≥1.5</div>
+        <div class="chip" onclick="setIaFilter('o15',this)">⚽ +1.5 Buts</div>
         <div class="chip" onclick="setIaFilter('u45',this)">⬇️ Moins de 4.5</div>
       </div>
       <div style="margin:0 12px 8px;background:#F4F1EB;border-radius:12px;display:flex;padding:8px 0">
@@ -3994,6 +3995,197 @@ async function fetchAllMatchesToday(forceYmd){
 // ══════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════
+//  MODULE OVER 1.5 — Moteur offensif expert 5 piliers
+//  Poisson O1.5 + xG offensif + forme + BTTS + contexte
+// ══════════════════════════════════════════════════════════════
+function _over15Score(m){
+  const p   = m.pred;
+  const hr  = m.home.record || {};
+  const ar  = m.away.record || {};
+  const hxg = p.hxg || 1.20;
+  const axg = p.axg || 1.00;
+  const lambda = +(hxg + axg).toFixed(2);
+
+  // P(Over 1.5) — déjà dans p.o15 (calcMatchPred Poisson)
+  const pO15  = p.o15  || 0;   // %
+  const pBTTS = p.btts || 0;   // %
+  const pO25  = p.o25  || 0;   // %
+
+  let score = 0;
+  const reasons = [];
+
+  // ── PILIER A — Probabilité Poisson O1.5 (0-40) ──────────────
+  if(pO15 >= 90){ score += 40; reasons.push(`🎯 Poisson Over 1.5 : <b>${pO15}%</b> — très haute confiance`); }
+  else if(pO15 >= 82){ score += 32; reasons.push(`✅ Poisson Over 1.5 : <b>${pO15}%</b>`); }
+  else if(pO15 >= 74){ score += 22; reasons.push(`📊 Over 1.5 : <b>${pO15}%</b>`); }
+  else if(pO15 >= 65){ score += 12; reasons.push(`⚠️ Over 1.5 : <b>${pO15}%</b> — limite`); }
+  else              { score +=  4; reasons.push(`❌ Over 1.5 : <b>${pO15}%</b> — insuffisant`); }
+
+  // ── PILIER B — xG offensif combiné (0-25) ────────────────────
+  // λ > 2.5 = matchs très ouverts, buts garantis
+  if(lambda >= 3.2){ score += 25; reasons.push(`⚡ xG total <b>${lambda}</b> — match explosif attendu`); }
+  else if(lambda >= 2.6){ score += 20; reasons.push(`⚽ xG offensif élevé : <b>${lambda}</b> (dom. ${hxg} + ext. ${axg})`); }
+  else if(lambda >= 2.0){ score += 13; reasons.push(`📈 xG total correct : <b>${lambda}</b>`); }
+  else if(lambda >= 1.5){ score +=  6; }
+  else               { score +=  0; reasons.push(`🔒 xG faible : <b>${lambda}</b> — match fermé probable`); }
+
+  // ── PILIER C — Amplification BTTS (0-18) ─────────────────────
+  // Si les 2 équipes marquent → O1.5 quasi certain (min 2 buts)
+  if(pBTTS >= 65){
+    score += 18;
+    reasons.push(`🔀 BTTS <b>${pBTTS}%</b> — deux équipes marquent → O1.5 renforcé`);
+  } else if(pBTTS >= 55){ score += 12; reasons.push(`🔀 BTTS <b>${pBTTS}%</b>`); }
+  else if(pBTTS >= 45){ score +=  7; }
+  else                { score +=  2; }
+
+  // ── PILIER D — Forme offensive (0-12) ────────────────────────
+  // Proxy : win rate des 5 derniers = attaque qui marque
+  const hForm = m.home.form || [];
+  const aForm = m.away.form || [];
+  const W_F = [3.0, 2.0, 1.5, 1.0, 0.5];
+  const MAX_F = W_F.reduce((s,w)=>s+w*3,0);
+  let hFPts=0, aFPts=0;
+  hForm.slice(0,5).forEach((r,i)=>{ hFPts += (r==='W'?3:r==='D'?1:0)*(W_F[i]||0); });
+  aForm.slice(0,5).forEach((r,i)=>{ aFPts += (r==='W'?3:r==='D'?1:0)*(W_F[i]||0); });
+  const offMomentum = (hFPts + aFPts) / (MAX_F * 2);
+  if(offMomentum >= 0.55){
+    score += 12;
+    reasons.push(`🔥 Forme offensive combinée <b>${Math.round(offMomentum*100)}%</b> — équipes en confiance`);
+  } else if(offMomentum >= 0.38){ score += 7; }
+  else if(offMomentum >= 0.22){ score += 3; }
+
+  // ── PILIER E — O2.5 comme signal offensif (0-5) ──────────────
+  // Si O2.5 > 55% → encore plus d'attaque = O1.5 très solide
+  if(pO25 >= 65){ score += 5; reasons.push(`📊 Over 2.5 à <b>${pO25}%</b> — profil offensif confirmé`); }
+  else if(pO25 >= 50){ score += 3; }
+
+  // ── Pénalités ─────────────────────────────────────────────────
+  if(pO15 < 68)        { score -= 12; }
+  if(lambda < 1.5)     { score -= 15; reasons.push(`❌ xG insuffisant (${lambda}) — risque match 0-0/1-0`); }
+  if(pBTTS < 30)       { score -=  8; reasons.push(`⚠️ BTTS bas (${pBTTS}%) — une équipe défend`); }
+  if(m.status==='live'){ score -=  8; }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let label, labelColor, labelIcon;
+  if(score >= 78){ label='TRÈS FIABLE'; labelColor='#16a34a'; labelIcon='🎯'; }
+  else if(score >= 63){ label='FIABLE';     labelColor='#22c55e'; labelIcon='✅'; }
+  else if(score >= 48){ label='PROBABLE';   labelColor='#3b82f6'; labelIcon='📊'; }
+  else               { label='INCERTAIN';  labelColor='#f59e0b'; labelIcon='⚠️'; }
+
+  const fairOdd = +(1 / Math.max(pO15/100, 0.05) * 1.05).toFixed(2);
+
+  return { score, label, labelColor, labelIcon, reasons,
+           pO15, pBTTS, pO25, lambda, hxg, axg, fairOdd, offMomentum };
+}
+
+// ── Rendu cartes Over 1.5 ─────────────────────────────────────
+function _renderO15Cards(list){
+  return list.map(({m, s}) => {
+    const inCoupon = !!COUPON[m.id];
+    const barColor = s.score>=78?'#16a34a':s.score>=63?'#22c55e':s.score>=48?'#3b82f6':'#f59e0b';
+    const hBarW = Math.round(s.hxg / (s.lambda||1) * 100);
+    const reasonsHtml = s.reasons.slice(0,3).map(r=>
+      `<div style="font-size:12px;color:#555;margin-top:3px;line-height:1.4">${r}</div>`
+    ).join('');
+
+    // Barre xG offensive bicolore
+    const xgBar = `
+      <div style="margin:7px 0 4px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:3px">
+          <span>${m.home.short||m.home.name} <b style="color:#EA580C">${s.hxg}</b></span>
+          <span>⚽ xG total <b style="color:#1C1917">${s.lambda}</b></span>
+          <span><b style="color:#EA580C">${s.axg}</b> ${m.away.short||m.away.name}</span>
+        </div>
+        <div style="height:7px;background:#EDE9E3;border-radius:4px;overflow:hidden;display:flex">
+          <div style="height:100%;width:${hBarW}%;background:linear-gradient(90deg,#f97316,#fb923c)"></div>
+          <div style="height:100%;flex:1;background:linear-gradient(90deg,#fb923c,#fdba74)"></div>
+        </div>
+      </div>`;
+
+    // Jauge O1.5 + BTTS
+    const gauges = `
+      <div style="display:flex;gap:8px;margin:5px 0 3px;align-items:center">
+        <div style="flex:1">
+          <div style="font-size:10px;color:#888;font-weight:700;margin-bottom:2px">OVER 1.5</div>
+          <div style="height:8px;background:#EDE9E3;border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${s.pO15}%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:4px"></div>
+          </div>
+        </div>
+        <span style="font-size:16px;font-weight:900;color:${barColor};min-width:44px;text-align:right">${s.pO15}%</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+        <span style="font-size:11px;background:#FFF7ED;border:1px solid #FDBA74;color:#EA580C;font-weight:900;padding:2px 8px;border-radius:4px">O2.5 : ${s.pO25}%</span>
+        <span style="font-size:11px;background:#F5F3FF;border:1px solid #C4B5FD;color:#7C3AED;font-weight:900;padding:2px 8px;border-radius:4px">BTTS : ${s.pBTTS}%</span>
+        <span style="font-size:11px;background:#FFF0F0;border:1px solid #FCA5A5;color:#DC2626;font-weight:900;padding:2px 8px;border-radius:4px">λ ${s.lambda}</span>
+      </div>`;
+
+    return `
+    <div class="ia-selection${inCoupon?' ia-selected':''}" id="ia-card-${m.id}" onclick="showDetail(${m.id})"
+      style="border-left:3px solid #f97316">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:900;color:${s.labelColor};background:${s.labelColor}18;border:1px solid ${s.labelColor}44;padding:2px 8px;border-radius:5px">${s.labelIcon} ${s.label}</span>
+          <span style="font-size:12px;font-weight:900;background:#FFF7ED;border:1px solid #FDBA74;color:#EA580C;padding:1px 7px;border-radius:4px">⚽ Over 1.5</span>
+          ${m.oddSource==='betclic'?'<span style="font-size:11px;color:#e83214;font-weight:900">🎲 Betclic</span>':''}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div style="font-size:13px;font-weight:900;color:${barColor}">${s.score}/100</div>
+          <div style="width:36px;height:4px;background:#EDE9E3;border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${s.score}%;background:${barColor}"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ias-match" style="display:flex;align-items:center;gap:6px">
+        ${_logo(m.home.logo,m.home.emoji,20)}
+        <span>${m.home.name}</span>
+        <span style="color:#333;font-size:14px">vs</span>
+        ${_logo(m.away.logo,m.away.emoji,20)}
+        <span>${m.away.name}</span>
+      </div>
+      <div style="margin:3px 0 1px;font-size:13px;font-weight:900;color:#f97316">
+        Plus de 1.5 buts · ×${s.fairOdd} · ${m.ls} · ${m.time}
+      </div>
+      ${xgBar}
+      ${gauges}
+      ${reasonsHtml}
+      <!-- Score probable -->
+      <div style="margin-top:6px;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:#888;font-weight:700">🎯 Score Poisson probable</span>
+        <span style="font-size:16px;font-weight:900;color:#1C1917">${m.pred.score||'—'}</span>
+      </div>
+      ${(()=>{
+        if(!BANKROLL) return '';
+        const k=_kellyCFA(s.pO15, s.fairOdd, BANKROLL);
+        if(!k||k.half<100) return '';
+        return `<div style="margin-top:5px;background:#FFFBEB;border:1px solid #f59e0b33;border-radius:8px;padding:5px 10px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;color:#888;font-weight:700">💰 Mise conseillée (½ Kelly)</span>
+          <span style="font-size:15px;font-weight:900;color:#f59e0b">${k.half.toLocaleString('fr-FR')} FCFA</span>
+        </div>`;
+      })()}
+      <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="event.stopPropagation();_addO15ToCoupon(${m.id})">
+        ${inCoupon?'✅ Dans le coupon — retirer':'＋ Ajouter Over 1.5 au coupon'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _addO15ToCoupon(id){
+  const m=MATCHES.find(x=>x.id===id); if(!m) return;
+  if(COUPON[id]){ delete COUPON[id]; showToast('🗑 Retiré du coupon'); }
+  else {
+    const s=_over15Score(m);
+    COUPON[id]={ bet:'+1.5', label:`Plus de 1.5 buts`, odd:s.fairOdd, matchRef:m };
+    showToast('✅ Over 1.5 ajouté au coupon !');
+  }
+  _updateCouponBar();
+  const btn=document.getElementById(`ia-cb-${id}`);
+  if(btn){ btn.textContent=COUPON[id]?'✅ Dans le coupon — retirer':'＋ Ajouter Over 1.5 au coupon'; btn.classList.toggle('in-coupon',!!COUPON[id]); }
+  const card=document.getElementById(`ia-card-${id}`);
+  if(card) card.classList.toggle('ia-selected',!!COUPON[id]);
+}
+
+// ══════════════════════════════════════════════════════════════
 //  MODULE UNDER 4.5 — Analyse défensive experte
 //  Modèle Poisson + xG dual + records défensifs
 // ══════════════════════════════════════════════════════════════
@@ -4438,6 +4630,23 @@ function renderIaList(){
     });
   } else if(iaFilter === 'cote15'){
     list = scored.filter(x => parseFloat((x.m.mp.odd||'×0').replace('×','')) >= 1.5);
+  } else if(iaFilter === 'o15'){
+    // Pipeline Over 1.5 — moteur offensif expert
+    const o15scored = base.map(m=>({ m, s: _over15Score(m) }))
+                          .filter(x => x.s.pO15 >= 65)
+                          .sort((a,b) => b.s.score - a.s.score);
+    _updateIaHero(scored);
+    if(!o15scored.length){
+      document.getElementById('ia-list').innerHTML=
+        `<div style="text-align:center;padding:40px 20px;opacity:.4">
+          <div style="font-size:45px;margin-bottom:8px">⚽</div>
+          <div style="font-size:17px;font-weight:800;color:#666">Aucun match Over 1.5 fiable</div>
+          <div style="font-size:13px;color:#555;margin-top:4px">Revenez quand plus de matchs sont chargés</div>
+        </div>`;
+      return;
+    }
+    document.getElementById('ia-list').innerHTML = _renderO15Cards(o15scored) + '<div style="height:8px"></div>';
+    return;
   } else if(iaFilter === 'u45'){
     // Special pipeline: score every non-finished match with Under 4.5 model
     const u45scored = base.map(m=>({ m, s: _under45Score(m) }))
@@ -4732,6 +4941,7 @@ function setIaFilter(f,el){
     vb:'💎 Value Bets — Edge positif détecté',
     safe:'🛡️ Paris Sûrs — Risque faible',
     cote15:'⚡ Cotes ≥ 1.5 — Bon rapport R/R',
+    o15:'⚽ Plus de 1.5 buts — Moteur offensif expert 5 piliers',
     u45:'⬇️ Moins de 4.5 buts — Analyse défensive Poisson',
   };
   const titleEl=document.querySelector('#screen-ia [style*="font-size:14px"][style*="font-weight:900"]');
