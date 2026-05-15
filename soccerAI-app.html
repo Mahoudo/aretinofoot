@@ -1439,7 +1439,9 @@ function card(m){
         <div class="mp-type">${mp.type}</div>
       </div>
       <div class="mp-right">
-        <span class="mp-odd">${mp.odd}</span>
+        ${m.hasRealOdds
+          ? `<span class="mp-odd">${mp.odd}</span>`
+          : `<span class="mp-odd" style="color:#aaa;font-size:14px" title="Cote non disponible — en attente bookmaker">—</span>`}
         <div class="mp-conf"><span style="font-size:12px">⚡</span><span class="mp-conf-val">${mp.conf}/10</span></div>
         <span class="mp-badge ${mp.risk==='SAFE'?'rb-safe':'rb-moyen'}">${mp.risk}</span>
       </div>
@@ -3389,8 +3391,9 @@ function transformESPN(events){
       const scoreH=parseInt(home.score)||0;
       const scoreA=parseInt(away.score)||0;
 
-      // Odds (American → decimal)
+      // Odds réelles ESPN/DraftKings (American → decimal)
       let oddsH=0,oddsD=0,oddsA=0;
+      let hasRealOdds = false;
       const od=comp.odds&&comp.odds[0];
       if(od){
         if(od.moneyline){
@@ -3399,18 +3402,18 @@ function transformESPN(events){
           oddsA=ml2dec(od.moneyline.away?.current?.odds);
         }
         if(!oddsD&&od.drawOdds?.moneyLine) oddsD=ml2dec(od.drawOdds.moneyLine);
+        if(oddsH>1&&oddsA>1) hasRealOdds = true;
       }
-      // Fallback: use season records (W-D-L) for realistic odds instead of random
+      // Fallback probabiliste si aucune cote réelle disponible
+      // → utilisé UNIQUEMENT pour les calculs internes (Poisson, conf, VB)
+      // → JAMAIS affiché comme cote bookmaker
+      const _fbOdds = _recordsToFallbackOdds(home.records||[], away.records||[]);
       if(!oddsH||!oddsA){
-        const fb=_recordsToFallbackOdds(home.records||[], away.records||[]);
-        if(!oddsH) oddsH=fb.oddH;
-        if(!oddsA) oddsA=fb.oddA;
-        if(!oddsD) oddsD=fb.oddD;
+        oddsH = _fbOdds.oddH;
+        oddsA = _fbOdds.oddA;
+        oddsD = _fbOdds.oddD;
       }
-      if(!oddsD){
-        // draw fallback from average of home/away implied draw
-        oddsD=+((oddsH+oddsA)*0.55).toFixed(2);
-      }
+      if(!oddsD) oddsD=+((oddsH+oddsA)*0.55).toFixed(2);
 
       // Predictions — use oddsToProbs (returns percentages 0-100)
       const {ph,pd,pa}=oddsToProbs(oddsH,oddsD,oddsA);
@@ -3497,10 +3500,15 @@ function transformESPN(events){
           record:aRecord
         },
         odds:{h:oddsH,d:oddsD,a:oddsA},
+        hasRealOdds,
+        oddSource: hasRealOdds ? 'espn' : 'synthetic',
         pred:{ph,pd,pa,hxg,axg,conf,
           o25:matchPred.o25, o15:matchPred.o15, o05:matchPred.o05, o35:matchPred.o35,
           btts:matchPred.btts, score:matchPred.score},
-        mp:{label:pickLabel,type:pickType,odd:'×'+pickOdd.toFixed(2),conf:(conf/10).toFixed(1),risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ'},
+        mp:{label:pickLabel,type:pickType,
+            odd: hasRealOdds ? '×'+pickOdd.toFixed(2) : '—',
+            oddVal: hasRealOdds ? pickOdd : null,
+            conf:(conf/10).toFixed(1),risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ'},
         risk, vb,
         h2h:{h:0,d:0,a:0,list:[]},
         formStats:{
@@ -3623,8 +3631,9 @@ async function _fetchApiFootballMatches(existingMatches, dateStr){
       const hFormPts  = _formPts(hFormArr);
       const aFormPts  = _formPts(aFormArr);
 
-      // Neutral home-advantage odds (aucune cote dispo en plan gratuit)
-      const oddsH = 2.10, oddsD = 3.30, oddsA = 3.50;
+      // API-Football plan gratuit : pas de cotes disponibles → calcul interne uniquement
+      const _af = _recordsToFallbackOdds([], []);
+      const oddsH = _af.oddH, oddsD = _af.oddD, oddsA = _af.oddA;
       const {ph,pd,pa} = oddsToProbs(oddsH,oddsD,oddsA);
       const {hxg,axg}  = probsToXG(ph,pa);
       const matchPred  = calcMatchPred(hxg,axg);
@@ -3657,12 +3666,14 @@ async function _fetchApiFootballMatches(existingMatches, dateStr){
         home: { name:hName, short:hShort, emoji:'⚽', form:hFormArr, logo: fx.teams?.home?.logo||'', record:hRecord },
         away: { name:aName, short:aShort, emoji:'⚽', form:aFormArr, logo: fx.teams?.away?.logo||'', record:aRecord },
         odds: { h:oddsH, d:oddsD, a:oddsA },
+        hasRealOdds: false,
+        oddSource: 'synthetic',
         pred: { ph,pd,pa,hxg,axg,conf,
           o25:matchPred.o25, o15:matchPred.o15, o05:matchPred.o05, o35:matchPred.o35,
           btts:matchPred.btts, score:matchPred.score },
-        mp: { label:pickLabel,type:pickType,odd:'×'+pickOdd.toFixed(2),conf:(conf/10).toFixed(1),risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ' },
-        risk, vb, h2h:{h:0,d:0,a:0,list:[]},
-        oddSource: 'apifootball',
+        mp: { label:pickLabel, type:pickType, odd:'—', oddVal:null,
+              conf:(conf/10).toFixed(1), risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ' },
+        risk, vb:[], h2h:{h:0,d:0,a:0,list:[]},
         formStats:{
           hRec:hRecord.label, hPts:hFormPts,
           aRec:aRecord.label, aPts:aFormPts,
@@ -3745,7 +3756,8 @@ function _mergeBetclicOdds(espnMatches, betclicMatches){
       m.odds.h = best.oddH;
       m.odds.d = best.oddD;
       m.odds.a = best.oddA;
-      m.oddSource = 'betclic';
+      m.oddSource   = 'betclic';
+      m.hasRealOdds = true;
       // Stocker les noms EXACTS Betclic pour le coupon
       m.betclicHome = best.home;
       m.betclicAway = best.away;
@@ -3769,7 +3781,7 @@ function _mergeBetclicOdds(espnMatches, betclicMatches){
       const pickType= ph===maxP?'1':pa===maxP?'2':'N';
       const pickOdd = pickType==='1'?best.oddH:pickType==='2'?best.oddA:best.oddD;
       const pickLbl = pickType==='1'?`Victoire ${m.home.short}`:pickType==='2'?`Victoire ${m.away.short}`:'Match Nul';
-      m.mp  = { label:pickLbl, type:pickType, odd:'×'+pickOdd.toFixed(2),
+      m.mp  = { label:pickLbl, type:pickType, odd:'×'+pickOdd.toFixed(2), oddVal:pickOdd,
                 conf:(conf/10).toFixed(1), risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ' };
 
       // Value bets
@@ -4286,7 +4298,8 @@ function _iaScore(m){
 
   const maxP     = Math.max(p.ph, p.pd, p.pa);
   const pickType = mp.type || (p.ph===maxP?'1':p.pa===maxP?'2':'N');
-  const pickOddF = parseFloat((mp.odd||'×1.5').replace('×','')) || 1.5;
+  // Utiliser uniquement les cotes réelles — ignorer les synthétiques
+  const pickOddF = m.hasRealOdds ? (mp.oddVal || parseFloat((mp.odd||'×0').replace('×','')) || 0) : 0;
   const trueP    = pickType==='1'?p.ph : pickType==='2'?p.pa : p.pd;
   const conf     = p.conf || 50;
   const hxg      = p.hxg || 1.2;
@@ -4377,11 +4390,14 @@ function _iaScore(m){
   // ════════════════════════════════════════════════════════════
   // PÉNALITÉS & BONUS
   // ════════════════════════════════════════════════════════════
-  if(pickOddF < 1.20)                             { score -= 20; reasons.push(`❌ Cote trop courte ×${pickOddF.toFixed(2)}`); }
-  else if(pickOddF < 1.35)                        { score -=  8; }
-  else if(pickOddF < 1.50)                        { score -=  3; }
-  else if(pickOddF >= 1.55 && pickOddF <= 2.50)  { score +=  3; reasons.push(`✅ Cote optimale ×${pickOddF.toFixed(2)}`); }
-  else if(pickOddF > 3.50)                        { score -=  5; }
+  // Pénalités/bonus cote uniquement si cote réelle disponible
+  if(pickOddF > 0){
+    if(pickOddF < 1.20)                             { score -= 20; reasons.push(`❌ Cote trop courte ×${pickOddF.toFixed(2)}`); }
+    else if(pickOddF < 1.35)                        { score -=  8; }
+    else if(pickOddF < 1.50)                        { score -=  3; }
+    else if(pickOddF >= 1.55 && pickOddF <= 2.50)  { score +=  3; reasons.push(`✅ Cote réelle optimale ×${pickOddF.toFixed(2)}`); }
+    else if(pickOddF > 3.50)                        { score -=  5; }
+  }
 
   if(m.status === 'live')  { score -= 8;  }
   if(maxP < 38)            { score -= 8;  }
@@ -4612,7 +4628,7 @@ function renderIaList(){
       return eb - ea;
     });
   } else if(iaFilter === 'cote15'){
-    list = scored.filter(x => parseFloat((x.m.mp.odd||'×0').replace('×','')) >= 1.5 && x.s.score >= 36);
+    list = scored.filter(x => x.m.hasRealOdds && (x.m.mp.oddVal||0) >= 1.5 && x.s.score >= 36);
   } else if(iaFilter === 'o15'){
     // Pipeline Over 1.5 — moteur offensif expert
     const o15scored = base.map(m=>({ m, s: _over15Score(m) }))
@@ -4671,8 +4687,11 @@ function renderIaList(){
     const isSafeFilter = (iaFilter === 'safe');
     const safePick = isSafeFilter ? _expertSafePick(m) : null;
     const displayPick  = safePick || { label: m.mp.label, type: m.mp.type,
-      odd: parseFloat((m.mp.odd||'×1.5').replace('×',''))||1.5, reason: null };
-    const displayOddStr = '×' + (displayPick.odd||1.5).toFixed(2);
+      odd: m.mp.oddVal || null, reason: null };
+    // Afficher la cote réelle ou "—" si synthétique
+    const displayOddStr = m.hasRealOdds && displayPick.odd
+      ? '×' + displayPick.odd.toFixed(2)
+      : (m.oddSource==='betclic' ? '×' + (displayPick.odd||1.5).toFixed(2) : '—');
 
     const reasonsHtml = s.reasons.slice(0,3).map(r =>
       `<div style="font-size:12px;color:#666;margin-top:2px">${r}</div>`
@@ -4716,7 +4735,11 @@ function renderIaList(){
         <span>${m.away.name}</span>
       </div>
       <div class="ias-bet" style="color:${isSafeFilter?'#22c55e':'#f97316'};margin:3px 0 2px;font-weight:900">
-        ${displayPick.label} ${displayOddStr}${safeTypeBadge} · ${m.ls} · ${m.time}
+        ${displayPick.label}
+        ${displayOddStr !== '—'
+          ? ` <span style="color:${isSafeFilter?'#22c55e':'#f97316'}">${displayOddStr}</span>`
+          : ` <span style="font-size:11px;background:#f5f5f5;border:1px solid #ddd;color:#888;padding:1px 6px;border-radius:4px;font-weight:700">Cote N/D</span>`}
+        ${safeTypeBadge} · ${m.ls} · ${m.time}
       </div>
       ${safeReasonHtml}
       ${reasonsHtml}
