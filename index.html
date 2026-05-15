@@ -830,7 +830,7 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
         <div class="tile"><span class="tile-icon">⚽</span><div><div class="tile-val" id="tile-matchs">—</div><div class="tile-lbl">Matchs</div></div></div>
         <div class="tile"><span class="tile-icon">✅</span><div><div class="tile-val" id="tile-conf">—</div><div class="tile-lbl">Précision IA</div></div></div>
         <div class="tile"><span class="tile-icon">⭐</span><div><div class="tile-val" id="tile-cote">—</div><div class="tile-lbl">Cote max</div></div></div>
-        <div class="tile"><span class="tile-icon">🤖</span><div><div class="tile-val">v2.4</div><div class="tile-lbl">Modèle</div></div></div>
+        <div class="tile"><span class="tile-icon">🤖</span><div><div class="tile-val" id="tile-version">v3.1</div><div class="tile-lbl">Modèle IA</div></div></div>
       </div>
       <div class="sec-header">
         <span class="sec-title">📰 Actu &amp; Analyses du Jour</span>
@@ -898,9 +898,9 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
   <div class="screen" id="screen-ia">
     <div class="scroll">
       <div class="ia-hero">
-        <div class="ia-tag">🎮 INTELLIGENCE ARTIFICIELLE</div>
+        <div class="ia-tag">🎮 INTELLIGENCE ARTIFICIELLE <span id="ia-version-tag" style="margin-left:6px;background:rgba(255,255,255,.18);border-radius:4px;padding:1px 6px;font-size:11px">v3.1</span></div>
         <div class="ia-title">Coupon Optimisé IA</div>
-        <div class="ia-sub">Priorité Double Chance &amp; Plus de 1.5 buts — moins de risque, meilleur taux de réussite.</div>
+        <div class="ia-sub" id="ia-sub-txt">Expert Engine — 5 piliers · Bayesian · H2H · Over 1.5 · Under 4.5</div>
         <div class="scanning-bar">
           <span class="scanning-text">SCANNING... Nott. Forest vs Aston Villa · Braga vs Fribourg · Rayo Vallecano vs Strasbourg · Shakhtar vs Crystal Palace · EL/ECL Demi-finales 30 Avr 2026</span>
         </div>
@@ -1190,9 +1190,15 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
 // ════════════════════════════
 //  DATA
 // ════════════════════════════
-// ── Données du jour : Jeu 30 Avr 2026 ─────────────────
-// Source : MatchEnDirect / LiveScore (fallback statique)
-// Ces données sont remplacées automatiquement via 🔄 (clé API)
+// ── Version applicative ─────────────────────────────────
+// Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
+const APP_VERSION = 'v3.1';
+// Historique :
+//  v2.4 — moteur Poisson de base
+//  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
+//  v3.1 — modules Over 1.5 + Under 4.5, notifications SW, auto-remove
+
+// ── Données du jour ─────────────────────────────────────
 let MATCHES=[];
 /* MATCHES will be populated by fetchAllMatchesToday() via ESPN API */
 const _MATCHES_PLACEHOLDER=[
@@ -4916,8 +4922,13 @@ function _updateIaHero(scored){
   const scanEl=document.querySelector('.scanning-text');
   if(scanEl && scored.length){
     const top3=scored.slice(0,3).map(x=>`${x.m.home.short} vs ${x.m.away.short} (${x.s.score}/100)`);
-    scanEl.textContent=`ANALYSE IA — ${top3.join(' · ')} · ${vbCount} value bet(s) · Confiance moy. ${avgConf}%`;
+    scanEl.textContent=`ANALYSE IA ${APP_VERSION} — ${top3.join(' · ')} · ${vbCount} value bet(s) · Confiance moy. ${avgConf}%`;
   }
+  // Sync version partout
+  const tvEl=document.getElementById('tile-version');    if(tvEl) tvEl.textContent=APP_VERSION;
+  const ivEl=document.getElementById('ia-version-tag'); if(ivEl) ivEl.textContent=APP_VERSION;
+  const isEl=document.getElementById('ia-sub-txt');
+  if(isEl) isEl.textContent=`Expert Engine ${APP_VERSION} — 5 piliers · Bayesian · H2H · O1.5 · U4.5`;
 
   // Update stats bar (the 3-box row)
   const statsEl=document.querySelector('#screen-ia .scroll div[style*="1a1a28"][style*="border-radius:12px"]');
