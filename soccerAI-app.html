@@ -1192,11 +1192,12 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v3.1';
+const APP_VERSION = 'v3.2';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
 //  v3.1 — modules Over 1.5 + Under 4.5, notifications SW, auto-remove
+//  v3.2 — Expert Engine v3 calibré ESPN (conf+xG ratio+cohérence signaux)
 
 // ── Données du jour ─────────────────────────────────────
 let MATCHES=[];
@@ -4271,156 +4272,132 @@ function _under45Score(m){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ARETINOFOOT EXPERT ENGINE v2  — algo de scoring IA de rang 1
-//  5 piliers indépendants + pénalités calibrées
+//  ARETINOFOOT EXPERT ENGINE v3  — calibré données ESPN réelles
+//  5 piliers exploitant conf, xG ratio, forme, cohérence signaux
+//  Compatible ESPN (pas besoin de Betclic ni de records complets)
 // ══════════════════════════════════════════════════════════════
 function _iaScore(m){
-  const p  = m.pred;
-  const mp = m.mp;
-  const hr = m.home.record || {};
-  const ar = m.away.record || {};
+  const p   = m.pred;
+  const mp  = m.mp;
+  const hr  = m.home.record || {};
+  const ar  = m.away.record || {};
   let score = 0;
   const reasons = [];
 
-  // ── Identification du favori ───────────────────────────────
   const maxP     = Math.max(p.ph, p.pd, p.pa);
   const pickType = mp.type || (p.ph===maxP?'1':p.pa===maxP?'2':'N');
   const pickOddF = parseFloat((mp.odd||'×1.5').replace('×','')) || 1.5;
   const trueP    = pickType==='1'?p.ph : pickType==='2'?p.pa : p.pd;
-  const isBetclic= m.oddSource==='betclic';
+  const conf     = p.conf || 50;
+  const hxg      = p.hxg || 1.2;
+  const axg      = p.axg || 1.0;
+  const isBetclic= m.oddSource === 'betclic';
+  const pickHome = pickType==='1' || pickType==='1X';
+  const favXG    = pickHome ? hxg : axg;
+  const oppXG    = pickHome ? axg : hxg;
 
   // ════════════════════════════════════════════════════════════
-  // PILIER A — Probabilité calibrée (0–28 pts)
-  //   Seuil 50% minimum (33% = hasard pur en 3-way)
-  //   Bonus clarté si le 2e favori est très loin
+  // PILIER A — Confiance IA (0–35 pts)
+  //   p.conf = 50–95% — intègre maxP + edge → signal le plus fiable
+  //   avec les données ESPN disponibles
   // ════════════════════════════════════════════════════════════
-  let probPts = 0;
-  if(maxP >= 50){
-    probPts = Math.min(28, (maxP - 50) / 50 * 28);
-    // Bonus clarté : écart net entre 1er et 2e probable
-    const probs = [p.ph, p.pd, p.pa].sort((a,b)=>b-a);
-    const clarity = probs[0] - probs[1]; // écart 1er-2e
-    if(clarity >= 20) { probPts = Math.min(32, probPts + 4); reasons.push(`🎯 Favori très dominant (${Math.round(maxP)}% — écart +${Math.round(clarity)}%)`); }
-    else if(maxP >= 65) reasons.push(`🎯 Favori solide (${Math.round(maxP)}%)`);
-    else if(maxP >= 55) reasons.push(`📊 Avantage probabiliste (${Math.round(maxP)}%)`);
-    else reasons.push(`📊 Légère préférence (${Math.round(maxP)}%)`);
-  } else {
-    reasons.push(`⚠️ Match incertain (${Math.round(maxP)}% max — signal faible)`);
-  }
-  probPts = Math.min(28, Math.max(0, probPts));
-  score += probPts;
+  let aPts = 0;
+  if     (conf >= 82){ aPts = 35; reasons.push(`🎯 Confiance IA maximale (${conf}% — favori très clair)`); }
+  else if(conf >= 74){ aPts = 27; reasons.push(`🎯 Haute confiance IA (${conf}%)`); }
+  else if(conf >= 66){ aPts = 19; reasons.push(`📊 Confiance satisfaisante (${conf}%)`); }
+  else if(conf >= 59){ aPts = 12; reasons.push(`📊 Légère préférence (${conf}%)`); }
+  else if(conf >= 53){ aPts =  6; }
+  score += aPts;
 
   // ════════════════════════════════════════════════════════════
-  // PILIER B — Expected Value réel (0–25 pts)
-  //   Si Betclic → edge = trueP × cote_marché - 100  (indépendant)
-  //   Sinon → proxy conservateur (cotes = modèle → edge faible)
+  // PILIER B — Supériorité xG (0–25 pts)
+  //   Ratio xG favori / xG adversaire → indépendant des cotes
   // ════════════════════════════════════════════════════════════
-  let edge = 0, evPts = 0;
-  if(isBetclic){
-    edge = calcEdge(trueP, pickOddF);          // edge réel vs marché
-    evPts = edge > 0 ? Math.min(25, edge * 2.5) : 0;
-    if(edge >= 10) reasons.push(`💎 Value bet premium (edge +${edge.toFixed(1)}% vs Betclic)`);
-    else if(edge >= 5) reasons.push(`📈 Edge positif Betclic (+${edge.toFixed(1)}%)`);
-    else if(edge >= 2) reasons.push(`📊 Légère value Betclic (+${edge.toFixed(1)}%)`);
-  } else {
-    // Proxy : dispersion de probabilité (plus c'est net, plus il y a d'EV implicite)
-    const dispersion = maxP >= 50 ? (maxP - 50) * 0.25 : 0;
-    evPts = Math.min(10, dispersion);          // plafonné à 10 (pas d'indépendance)
-    edge  = +(evPts / 2.5).toFixed(1);
-  }
-  evPts = Math.max(0, evPts);
-  score += evPts;
+  const xgRatio = favXG / Math.max(oppXG, 0.3);
+  let bPts = 0;
+  if     (xgRatio >= 2.2) { bPts = 25; reasons.push(`⚡ Supériorité xG écrasante (${favXG.toFixed(1)} vs ${oppXG.toFixed(1)})`); }
+  else if(xgRatio >= 1.7) { bPts = 19; reasons.push(`⚽ Nette supériorité xG (${favXG.toFixed(1)} vs ${oppXG.toFixed(1)})`); }
+  else if(xgRatio >= 1.35){ bPts = 13; reasons.push(`📈 Avantage xG (${favXG.toFixed(1)} vs ${oppXG.toFixed(1)})`); }
+  else if(xgRatio >= 1.10){ bPts =  7; }
+  else if(xgRatio < 0.85) { bPts =  0; reasons.push(`⚠️ Favori désavantagé au xG (${favXG.toFixed(1)} vs ${oppXG.toFixed(1)})`); }
+  score += bPts;
 
   // ════════════════════════════════════════════════════════════
   // PILIER C — Forme momentum pondérée (0–20 pts)
-  //   Poids exponentiels [4, 2.5, 1.5, 1, 0.5] — le dernier match
-  //   = 8× plus important que le 5e dans l'algo précédent
+  //   Poids décroissants [4, 2.5, 1.5, 1, 0.5]
   // ════════════════════════════════════════════════════════════
-  const favTeam = (p.ph >= p.pa ? m.home : m.away);
-  const favForm = favTeam.form || [];
-  const W_FORM  = [4.0, 2.5, 1.5, 1.0, 0.5];  // poids décroissants
-  const MAX_FORM= W_FORM.reduce((s,w)=>s+w*3, 0); // max théorique = 28.5
+  const favTeam   = pickHome ? m.home : m.away;
+  const favForm   = favTeam.form || [];
+  const W_FORM    = [4.0, 2.5, 1.5, 1.0, 0.5];
+  const MAX_FORM  = W_FORM.reduce((s,w)=>s+w*3, 0);
   let wFormPts = 0;
   favForm.slice(0,5).forEach((res,i)=>{
-    const pts = res==='W'?3 : res==='D'?1 : 0;
-    wFormPts += pts * (W_FORM[i]||0);
+    wFormPts += (res==='W'?3:res==='D'?1:0) * (W_FORM[i]||0);
   });
-  const formMomentum = wFormPts / MAX_FORM;     // 0–1
-  const formPts20 = Math.round(formMomentum * 20);
-  score += formPts20;
-  if(formMomentum >= 0.75) reasons.push(`🔥 Forme excellente du favori (momentum ${Math.round(formMomentum*100)}%)`);
-  else if(formMomentum >= 0.55) reasons.push(`✅ Bonne dynamique récente`);
-  else if(formMomentum <= 0.25) reasons.push(`⚠️ Favori en méforme — momentum faible`);
-  // Pour compatibilité avec _updateIaHero
-  const formPts5 = Math.round(wFormPts / W_FORM[0]); // valeur approx
+  const formMomentum = wFormPts / MAX_FORM;
+  score += Math.round(formMomentum * 20);
+  if(formMomentum >= 0.75) reasons.push(`🔥 Excellente forme (momentum ${Math.round(formMomentum*100)}%)`);
+  else if(formMomentum >= 0.50) reasons.push(`✅ Bonne dynamique récente`);
+  else if(formMomentum <= 0.20) reasons.push(`⚠️ Favori en méforme`);
+  const formPts5 = Math.round(wFormPts / W_FORM[0]);
 
   // ════════════════════════════════════════════════════════════
-  // PILIER D — Bilan bayésien (0–15 pts)
-  //   Shrinkage vers 1.45 pts/match (moyenne ligue) quand n < 10
-  //   Évite que 2 victoires en 2 matchs donnent ppg=3.0
+  // PILIER D — Cohérence des signaux (0–15 pts)
+  //   Prob + xG + forme pointent-ils dans la même direction ?
+  //   Convergence = fiabilité accrue
   // ════════════════════════════════════════════════════════════
-  let recPts = 0;
+  const sigProb = p.ph > p.pa;
+  const sigXG   = hxg > axg;
+  const hFormPts= m.home.form ? m.home.form.slice(0,3).reduce((s,r,i)=>s+(r==='W'?3:r==='D'?1:0)*(W_FORM[i]||0),0) : 0;
+  const aFormPts= m.away.form ? m.away.form.slice(0,3).reduce((s,r,i)=>s+(r==='W'?3:r==='D'?1:0)*(W_FORM[i]||0),0) : 0;
+  const sigForm = hFormPts >= aFormPts;
+  const votes   = [sigProb, sigXG, sigForm].filter(Boolean).length; // nb signaux → domicile
+  const pickVote= pickHome ? votes : 3 - votes;  // votes en faveur du pick
+  if     (pickVote === 3){ score += 15; reasons.push(`🔗 Tous les signaux convergent (prob + xG + forme)`); }
+  else if(pickVote === 2){ score +=  9; reasons.push(`✅ 2 signaux sur 3 concordants`); }
+  else                   { score +=  0; reasons.push(`⚠️ Signaux contradictoires`); }
+
+  // ════════════════════════════════════════════════════════════
+  // PILIER E — Records & H2H (0–5 pts, bonus si dispo)
+  // ════════════════════════════════════════════════════════════
   const PRIOR_PPG = 1.45, BAYES_K = 7;
-  if(hr.played >= 2 && ar.played >= 2){
-    const adjH = (hr.played * hr.ppg + BAYES_K * PRIOR_PPG) / (hr.played + BAYES_K);
-    const adjA = (ar.played * ar.ppg + BAYES_K * PRIOR_PPG) / (ar.played + BAYES_K);
-    const favPPG = p.ph >= p.pa ? adjH : adjA;
-    const oppPPG = p.ph >= p.pa ? adjA : adjH;
-    const gap = favPPG - oppPPG;
-    if(gap >= 0.8) { recPts = 15; reasons.push(`🏆 Nette supériorité au bilan (Δ${gap.toFixed(2)} pts/match adj.)`); }
-    else if(gap >= 0.5){ recPts = 11; reasons.push(`📊 Avantage au bilan (Δ${gap.toFixed(2)})`); }
-    else if(gap >= 0.25){ recPts = 6; }
-    else if(gap < -0.1){ reasons.push(`⚖️ Outsider statistiquement plus fort`); }
-    else { reasons.push(`⚖️ Équipes de niveau équivalent`); }
+  if(hr.played >= 3 && ar.played >= 3){
+    const adjH = (hr.played*(hr.ppg||0)+BAYES_K*PRIOR_PPG)/(hr.played+BAYES_K);
+    const adjA = (ar.played*(ar.ppg||0)+BAYES_K*PRIOR_PPG)/(ar.played+BAYES_K);
+    const gap  = (pickHome ? adjH : adjA) - (pickHome ? adjA : adjH);
+    if(gap >= 0.5)  { score += 5; reasons.push(`🏆 Supériorité au bilan (Δ${gap.toFixed(2)} pts/m)`); }
+    else if(gap >= 0.2){ score += 3; }
   }
-  score += recPts;
-
-  // ════════════════════════════════════════════════════════════
-  // PILIER E — H2H (0–7 pts)
-  //   Victoires du favori dans les 5 derniers duels directs
-  // ════════════════════════════════════════════════════════════
-  let h2hPts = 0;
   const h2h = m.h2h || {};
   if(h2h.list && h2h.list.length > 0){
-    const favWins = h2h.list.slice(0,5).filter(r=> r.w === (p.ph>=p.pa?'h':'a')).length;
-    h2hPts = Math.min(7, favWins * 1.4);
-    if(favWins >= 4) reasons.push(`⚔️ Domination H2H (${favWins}/5 victoires en duel direct)`);
-    else if(favWins >= 3) reasons.push(`⚔️ Avantage H2H (${favWins}/5)`);
-  } else if(h2h.h != null){
-    // Format simplifié {h, d, a}
-    const total = (h2h.h||0)+(h2h.d||0)+(h2h.a||0);
-    if(total > 0){
-      const favWinsSimple = p.ph >= p.pa ? (h2h.h||0) : (h2h.a||0);
-      h2hPts = Math.min(7, (favWinsSimple / total) * 7);
-      if(favWinsSimple/total >= 0.6) reasons.push(`⚔️ Avantage H2H (${favWinsSimple}/${total})`);
-    }
+    const favW = h2h.list.slice(0,5).filter(r=>r.w===(pickHome?'h':'a')).length;
+    if(favW >= 3){ score += Math.min(5, favW); reasons.push(`⚔️ Avantage H2H (${favW}/5)`); }
   }
-  score += h2hPts;
 
   // ════════════════════════════════════════════════════════════
-  // PÉNALITÉS — calibrées experts
+  // PÉNALITÉS & BONUS
   // ════════════════════════════════════════════════════════════
-  if(pickOddF < 1.20){ score -= 25; reasons.push(`❌ Cote trop courte ×${pickOddF.toFixed(2)} — rendement négatif`); }
-  else if(pickOddF < 1.35){ score -= 12; reasons.push(`⚠️ Cote très courte ×${pickOddF.toFixed(2)}`); }
-  else if(pickOddF < 1.50){ score -= 5; }
-  else if(pickOddF >= 1.55 && pickOddF <= 2.40){ score += 3; reasons.push(`✅ Cote optimale ×${pickOddF.toFixed(2)}`); }
-  else if(pickOddF > 3.50){ score -= 5; reasons.push(`⚠️ Cote risquée ×${pickOddF.toFixed(2)}`); }
+  if(pickOddF < 1.20)                             { score -= 20; reasons.push(`❌ Cote trop courte ×${pickOddF.toFixed(2)}`); }
+  else if(pickOddF < 1.35)                        { score -=  8; }
+  else if(pickOddF < 1.50)                        { score -=  3; }
+  else if(pickOddF >= 1.55 && pickOddF <= 2.50)  { score +=  3; reasons.push(`✅ Cote optimale ×${pickOddF.toFixed(2)}`); }
+  else if(pickOddF > 3.50)                        { score -=  5; }
 
-  if(m.status === 'live'){ score -= 12; reasons.push(`🔴 Match live — cotes volatiles (-12 pts)`); }
-  if(!isBetclic){ score -= 3; }   // cotes synthétiques moins fiables
-  if(formMomentum <= 0.20){ score -= 5; }  // favori en méforme sévère
-  if(maxP < 45){ score -= 8; }   // match trop incertain
+  if(m.status === 'live')  { score -= 8;  }
+  if(maxP < 38)            { score -= 8;  }
+  if(formMomentum <= 0.15) { score -= 5;  }
+  if(isBetclic)            { score += 5;  reasons.push(`🎲 Cotes Betclic confirmées`); }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
 
-  // ── Labels (seuils plus exigeants) ────────────────────────
   let label, labelColor, labelIcon;
-  if(score >= 78){ label='BANKER';  labelColor='#f59e0b'; labelIcon='🏆'; }
-  else if(score >= 64){ label='PREMIUM'; labelColor='#22c55e'; labelIcon='⭐'; }
-  else if(score >= 50){ label='SOLIDE';  labelColor='#3b82f6'; labelIcon='✅'; }
-  else if(score >= 36){ label='À SURVEILLER'; labelColor='#888'; labelIcon='👁'; }
-  else { label='FAIBLE'; labelColor='#555'; labelIcon='📉'; }
+  if(score >= 78){ label='BANKER';        labelColor='#f59e0b'; labelIcon='🏆'; }
+  else if(score >= 63){ label='PREMIUM';  labelColor='#22c55e'; labelIcon='⭐'; }
+  else if(score >= 48){ label='SOLIDE';   labelColor='#3b82f6'; labelIcon='✅'; }
+  else if(score >= 35){ label='À SURVEILLER'; labelColor='#888'; labelIcon='👁'; }
+  else               { label='FAIBLE';   labelColor='#555';    labelIcon='📉'; }
 
+  const edge = calcEdge(trueP, pickOddF);
   return { score, label, labelColor, labelIcon, reasons, edge, maxP, formPts5 };
 }
 
@@ -4624,7 +4601,7 @@ function renderIaList(){
   // Apply filter
   let list;
   if(iaFilter === 'standard'){
-    list = scored.filter(x => x.s.score >= 50);
+    list = scored.filter(x => x.s.score >= 45);
   } else if(iaFilter === 'banker'){
     list = scored.filter(x => x.s.score >= 78);
   } else if(iaFilter === 'safe'){
