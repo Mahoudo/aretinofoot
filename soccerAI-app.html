@@ -4650,7 +4650,7 @@ function renderIaList(){
   } else if(iaFilter === 'u45'){
     // Special pipeline: score every non-finished match with Under 4.5 model
     const u45scored = base.map(m=>({ m, s: _under45Score(m) }))
-                          .filter(x=>x.s.score>=78)   // TRÈS FIABLE uniquement
+                          .filter(x=>x.s.score>=48)   // PROBABLE, FIABLE, TRÈS FIABLE
                           .sort((a,b)=>b.s.score-a.s.score);
     // Render separate card format and return early
     _updateIaHero(scored);
