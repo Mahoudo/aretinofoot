@@ -916,7 +916,7 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
         </div>
       </div>
       <div class="filter-chips" id="ia-chips" style="padding:0 12px 6px">
-        <div class="chip active" style="background:#f9731622;border-color:#f97316;color:#f97316" onclick="setIaFilter('standard',this)">⭐ IA Expert</div>
+        <div class="chip active" onclick="setIaFilter('standard',this)">⭐ IA Expert</div>
         <div class="chip" onclick="setIaFilter('banker',this)">🏆 Bankers</div>
         <div class="chip" onclick="setIaFilter('vb',this)">💎 Value Bet</div>
         <div class="chip" onclick="setIaFilter('safe',this)">🛡️ Safe</div>
@@ -4944,7 +4944,8 @@ function setIaFilter(f,el){
     c.style.background='';c.style.borderColor='';c.style.color='';
   });
   el.classList.add('active');
-  el.style.background='#f9731622';el.style.borderColor='#f97316';el.style.color='#f97316';
+  // Laisser .chip.active CSS s'appliquer (orange plein + texte blanc)
+  el.style.background='';el.style.borderColor='';el.style.color='';
   // Update section title
   const titles={
     standard:'⭐ Sélections IA Expert — Aujourd\'hui',
