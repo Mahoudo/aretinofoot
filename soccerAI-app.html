@@ -1291,7 +1291,7 @@ body{background:linear-gradient(145deg,#FFD6A5 0%,#FFF5EB 30%,#E8F5E9 65%,#D0EAF
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v3.8';
+const APP_VERSION = 'v3.8.1';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -1680,7 +1680,10 @@ function renderAll(){
     :`📅 ${_days2[_selD2.getDay()]} ${_selD2.getDate()} ${_months2[_selD2.getMonth()]} ${_selD2.getFullYear()}`;
   const _hbDate=document.getElementById('hb-date');
   if(_hbDate) _hbDate.textContent=_dateStr2;
-  document.querySelector('.lp-text').textContent=(liveCount||'0')+' LIVE';
+  // Mettre à jour TOUS les .lp-text (live-pill header + hero badge)
+  document.querySelectorAll('.lp-text').forEach(el=>{
+    el.textContent=(liveCount||'0')+' LIVE';
+  });
   document.querySelector('.hb-sub').textContent=`${visible.length} matchs · ${liveCount} live / à venir`;
   document.querySelector('.hbs-val').textContent=visible.length;
   document.querySelectorAll('.hbs-val')[1].textContent=avgConf+'%';
@@ -2722,7 +2725,9 @@ function transformOddsData(allEvents){
       home:{name:hName, emoji:teamEmoji(hName), form:hForm},
       away:{name:aName, emoji:teamEmoji(aName), form:aForm},
       pred:{h:Math.round(ph),d:Math.round(pd),a:Math.round(pa),
+        ph:Math.round(ph),pd:Math.round(pd),pa:Math.round(pa),
         o25:pred.o25, btts:pred.btts, score:pred.score, conf, hxg, axg},
+      hasRealOdds:true, oddSource:'oddsapi', dataQuality:'high',
       odds:{h:hOdd, d:dOdd, a:aOdd},
       vb,
       mp:{label:mpLabel, type:mpType, odd:mpOdd, conf:mpConf, risk:mpRisk},
@@ -5411,13 +5416,13 @@ async function _enrichWithH2H(matches){
     await Promise.allSettled(batch.map(async m => {
       const slug = ESPN_STD_SLUGS[m.ls] || 'all';
       const summary = await _fetchSummary(slug, m.espnId);
-      if(!summary) return;
+      if(!summary){ _h2hEnriched.add(m.espnId); return; } // ne pas retenter
 
       // Récupérer IDs équipes (mutualisé avec _enrichWithLeaders)
       const comps = summary.header?.competitions?.[0]?.competitors || [];
       const homeC = comps.find(c=>c.homeAway==='home');
       const awayC = comps.find(c=>c.homeAway==='away');
-      if(!homeC?.id || !awayC?.id) return;
+      if(!homeC?.id || !awayC?.id){ _h2hEnriched.add(m.espnId); return; }
 
       // Cache tids pour _enrichWithLeaders
       _rosterCache[m.espnId+'_tids'] = {hId:homeC.id, aId:awayC.id};
@@ -6564,7 +6569,8 @@ function renderTrackerStats(){
         <div style="font-size:9px;color:#94a3b8;margin-top:6px;line-height:1.3">
           Multiplicateur ligue × tier combinés. Une ligue où tu perds beaucoup → tous tes futurs picks dans cette ligue voient leur score abaissé.
         </div>
-      </div>`:''}
+      </div>`:''}`;
+    })()}
     <div style="padding:8px 14px;background:#fffbeb;border-bottom:1px solid #E5E5E5">
       <div style="font-size:10px;color:#92400e;line-height:1.4">
         ⚠️ <b>Rappel :</b> les meilleurs modèles professionnels atteignent ~55-58% sur 1X2.
