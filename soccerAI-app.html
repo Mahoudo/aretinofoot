@@ -927,6 +927,386 @@ body{background:#000!important}
 .smc-stat-lbl{color:#111111!important}
 .smc-btn-sec{background:#F5F2EB!important;color:#111111!important;border-color:#E0DBD3!important}
 .smc-bd{background:#E8E4DC!important;color:#111111!important}
+
+/* ════════════════════════════════════════════════════════════
+   ░░░ PHASE 2 — TRADING DESK SUR CARTES & ÉCRANS ░░░
+   Surcharge finale : tout l'app passe en thème navy data-dense.
+   Placé en fin de <style> pour battre tous les !important light.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── Section headers ─── */
+.sec-header{padding:14px 14px 8px!important;border-top:1px solid var(--border);margin-top:4px}
+.sec-title{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;
+}
+.sec-link{
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+}
+
+/* ─── Tiles dashboard ─── */
+.tiles-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:1px!important;background:var(--border)!important;margin:0 12px 1px!important;border:1px solid var(--border);border-radius:var(--r-md)!important;overflow:hidden}
+.tile{
+  background:var(--surface)!important;border:none!important;
+  border-radius:0!important;padding:12px 14px!important;
+  box-shadow:none!important;
+  display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:4px!important;
+}
+.tile-icon{display:none!important}
+.tile-val{
+  font-family:var(--mono)!important;
+  font-size:18px!important;font-weight:600!important;color:var(--text)!important;
+  line-height:1!important;letter-spacing:-.3px!important;
+  margin:0!important;
+}
+.tile-lbl{
+  font-family:var(--mono)!important;
+  font-size:9px!important;color:var(--text-mute)!important;
+  font-weight:500!important;letter-spacing:1.2px!important;text-transform:uppercase!important;
+  margin:0!important;
+}
+
+/* ─── News cards (ticker scroll) ─── */
+.news-scroll{padding:0 12px 12px!important;gap:1px!important;background:transparent!important}
+.news-card{
+  min-width:160px!important;
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-md)!important;
+  padding:10px 12px!important;
+  box-shadow:none!important;
+}
+.nc-tag{
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  padding:2px 6px!important;border-radius:2px!important;
+  border:none!important;
+}
+.nc-tag.live{background:rgba(239,83,80,.12)!important;color:var(--down)!important}
+.nc-tag.vb{background:rgba(124,92,255,.12)!important;color:var(--accent)!important}
+.nc-tag.form{background:rgba(38,166,154,.12)!important;color:var(--up)!important}
+.nc-title{
+  font-family:var(--sans)!important;
+  font-size:13px!important;font-weight:600!important;color:var(--text)!important;
+  line-height:1.3!important;
+}
+.nc-sub{
+  font-family:var(--mono)!important;
+  font-size:10px!important;color:var(--text-2)!important;
+  font-weight:500!important;letter-spacing:.3px!important;
+}
+
+/* ─── MATCH CARD — refonte trading dense ─── */
+.match-card{
+  margin:0 12px 1px!important;
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-md)!important;
+  box-shadow:none!important;
+  overflow:hidden;
+}
+.match-card:hover{background:var(--surface-2)!important}
+.card-top{
+  padding:8px 12px 6px!important;
+  border-bottom:1px solid var(--border);
+}
+.league-dot{width:6px!important;height:6px!important;border-radius:1px!important}
+.league-name{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+.match-time{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:11px!important;font-weight:600!important;
+  letter-spacing:.3px!important;
+}
+/* Risk badges → up/down/neutral plats */
+.rb{
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:600!important;
+  padding:2px 6px!important;border-radius:2px!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  border:none!important;
+}
+.rb-safe{background:rgba(38,166,154,.12)!important;color:var(--up)!important}
+.rb-moyen{background:rgba(255,183,77,.12)!important;color:var(--warn)!important}
+.rb-eleve{background:rgba(239,83,80,.12)!important;color:var(--down)!important}
+.live-badge{
+  background:rgba(239,83,80,.12)!important;
+  border:none!important;border-radius:2px!important;
+  padding:2px 6px!important;
+}
+.live-dot{width:5px!important;height:5px!important;background:var(--down)!important;box-shadow:0 0 6px var(--down)}
+.live-text{
+  color:var(--down)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+
+/* Teams row */
+.teams-row{padding:10px 12px!important;gap:8px!important}
+.team-logo{
+  width:24px!important;height:24px!important;
+  background:var(--bg)!important;border:1px solid var(--border);
+  border-radius:var(--r-sm)!important;
+  font-size:12px!important;
+}
+.team-name{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;
+  font-size:13px!important;font-weight:600!important;
+  letter-spacing:-.1px!important;
+}
+.team-label{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:500!important;
+  letter-spacing:.8px!important;text-transform:uppercase!important;
+}
+.fd{
+  width:10px!important;height:10px!important;border-radius:1px!important;
+  font-size:0!important;
+}
+.fd.W{background:var(--up)!important}
+.fd.D{background:var(--warn)!important}
+.fd.L{background:var(--down)!important}
+.form-dots{gap:2px!important}
+
+/* Score / pred center */
+.score-center{padding:0 8px!important;min-width:64px!important}
+.sc-live{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:22px!important;font-weight:600!important;
+  letter-spacing:-.5px!important;
+}
+.sc-vs{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1px!important;
+}
+.sc-pred{
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+}
+.sc-timer{
+  color:var(--down)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:600!important;
+}
+
+/* Probability bar — barre dense plate */
+.prob-bar{
+  height:14px!important;border-radius:2px!important;margin:0 12px 8px!important;
+  background:var(--bg);border:1px solid var(--border);overflow:hidden;
+}
+.pb-h{
+  background:var(--neutral)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;
+  color:#fff!important;
+}
+.pb-d{
+  background:var(--text-mute)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  color:#fff!important;
+}
+.pb-a{
+  background:var(--warn)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;
+  color:var(--bg)!important;
+}
+
+/* Meilleur pari = ligne de signal trading */
+.mp-section{
+  margin:8px 12px!important;
+  background:var(--bg)!important;
+  border:1px solid var(--border)!important;
+  border-left:2px solid var(--up)!important;
+  border-radius:var(--r-sm)!important;
+  padding:8px 10px!important;
+}
+.mp-label{
+  color:var(--up)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+.mp-bet{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;
+  font-size:12px!important;font-weight:600!important;
+}
+.mp-type{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:.5px!important;
+}
+.mp-odd{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:15px!important;font-weight:600!important;
+}
+.mp-conf{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:2px!important;
+  padding:2px 6px!important;
+}
+.mp-conf-val{
+  color:var(--warn)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:600!important;
+}
+.mp-badge{
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  padding:2px 6px!important;border-radius:2px!important;
+}
+
+.card-cta{
+  padding:8px 12px!important;
+  border-top:1px solid var(--border)!important;
+  background:var(--bg)!important;
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+.bc-badge{
+  background:rgba(239,83,80,.12)!important;
+  border:none!important;
+  color:var(--down)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  border-radius:2px!important;
+}
+
+/* Match card sélectionné dans coupon */
+.match-card.selected{
+  background:var(--surface-2)!important;
+  border-color:var(--neutral)!important;
+  border-left:3px solid var(--neutral)!important;
+}
+.match-card.selected .card-check{background:var(--neutral)!important;border-color:var(--neutral)!important}
+.card-check{
+  background:var(--surface)!important;
+  border:1.5px solid var(--border)!important;
+  border-radius:2px!important;
+  width:18px!important;height:18px!important;
+}
+.card-check.checked{background:var(--neutral)!important;border-color:var(--neutral)!important}
+
+/* ─── Filter chips (matchs / IA / ligues) ─── */
+.filter-chips{padding:8px 12px!important;gap:4px!important}
+.chip{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+  padding:6px 10px!important;
+  border-radius:var(--r-sm)!important;
+}
+.chip:hover{background:var(--surface-2)!important;color:var(--text)!important}
+.chip.active{
+  background:var(--neutral)!important;
+  border-color:var(--neutral)!important;
+  color:#fff!important;
+}
+.sel-btn{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+  padding:6px 10px!important;
+  border-radius:var(--r-sm)!important;
+}
+.sel-btn.active{background:rgba(66,165,245,.15)!important;border-color:var(--neutral)!important;color:var(--neutral)!important}
+
+/* ─── Search bar ─── */
+.search-bar{
+  margin:4px 12px 8px!important;
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+  padding:8px 12px!important;
+}
+.sb-icon{color:var(--text-mute)!important;opacity:1;font-size:14px!important}
+.sb-input{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:12px!important;font-weight:500!important;
+  background:transparent!important;
+}
+.sb-input::placeholder{color:var(--text-mute)!important;font-family:var(--mono);text-transform:uppercase;font-size:11px;letter-spacing:.5px}
+
+/* ─── Coupon floating bar ─── */
+.coupon-bar{
+  background:var(--surface)!important;
+  border:1px solid var(--neutral)!important;
+  border-radius:var(--r-md)!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)!important;
+}
+.cb-count{
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;
+  font-size:13px!important;font-weight:600!important;
+}
+.cb-odds{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;letter-spacing:.5px!important;
+}
+.cb-btn{
+  background:var(--neutral)!important;
+  color:#fff!important;
+  border-radius:var(--r-sm)!important;
+  font-family:var(--mono)!important;
+  font-size:11px!important;font-weight:600!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+  padding:8px 12px!important;
+}
+.cb-clear{color:var(--text-mute)!important;opacity:1!important}
+
+/* ─── Hero CTA — réécrit pour le nouveau hero trading ─── */
+/* (annule les vieux styles orange du gradient v3.8) */
+.hb-cta{
+  width:100%!important;
+  background:var(--bg)!important;
+  border:none!important;
+  border-top:1px solid var(--border)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;
+  font-size:11px!important;font-weight:600!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+  padding:11px 14px!important;
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+}
+.hb-cta:hover{background:var(--surface-2)!important;color:var(--text)!important;box-shadow:none!important}
+
+/* ─── Notif badge (badge "—") en haut à droite ─── */
+.ah-ico{opacity:.6}
+
 </style>
 </head>
 <body>
@@ -1378,7 +1758,7 @@ body{background:#000!important}
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.0';
+const APP_VERSION = 'v4.1';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
