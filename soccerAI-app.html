@@ -1307,6 +1307,622 @@ body{background:#000!important}
 /* ─── Notif badge (badge "—") en haut à droite ─── */
 .ah-ico{opacity:.6}
 
+/* ════════════════════════════════════════════════════════════
+   ░░░ PHASE 3 — Détail match · Coupon · Profil · Chat · Notif ░░░
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── DETAIL OVERLAY (drawer match) ─── */
+.detail-overlay{background:var(--bg)!important}
+.detail-handle{background:var(--text-mute)!important;width:36px!important;height:3px!important;border-radius:1px!important}
+.detail-top{padding:8px 14px!important;text-align:left!important;border-bottom:1px solid var(--border)}
+.dt-league{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;
+}
+
+.detail-hero{
+  padding:14px!important;
+  background:var(--surface)!important;
+  border-bottom:1px solid var(--border);
+}
+.dh-logo{
+  width:40px!important;height:40px!important;
+  background:var(--bg)!important;
+  border:1px solid var(--border);
+  border-radius:var(--r-sm)!important;
+  font-size:20px!important;
+}
+.dh-name{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;
+  font-size:14px!important;font-weight:600!important;
+  letter-spacing:-.2px!important;
+}
+.dh-side{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+.dh-score{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:28px!important;font-weight:600!important;
+  letter-spacing:-.5px!important;
+}
+.dh-vs{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:12px!important;font-weight:500!important;
+}
+.dh-pred{
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;
+  font-size:11px!important;font-weight:500!important;
+}
+
+.detail-probbar{
+  margin:8px 14px!important;height:14px!important;
+  border-radius:2px!important;
+  background:var(--bg);border:1px solid var(--border);overflow:hidden;
+}
+.dpb-h{background:var(--neutral)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;color:#fff!important}
+.dpb-d{background:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;color:#fff!important}
+.dpb-a{background:var(--warn)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;color:var(--bg)!important}
+.detail-pct{
+  padding:0 14px 8px!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  color:var(--text-2)!important;letter-spacing:.5px!important;
+  border-bottom:1px solid var(--border);
+}
+
+/* Detail tabs */
+.detail-tabs{background:var(--bg)!important;border-bottom:1px solid var(--border)!important;padding:0!important}
+.dt-tab{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  padding:10px 12px!important;
+  border-bottom:2px solid transparent!important;
+}
+.dt-tab.active{color:var(--neutral)!important;border-bottom-color:var(--neutral)!important}
+
+.detail-body{padding:12px!important;background:var(--bg)!important}
+.dsec{margin-bottom:14px!important}
+.dsec-title{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;
+  margin-bottom:8px!important;
+}
+
+/* Dual bars (stats home vs away) */
+.dbr-val{
+  font-family:var(--mono)!important;
+  font-size:11px!important;font-weight:600!important;
+  width:32px!important;
+}
+.dbr-val.home{color:var(--neutral)!important}
+.dbr-val.away{color:var(--warn)!important}
+.dbr-label{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:.8px!important;text-transform:uppercase!important;
+}
+.dbr-fill-h{background:var(--neutral)!important;border-radius:1px 0 0 1px!important}
+.dbr-fill-a{background:var(--warn)!important;border-radius:0 1px 1px 0!important}
+
+/* H2H */
+.h2h-summary{
+  border-radius:var(--r-sm)!important;
+  overflow:hidden!important;
+  border:1px solid var(--border);
+  margin-bottom:12px!important;
+  gap:1px!important;background:var(--border)!important;display:flex!important;
+}
+.h2h-col,.h2h-col:first-child,.h2h-col:nth-child(2),.h2h-col:last-child{
+  background:var(--surface)!important;
+  padding:10px!important;text-align:center!important;
+}
+.h2h-num{
+  font-family:var(--mono)!important;
+  font-size:20px!important;font-weight:600!important;
+  color:var(--text)!important;
+}
+.h2h-lbl{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  margin-top:4px!important;
+}
+.h2h-match{
+  border-bottom-color:var(--border)!important;
+  padding:8px 0!important;
+}
+.h2h-date,.h2h-comp{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:10px!important;font-weight:500!important;
+  letter-spacing:.5px!important;
+}
+.h2h-teams{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;
+  font-size:12px!important;font-weight:500!important;
+}
+.h2h-score-badge{
+  background:var(--bg)!important;
+  border:1px solid var(--border);
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:11px!important;font-weight:600!important;
+  padding:3px 6px!important;border-radius:2px!important;
+}
+
+/* Forme */
+.forme-summary{gap:1px!important;background:var(--border)!important;margin-bottom:8px!important;border-radius:var(--r-sm)!important;overflow:hidden;border:1px solid var(--border)}
+.fsb{
+  background:var(--surface)!important;
+  border-radius:0!important;padding:10px!important;
+}
+.fsb-val{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:16px!important;font-weight:600!important;
+}
+.fsb-lbl{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+.forme-match{border-bottom-color:var(--border)!important;padding:8px 0!important}
+.fm-res{
+  width:14px!important;height:14px!important;
+  border-radius:1px!important;font-size:0!important;
+}
+.fm-res.W{background:var(--up)!important}
+.fm-res.D{background:var(--warn)!important}
+.fm-res.L{background:var(--down)!important}
+.fm-teams{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;
+  font-size:12px!important;font-weight:500!important;
+}
+.fm-meta{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;
+  font-size:9px!important;font-weight:500!important;
+  letter-spacing:.5px!important;
+}
+.fm-score{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;
+  font-size:12px!important;font-weight:600!important;
+}
+
+/* Score grid (score exact) */
+.sg-card{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;padding:10px!important;
+}
+.sg-card.fav{background:var(--surface-2)!important;border-color:var(--neutral)!important}
+.sg-rank{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;font-size:9px!important;font-weight:500!important;
+}
+.sg-fav-tag{
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;font-size:9px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+.sg-score{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;font-size:18px!important;font-weight:600!important;
+}
+.sg-prob{
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:500!important;
+}
+.sg-type{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;font-size:9px!important;font-weight:500!important;
+  letter-spacing:.8px!important;text-transform:uppercase!important;
+}
+
+/* xG row */
+.xg-box{
+  background:var(--surface)!important;
+  border:1px solid var(--border);
+  border-radius:var(--r-sm)!important;padding:10px!important;
+}
+.xg-val{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;font-size:16px!important;font-weight:600!important;
+}
+.xg-lbl{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;font-size:9px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+
+/* AI pronostic */
+.ai-pronostic{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-left:2px solid var(--up)!important;
+  border-radius:var(--r-sm)!important;
+}
+.aip-label{
+  color:var(--up)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;
+}
+.aip-pred{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;font-size:16px!important;font-weight:600!important;
+}
+.aip-bar{background:var(--bg)!important;height:4px!important;border-radius:1px!important}
+.aip-fill{background:var(--up)!important;border-radius:1px!important}
+.aip-conf-val{
+  color:var(--up)!important;
+  font-family:var(--mono)!important;font-size:12px!important;font-weight:600!important;
+}
+.aip-badge{
+  background:rgba(38,166,154,.15)!important;
+  border:none!important;
+  color:var(--up)!important;
+  font-family:var(--mono)!important;font-size:9px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  border-radius:2px!important;
+}
+
+/* Key points (kp-item) */
+.kp-item{border-bottom-color:var(--border)!important}
+.kp-text{
+  color:var(--text-2)!important;
+  font-family:var(--sans)!important;
+  font-size:12px!important;line-height:1.5!important;
+}
+
+/* Reco bets */
+.reco-bet{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+}
+.rb-name{color:var(--text)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:600!important}
+.rb-sub{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:.5px!important}
+.reco-odd{color:var(--text)!important;font-family:var(--mono)!important;font-size:14px!important;font-weight:600!important}
+
+/* Players & sections */
+.team-sec-title{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;
+}
+.player-row{border-bottom-color:var(--border)!important;padding:8px 0!important}
+.pr-num{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:500!important;
+}
+.pr-name{color:var(--text)!important;font-family:var(--sans)!important;font-size:12px!important;font-weight:500!important}
+.pr-pos,.pr-stats{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:.5px!important}
+.pr-rating{
+  background:var(--bg)!important;
+  border:1px solid var(--border);
+  border-radius:var(--r-sm)!important;
+  color:var(--text)!important;
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:600!important;
+}
+
+/* Formations / tactics */
+.formations-box{
+  background:var(--surface)!important;
+  border:1px solid var(--border);
+  border-radius:var(--r-sm)!important;
+}
+.form-val{color:var(--text)!important;font-family:var(--mono)!important;font-size:18px!important;font-weight:600!important}
+.form-lbl{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:9px!important;font-weight:500!important;letter-spacing:1.2px!important;text-transform:uppercase!important}
+
+.mom-labels{color:var(--text-2)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important}
+.mom-track{background:linear-gradient(90deg,var(--neutral),var(--text-mute),var(--warn))!important;height:4px!important;border-radius:1px!important}
+.mom-thumb{background:var(--text)!important;border:1px solid var(--text-mute)!important;width:10px!important;height:10px!important;box-shadow:none!important}
+.mom-sub{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:9px!important;font-weight:500!important;letter-spacing:.5px!important}
+
+.tact-label{color:var(--text-2)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:.8px!important;text-transform:uppercase!important}
+.tact-h{background:var(--neutral)!important;border-radius:1px 0 0 1px!important}
+.tact-a{background:var(--warn)!important;border-radius:0 1px 1px 0!important}
+.tact-val{color:var(--text)!important;font-family:var(--mono)!important;font-size:11px!important;font-weight:600!important}
+
+/* Over/Under cards */
+.ou-card{
+  background:var(--surface)!important;
+  border:1px solid var(--border);
+  border-radius:var(--r-sm)!important;padding:8px 10px!important;
+}
+.ou-label{color:var(--text-2)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:.8px!important;text-transform:uppercase!important}
+.ou-prob{color:var(--text)!important;font-family:var(--mono)!important;font-size:14px!important;font-weight:600!important}
+
+.bankroll-note{
+  background:var(--surface)!important;
+  border-top-color:var(--border)!important;
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:.5px!important;
+}
+.bankroll-note span{color:var(--neutral)!important;text-transform:none}
+
+/* ─── COUPON SCREEN ─── */
+.coupon-header{padding:14px!important;border-bottom:1px solid var(--border)}
+.coupon-title{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;font-size:18px!important;font-weight:700!important;
+  letter-spacing:-.2px!important;
+}
+.coupon-sub{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:.5px!important;
+}
+.coupon-item{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+  box-shadow:none!important;
+}
+.ci-league{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:1.2px!important;text-transform:uppercase!important}
+.ci-teams{color:var(--text)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:600!important}
+.ci-bet{
+  background:var(--bg)!important;border:1px solid var(--border)!important;
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:.5px!important;border-radius:var(--r-sm)!important;
+}
+.ci-bet.active{background:rgba(66,165,245,.15)!important;border-color:var(--neutral)!important;color:var(--neutral)!important}
+.coupon-total{
+  background:var(--surface)!important;
+  border:1px solid var(--neutral)!important;
+  border-left:3px solid var(--neutral)!important;
+  border-radius:var(--r-sm)!important;
+}
+
+/* ─── CHAT IA ─── */
+.chat-header{border-bottom-color:var(--border)!important;padding:14px!important}
+.chat-avatar{
+  width:32px!important;height:32px!important;
+  background:var(--accent)!important;
+  border-radius:var(--r-sm)!important;font-size:14px!important;
+}
+.chat-name{color:var(--text)!important;font-family:var(--sans)!important;font-size:14px!important;font-weight:600!important}
+.chat-status{color:var(--up)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:.5px!important}
+.chat-status::before{background:var(--up)!important;width:5px!important;height:5px!important;box-shadow:0 0 4px var(--up)}
+.chat-msg{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+  border-bottom-left-radius:2px!important;
+  padding:10px 12px!important;
+}
+.chat-msg.user{
+  background:rgba(66,165,245,.10)!important;
+  border-color:rgba(66,165,245,.30)!important;
+  color:var(--text)!important;
+  border-bottom-left-radius:var(--r-sm)!important;
+  border-bottom-right-radius:2px!important;
+}
+.chat-msg-text{color:var(--text)!important;font-family:var(--sans)!important;font-size:13px!important;line-height:1.5!important}
+.chat-input-row{border-top-color:var(--border)!important;padding:10px 12px!important}
+.chat-input{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+  color:var(--text)!important;
+  font-family:var(--mono)!important;font-size:12px!important;
+  padding:8px 12px!important;
+}
+.chat-send{
+  background:var(--neutral)!important;
+  border-radius:var(--r-sm)!important;
+  width:32px!important;height:32px!important;color:#fff!important;font-size:14px!important;
+}
+
+/* ─── NOTIFICATIONS ─── */
+.notif-overlay{background:var(--bg)!important}
+.notif-header{padding:14px!important;border-bottom:1px solid var(--border)}
+.notif-title{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;font-size:16px!important;font-weight:700!important;
+}
+.notif-close{color:var(--text-2)!important;font-size:18px!important}
+.notif-tabs{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+  margin:10px 14px!important;padding:2px!important;
+}
+.notif-tab{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  border-radius:var(--r-sm)!important;padding:8px!important;
+}
+.notif-tab.active{
+  background:var(--neutral)!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.notif-activate-bar{
+  background:var(--surface)!important;
+  border:1px solid var(--warn)!important;
+  border-radius:var(--r-sm)!important;
+  color:var(--warn)!important;
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:500!important;
+}
+.notif-activate-btn{
+  background:var(--neutral)!important;
+  border-radius:var(--r-sm)!important;
+  color:#fff!important;
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+  padding:11px!important;box-shadow:none!important;
+}
+.notif-item{border-bottom-color:var(--border)!important;padding:12px 0!important}
+.notif-ico{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  width:36px!important;height:36px!important;
+  border-radius:var(--r-sm)!important;font-size:16px!important;
+}
+.notif-name{color:var(--text)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:600!important}
+.notif-desc{color:var(--text-2)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:.3px!important}
+.notif-toggle{background:var(--border)!important;width:36px!important;height:20px!important;border-radius:10px!important}
+.notif-toggle.on{background:var(--up)!important}
+.notif-toggle::after{width:16px!important;height:16px!important;border-radius:8px!important;top:2px!important;left:2px!important;box-shadow:none!important}
+.notif-toggle.on::after{left:18px!important}
+.notif-test-btn{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:500!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+}
+.notif-history-item{border-bottom-color:var(--border)!important}
+.notif-hist-title{color:var(--text)!important;font-family:var(--sans)!important;font-size:12px!important;font-weight:500!important}
+.notif-hist-sub{color:var(--text-2)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important}
+.notif-hist-time{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:9px!important;font-weight:500!important}
+
+/* ─── PROFIL ─── */
+.profil-wrap{background:var(--bg)!important;align-items:flex-start!important;padding:0!important;justify-content:flex-start!important}
+.profil-logo{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-md)!important;
+  width:48px!important;height:48px!important;font-size:24px!important;
+}
+.profil-appname{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;font-size:18px!important;font-weight:700!important;
+}
+.profil-sub{
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:11px!important;font-weight:500!important;
+  letter-spacing:.5px!important;line-height:1.4!important;
+}
+
+/* ─── SEARCH OVERLAY ─── */
+.search-overlay{background:var(--bg)!important}
+.so-header{border-bottom-color:var(--border)!important;padding:12px!important}
+.so-back{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+  color:var(--text)!important;
+  width:32px!important;height:32px!important;
+}
+.so-input-wrap{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-sm)!important;
+}
+.so-input-wrap:focus-within{border-color:var(--neutral)!important;background:var(--surface)!important}
+.so-input{color:var(--text)!important;font-family:var(--sans)!important;font-size:14px!important}
+.so-input::placeholder{color:var(--text-mute)!important;font-family:var(--mono);text-transform:uppercase;font-size:11px;letter-spacing:.5px}
+.so-clear{color:var(--text-mute)!important;opacity:1!important}
+.so-tab{
+  background:var(--surface)!important;
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+  padding:6px 10px!important;border-radius:var(--r-sm)!important;
+  border:1px solid var(--border)!important;
+}
+.so-tab.active{background:var(--neutral)!important;border-color:var(--neutral)!important;color:#fff!important}
+.so-item{border-radius:0!important;border-bottom:1px solid var(--border)}
+.so-item:active{background:var(--surface-2)!important}
+.so-item-icon{background:var(--surface)!important;border:1px solid var(--border);border-radius:var(--r-sm)!important}
+.so-item-name{color:var(--text)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:500!important}
+.so-item-sub{color:var(--text-2)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:.3px!important}
+.so-item-right,.so-item-arrow{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:12px!important}
+.so-badge{
+  background:rgba(66,165,245,.15)!important;
+  color:var(--neutral)!important;
+  font-family:var(--mono)!important;font-size:9px!important;font-weight:600!important;
+  letter-spacing:1px!important;border-radius:2px!important;padding:2px 6px!important;
+}
+.so-section,.so-section-title{
+  color:var(--text-mute)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:1.5px!important;text-transform:uppercase!important;
+}
+.so-empty-txt{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:14px!important;font-weight:500!important}
+.so-empty-sub{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important}
+.so-recent-chip{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  color:var(--text-2)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:.5px!important;text-transform:uppercase!important;
+  border-radius:var(--r-sm)!important;
+}
+mark{color:var(--neutral)!important;background:none!important;font-weight:700!important}
+
+/* Search match cards */
+.so-match-card{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r-md)!important;
+  box-shadow:none!important;
+}
+.so-match-card:active{background:var(--surface-2)!important}
+.smc-league{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;letter-spacing:1.2px!important;text-transform:uppercase!important}
+.smc-status-live{background:rgba(239,83,80,.12)!important;border:none!important;border-radius:2px!important;padding:2px 6px!important}
+.smc-status-sched{color:var(--text)!important;font-family:var(--mono)!important;font-size:11px!important;font-weight:500!important}
+.smc-name{color:var(--text)!important;font-family:var(--sans)!important;font-size:12px!important;font-weight:500!important}
+.smc-score{color:var(--text)!important;font-family:var(--mono)!important;font-size:22px!important;font-weight:600!important}
+.smc-vs{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important}
+.smc-pred-score{color:var(--neutral)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important}
+.smc-bh{background:var(--neutral)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;color:#fff!important}
+.smc-bd{background:var(--text-mute)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;color:#fff!important}
+.smc-ba{background:var(--warn)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;color:var(--bg)!important}
+.smc-pick{
+  background:var(--bg)!important;
+  border:1px solid var(--border)!important;
+  border-left:2px solid var(--up)!important;
+  border-radius:var(--r-sm)!important;
+}
+.smc-pick-lbl{color:var(--up)!important;font-family:var(--mono)!important;font-size:9px!important;font-weight:600!important;letter-spacing:1.2px!important;text-transform:uppercase!important}
+.smc-pick-bet{color:var(--text)!important;font-family:var(--sans)!important;font-size:12px!important;font-weight:500!important}
+.smc-pick-odd{color:var(--text)!important;font-family:var(--mono)!important;font-size:14px!important;font-weight:600!important}
+.smc-pick-conf{color:var(--warn)!important;font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important}
+.smc-stat{background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:var(--r-sm)!important}
+.smc-stat-val{color:var(--text)!important;font-family:var(--mono)!important;font-size:13px!important;font-weight:600!important}
+.smc-stat-lbl{color:var(--text-mute)!important;font-family:var(--mono)!important;font-size:9px!important;font-weight:500!important;letter-spacing:1px!important;text-transform:uppercase!important}
+.smc-btn-main{
+  background:var(--neutral)!important;
+  color:#fff!important;
+  border-radius:var(--r-sm)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:600!important;
+  letter-spacing:1.2px!important;text-transform:uppercase!important;
+}
+.smc-btn-sec{
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  color:var(--text-2)!important;
+  border-radius:var(--r-sm)!important;
+  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
+  letter-spacing:1px!important;text-transform:uppercase!important;
+}
+
 </style>
 </head>
 <body>
@@ -1758,7 +2374,7 @@ body{background:#000!important}
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.1';
+const APP_VERSION = 'v4.2';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
