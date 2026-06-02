@@ -2490,7 +2490,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.6.2';
+const APP_VERSION = 'v4.6.3';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -2695,11 +2695,11 @@ function card(m){
   const liveOrTime=isDone
     ?`<span class="match-time" style="color:var(--up)">FT</span>`
     :isLive
-      ?`<div class="live-badge"><div class="live-dot"></div><span class="live-text">${isHT?'MT':(m.liveMin?m.liveMin+"'":'LIVE')}</span></div>`
+      ?`<div class="live-badge"><div class="live-dot"></div><span class="live-text">${isHT?'MT':(m.liveMin?m.liveMin+"'":"—")}</span></div>`
       :`<span class="match-time">${m.time}</span>`;
 
   const center=(isLive||isDone)&&m.score
-    ?`<div class="sc-live">${m.score.h} : ${m.score.a}</div>${isDone?'':`<div class="sc-timer">${isHT?'MT':(m.liveMin?m.liveMin+"'":'LIVE')}</div>`}`
+    ?`<div class="sc-live">${m.score.h} : ${m.score.a}</div>${isDone?'':`<div class="sc-timer">${isHT?'MT':(m.liveMin?m.liveMin+"'":"—")}</div>`}`
     :`<div class="sc-vs">VS</div><div class="sc-pred">${p.score}</div>`;
   const isSel=!!COUPON[m.id];
   return `
@@ -3149,7 +3149,7 @@ function showDetail(id){
   if((isLive||isDone)&&m.score){
     lr.style.display='flex';
     const isHT=m.period==='HT';
-    document.getElementById('d-live-min').textContent=isDone?'FIN':isHT?'MT':(m.liveMin?m.liveMin+"'":'LIVE');
+    document.getElementById('d-live-min').textContent=isDone?'FIN':isHT?'MT':(m.liveMin?m.liveMin+"'":"—");
     document.getElementById('d-score').textContent=m.score.h+' - '+m.score.a;
     document.getElementById('d-pred').textContent=isDone?'Match terminé':'En cours';
   } else {
