@@ -1307,6 +1307,93 @@ body{background:#000!important}
 /* ─── Notif badge (badge "—") en haut à droite ─── */
 .ah-ico{opacity:.6}
 
+/* ─── MONDIAL 2026 — écran dédié ─── */
+.wc-header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:14px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+  position:relative;overflow:hidden;
+}
+.wc-header::before{
+  content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(220,38,38,.20),transparent 70%);
+  pointer-events:none;
+}
+.wc-h-left{position:relative;z-index:1}
+.wc-h-title{
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:16px;font-weight:700;letter-spacing:-.2px;
+  margin-bottom:3px;
+}
+.wc-h-sub{
+  color:var(--text-2);
+  font-family:var(--mono);
+  font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;
+}
+.wc-h-stats{display:flex;gap:12px;position:relative;z-index:1}
+.wc-h-stats > div{text-align:right}
+.wcs-v{
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:18px;font-weight:600;line-height:1;
+}
+.wcs-l{
+  color:var(--text-mute);
+  font-family:var(--mono);
+  font-size:9px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;
+  margin-top:4px;
+}
+/* WC match card — variant compact pour liste tournoi */
+.wc-match-row{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
+  margin:0 12px 1px;padding:10px 12px;cursor:pointer;
+  display:grid;grid-template-columns:60px 1fr auto;gap:10px;align-items:center;
+}
+.wc-match-row:hover{background:var(--surface-2)}
+.wc-mr-time{
+  font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);
+  letter-spacing:.3px;
+}
+.wc-mr-date{
+  font-family:var(--mono);font-size:9px;font-weight:500;color:var(--text-mute);
+  letter-spacing:1px;text-transform:uppercase;margin-top:2px;
+}
+.wc-mr-teams{display:flex;flex-direction:column;gap:3px;min-width:0}
+.wc-mr-team{
+  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:6px;
+}
+.wc-mr-team-flag{font-size:14px;width:18px;text-align:center}
+.wc-mr-right{text-align:right;display:flex;flex-direction:column;gap:3px;align-items:flex-end}
+.wc-mr-score{
+  font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text);
+  letter-spacing:-.3px;
+}
+.wc-mr-status{
+  font-family:var(--mono);font-size:9px;font-weight:500;color:var(--text-mute);
+  letter-spacing:1px;text-transform:uppercase;
+}
+.wc-mr-status.live{color:var(--down)}
+.wc-mr-pick{
+  font-family:var(--mono);font-size:9px;font-weight:600;color:var(--up);
+  letter-spacing:1px;text-transform:uppercase;
+  padding:2px 6px;background:rgba(38,166,154,.12);border-radius:2px;
+}
+.wc-mr-conf{
+  font-family:var(--mono);font-size:11px;font-weight:600;color:var(--neutral);
+}
+.wc-section-bar{
+  background:var(--bg);border-bottom:1px solid var(--border);
+  padding:8px 14px;
+  font-family:var(--mono);font-size:9px;font-weight:500;color:var(--text-mute);
+  letter-spacing:1.5px;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.wc-section-bar > span:last-child{color:var(--text-2)}
+
 /* ════════════════════════════════════════════════════════════
    ░░░ PHASE 3 — Détail match · Coupon · Profil · Chat · Notif ░░░
    ════════════════════════════════════════════════════════════ */
@@ -2082,6 +2169,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
         <div class="chip" onclick="setIaFilter('o15',this)">⚽ +1.5 Buts</div>
         <div class="chip" onclick="setIaFilter('u45',this)">⬇️ Moins de 4.5</div>
         <div class="chip" onclick="setIaFilter('buteur',this)">🎯 Buteurs</div>
+        <div class="chip" onclick="setIaFilter('wc26',this)" style="border-color:var(--down)!important;color:var(--down)!important">🏆 MONDIAL</div>
       </div>
       <div style="margin:0 12px 8px;background:#F5F5F5;border-radius:12px;display:flex;padding:8px 0">
         <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:#111111">5</div><div style="font-size:11px;color:#111111;margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Matchs du jour</div></div>
@@ -2126,6 +2214,30 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
       <input id="chat-main-input" class="chat-input" placeholder="Posez une question à l'IA..."
         onkeydown="if(event.key==='Enter')sendChatMessage(this.value,'chat-main-messages',this)"/>
       <div class="chat-send" onclick="sendChatMessage(document.getElementById('chat-main-input').value,'chat-main-messages',document.getElementById('chat-main-input'))">➤</div>
+    </div>
+  </div>
+
+  <!-- ═══════ MONDIAL 2026 ═══════ -->
+  <div class="screen" id="screen-mondial">
+    <div class="wc-header">
+      <div class="wc-h-left">
+        <div class="wc-h-title">COUPE DU MONDE 2026</div>
+        <div class="wc-h-sub" id="wc-sub">USA · CANADA · MEXIQUE</div>
+      </div>
+      <div class="wc-h-stats" id="wc-stats">
+        <div><div class="wcs-v" id="wc-total">—</div><div class="wcs-l">MATCHS</div></div>
+        <div><div class="wcs-v" id="wc-upcoming">—</div><div class="wcs-l">À VENIR</div></div>
+      </div>
+    </div>
+    <div class="filter-chips" id="wc-chips">
+      <div class="chip active" onclick="setWcFilter('all',this)">TOUS</div>
+      <div class="chip" onclick="setWcFilter('upcoming',this)">À VENIR</div>
+      <div class="chip" onclick="setWcFilter('live',this)">LIVE</div>
+      <div class="chip" onclick="setWcFilter('finished',this)">TERMINÉS</div>
+      <div class="chip" onclick="setWcFilter('topia',this)">TOP IA</div>
+    </div>
+    <div class="scroll" id="wc-list">
+      <div style="padding:40px 20px;text-align:center;color:var(--text-mute);font-family:var(--mono);font-size:11px;letter-spacing:.8px">CHARGEMENT DES MATCHS WC26…</div>
     </div>
   </div>
 
@@ -2357,6 +2469,10 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h7v7"/></svg></div>
       <div class="tab-label">Signals</div>
     </div>
+    <div class="tab" onclick="switchTab('mondial')" id="tab-mondial">
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
+      <div class="tab-label">WC26</div>
+    </div>
     <div class="tab" onclick="switchTab('chat')" id="tab-chat">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/></svg></div>
       <div class="tab-label">Chat</div>
@@ -2374,7 +2490,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.2';
+const APP_VERSION = 'v4.3';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -2493,7 +2609,7 @@ const _MATCHES_PLACEHOLDER=[
   }
 ];/* end _MATCHES_PLACEHOLDER */
 
-let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0;
+let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0, wcFilter='all';
 
 // ── Compétitions favorites ──────────────────────────────
 let FAVE_LEAGUES = new Set(JSON.parse(localStorage.getItem('fave_leagues')||'[]'));
@@ -3097,7 +3213,8 @@ const ESPN_STD_SLUGS = {
   'L2':'fra.2','BL2':'ger.2','SD':'esp.2',
   'CH':'eng.2','EL1':'eng.3','EL2':'eng.4','SB':'ita.2',
   'SPL':'sco.1','KSA':'ksa.1','SAU':'ksa.1','J1':'jpn.1',
-  'UCL':'uefa.champions','EL':'uefa.europa','ECL':'uefa.europa.conf'
+  'UCL':'uefa.champions','EL':'uefa.europa','ECL':'uefa.europa.conf',
+  'WC26':'fifa.world','CWC':'fifa.cwc'
 };
 
 // Cache pour éviter de re-fetcher à chaque clic d'onglet
@@ -4525,6 +4642,36 @@ async function _fetchTSDBToday(existingMatches, ymd){
   }catch(e){ console.warn('[TSDB today]',e); return 0; }
 }
 
+// ══════════════════════════════════════════════════════════════
+//  COUPE DU MONDE 2026 — Fetcher dédié + cache global
+//  Récupère TOUS les matchs du tournoi (11 juin → 19 juillet 2026)
+//  via ESPN /fifa.world/scoreboard avec ranges de dates
+// ══════════════════════════════════════════════════════════════
+const WC26 = {
+  startDate:'20260611', endDate:'20260719',
+  events:[], lastFetch:0, ttl: 30*60*1000  // cache 30 min
+};
+
+async function _fetchWC26AllMatches(){
+  if(WC26.events.length && Date.now()-WC26.lastFetch < WC26.ttl) return WC26.events;
+  try{
+    // ESPN accepte ranges YYYYMMDD-YYYYMMDD
+    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${WC26.startDate}-${WC26.endDate}&limit=200`;
+    const r = await fetch(url);
+    if(!r.ok) return [];
+    const d = await r.json();
+    const events = d.events || [];
+    if(events.length){
+      WC26.events = transformESPN(events);
+      WC26.lastFetch = Date.now();
+    }
+    return WC26.events;
+  }catch(e){
+    console.warn('[WC26 fetch]', e);
+    return [];
+  }
+}
+
 // ── ESPN transform ────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════
 //  MOTEUR D'ANALYSE SPORTIVE — Aretinofoot
@@ -4658,6 +4805,9 @@ function _buildAnalysisText(m){
 function transformESPN(events){
   // ESPN league ID → app league info
   const LM={
+    // ── Compétitions mondiales (top priorité) ────────────────
+    '2310':  {ls:'WC26',name:'Coupe du Monde 2026',      lc:'#dc2626', pri:0},
+    '2370':  {ls:'CWC', name:'Coupe du Monde des Clubs', lc:'#fbbf24', pri:0},
     // ── Coupes européennes ───────────────────────────────────
     '775':   {ls:'UCL', name:'UEFA Champions League',    lc:'#3b82f6', pri:1},
     '776':   {ls:'EL',  name:'UEFA Europa League',       lc:'#f59e0b', pri:2},
@@ -5271,6 +5421,18 @@ async function fetchAllMatchesToday(forceYmd){
         if(oddsMatches.length) newMatches=mergeOddsIntoMatches(newMatches,oddsMatches);
       } catch(e){ console.warn('[Odds enrichment]',e); }
     }
+
+    // 7️⃣  COUPE DU MONDE 2026 — fetch dédié + merge
+    //     Récupère tous les matchs du tournoi (cache 30 min)
+    try{
+      const wc = await _fetchWC26AllMatches();
+      if(wc.length){
+        const existingKeys = new Set(newMatches.map(m=>(m.home.name+m.away.name+m.time).toLowerCase().replace(/\s/g,'')));
+        const wcNew = wc.filter(m => !existingKeys.has((m.home.name+m.away.name+m.time).toLowerCase().replace(/\s/g,'')));
+        wcNew.forEach(m=>newMatches.push(m));
+        if(wcNew.length) console.log(`[WC26] +${wcNew.length} matchs Coupe du Monde 2026 ajoutés`);
+      }
+    }catch(e){ console.warn('[WC26 merge]',e); }
 
     // ── Préserver le chrono local pour les matchs live déjà trackés ──
     // ESPN API gratuit a ~3-5 min de délai → on garde la valeur la plus haute
@@ -6056,6 +6218,20 @@ function renderIaList(){
     list = _sortMatches(vbFiltered.map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'cote15'){
     list = _sortMatches(scored.filter(x => x.m.hasRealOdds && (x.m.mp.oddVal||0) >= 1.5 && x.s.score >= 36).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
+  } else if(iaFilter === 'wc26'){
+    // ── MONDIAL 2026 — filtre dédié, charge en arrière-plan si vide ──
+    const wcMatches = scored.filter(x => x.m.ls === 'WC26');
+    list = _sortMatches(wcMatches.map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
+    // Async : si pas de matchs WC chargés, fetch puis re-render
+    if(!wcMatches.length){
+      _fetchWC26AllMatches().then(wc => {
+        if(!wc.length) return;
+        // Merger dans MATCHES global (dédup par id)
+        const existingIds = new Set(MATCHES.map(m=>m.id));
+        wc.forEach(m => { if(!existingIds.has(m.id)) MATCHES.push(m); });
+        if(iaFilter==='wc26') renderIaList();
+      }).catch(()=>{});
+    }
   } else if(iaFilter === 'o15'){
     // Pipeline Over 1.5 — moteur offensif expert, trié par horaire
     const o15base = base.map(m=>({ m, s: _over15Score(m) })).filter(x => x.s.score >= 48);
@@ -7384,6 +7560,135 @@ function switchTab(name){
   if(name==='matches') renderMatches();
   if(name==='ia') renderIaList();
   if(name==='profil') renderProfilTracker();
+  if(name==='mondial') renderMondial();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MONDIAL 2026 — Render screen
+// ══════════════════════════════════════════════════════════════
+function setWcFilter(f, el){
+  wcFilter = f;
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderMondial();
+}
+
+// Drapeaux pays (approximation)
+const _WC_FLAGS = {
+  'France':'🇫🇷','Germany':'🇩🇪','Spain':'🇪🇸','Italy':'🇮🇹','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Portugal':'🇵🇹','Netherlands':'🇳🇱','Belgium':'🇧🇪','Croatia':'🇭🇷','Switzerland':'🇨🇭',
+  'Brazil':'🇧🇷','Argentina':'🇦🇷','Uruguay':'🇺🇾','Colombia':'🇨🇴','Ecuador':'🇪🇨',
+  'United States':'🇺🇸','USA':'🇺🇸','Canada':'🇨🇦','Mexico':'🇲🇽',
+  'Morocco':'🇲🇦','Senegal':'🇸🇳','Tunisia':'🇹🇳','Algeria':'🇩🇿','Egypt':'🇪🇬',
+  'Ghana':'🇬🇭','Nigeria':'🇳🇬','Cameroon':'🇨🇲','Ivory Coast':"🇨🇮",
+  'Japan':'🇯🇵','South Korea':'🇰🇷','Korea Republic':'🇰🇷','Australia':'🇦🇺',
+  'Iran':'🇮🇷','Saudi Arabia':'🇸🇦','Qatar':'🇶🇦',
+  'Poland':'🇵🇱','Denmark':'🇩🇰','Sweden':'🇸🇪','Norway':'🇳🇴','Austria':'🇦🇹',
+  'Serbia':'🇷🇸','Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'New Zealand':'🇳🇿','Costa Rica':'🇨🇷','Panama':'🇵🇦',
+  'Turkey':'🇹🇷','Jordan':'🇯🇴','Uzbekistan':'🇺🇿','Iraq':'🇮🇶',
+  'Chile':'🇨🇱','Peru':'🇵🇪','Paraguay':'🇵🇾','Bolivia':'🇧🇴','Venezuela':'🇻🇪',
+  'Czech Republic':'🇨🇿','Ukraine':'🇺🇦','Russia':'🇷🇺','Greece':'🇬🇷','Romania':'🇷🇴'
+};
+function _wcFlag(name){
+  if(!name) return '⚽';
+  for(const [k,v] of Object.entries(_WC_FLAGS)){
+    if(name.includes(k)) return v;
+  }
+  return '🌍';
+}
+
+async function renderMondial(){
+  const list = document.getElementById('wc-list');
+  if(!list) return;
+
+  // Fetch matches (cache 30 min)
+  let matches = await _fetchWC26AllMatches();
+
+  // Update header stats
+  document.getElementById('wc-total').textContent = matches.length || '—';
+  const upcoming = matches.filter(m => m.status === 'scheduled').length;
+  document.getElementById('wc-upcoming').textContent = upcoming || '—';
+
+  if(!matches.length){
+    list.innerHTML = `
+      <div style="padding:40px 20px;text-align:center">
+        <div style="font-family:var(--sans);font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">
+          PROGRAMME PAS ENCORE DISPONIBLE
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-2);letter-spacing:.5px;line-height:1.6">
+          La Coupe du Monde 2026 démarre le <b>11 juin 2026</b>.<br>
+          Les matchs apparaîtront ici dès qu'ESPN publiera le calendrier.<br><br>
+          USA · CANADA · MEXIQUE · 48 ÉQUIPES · 104 MATCHS
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Apply filter
+  let filtered = matches;
+  if(wcFilter === 'upcoming') filtered = matches.filter(m => m.status === 'scheduled');
+  else if(wcFilter === 'live') filtered = matches.filter(m => m.status === 'live');
+  else if(wcFilter === 'finished') filtered = matches.filter(m => m.status === 'finished');
+  else if(wcFilter === 'topia'){
+    filtered = matches.filter(m => m.status !== 'finished')
+      .map(m => ({m, s: _iaScore(m)}))
+      .filter(x => x.s.score >= 50)
+      .sort((a,b) => b.s.score - a.s.score)
+      .map(x => x.m);
+  }
+
+  if(!filtered.length){
+    list.innerHTML = `<div style="padding:30px 20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-mute);letter-spacing:.5px">AUCUN MATCH POUR CE FILTRE</div>`;
+    return;
+  }
+
+  // Group by date (YYYY-MM-DD)
+  const byDate = {};
+  filtered.forEach(m => {
+    const d = m.timestamp ? new Date(m.timestamp).toISOString().slice(0,10) : (m.date||'?');
+    if(!byDate[d]) byDate[d] = [];
+    byDate[d].push(m);
+  });
+
+  const _MONTHS_FR = ['JAN','FÉV','MAR','AVR','MAI','JUN','JUL','AOÛ','SEP','OCT','NOV','DÉC'];
+  const _DAYS_FR = ['DIM','LUN','MAR','MER','JEU','VEN','SAM'];
+
+  let html = '';
+  Object.keys(byDate).sort().forEach(dateKey => {
+    const d = new Date(dateKey + 'T12:00:00');
+    const dateLabel = isNaN(d) ? dateKey
+      : `${_DAYS_FR[d.getDay()]} ${d.getDate().toString().padStart(2,'0')} ${_MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
+    html += `<div class="wc-section-bar"><span>${dateLabel}</span><span>${byDate[dateKey].length} MATCH${byDate[dateKey].length>1?'ES':''}</span></div>`;
+    byDate[dateKey].forEach(m => {
+      const s = _iaScore(m);
+      const hFlag = _wcFlag(m.home.name), aFlag = _wcFlag(m.away.name);
+      const isLive = m.status === 'live';
+      const isDone = m.status === 'finished';
+      const score = m.score ? `${m.score.h} - ${m.score.a}` : '';
+      const statusTxt = isLive ? (m.liveMin? m.liveMin+"'" : 'LIVE')
+                      : isDone ? 'FT'
+                      : m.time || 'SCHED';
+      const pickLbl = m.mp?.label || '';
+      const conf = s.score;
+      html += `<div class="wc-match-row" onclick="showDetail(${m.id})">
+        <div>
+          <div class="wc-mr-time">${m.time||'—'}</div>
+          <div class="wc-mr-date">${m.ls||'WC26'}</div>
+        </div>
+        <div class="wc-mr-teams">
+          <div class="wc-mr-team"><span class="wc-mr-team-flag">${hFlag}</span>${_esc(m.home.name)}</div>
+          <div class="wc-mr-team"><span class="wc-mr-team-flag">${aFlag}</span>${_esc(m.away.name)}</div>
+        </div>
+        <div class="wc-mr-right">
+          ${score
+            ? `<div class="wc-mr-score">${score}</div><div class="wc-mr-status${isLive?' live':''}">${statusTxt}</div>`
+            : `<div class="wc-mr-pick">${(pickLbl||'—').slice(0,12).toUpperCase()}</div><div class="wc-mr-conf">${conf}</div>`}
+        </div>
+      </div>`;
+    });
+  });
+  list.innerHTML = html + '<div style="height:12px"></div>';
 }
 
 // ══════════════════════════════════════════════════════════════
