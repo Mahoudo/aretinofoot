@@ -2490,7 +2490,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.5';
+const APP_VERSION = 'v4.6';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -4076,11 +4076,12 @@ function _kellyCFA(trueP, odd, bankroll){
   const k = (b * (trueP/100) - q) / b;
   if(k <= 0) return null;
   const fullKelly = k * bankroll;
-  const halfKelly = fullKelly * 0.5; // demi-Kelly = plus prudent
   return {
-    full: Math.round(fullKelly / 100) * 100,
-    half: Math.round(halfKelly / 100) * 100,
-    pct:  +(k * 100).toFixed(1)
+    full:    Math.round(fullKelly        / 100) * 100,  // 1   Kelly (agressif, risque max)
+    half:    Math.round(fullKelly * 0.5  / 100) * 100,  // 1/2 Kelly (standard prudent)
+    quarter: Math.round(fullKelly * 0.25 / 100) * 100,  // 1/4 Kelly (recommandé débutant)
+    eighth:  Math.round(fullKelly * 0.125/ 100) * 100,  // 1/8 Kelly (très conservateur)
+    pct:     +(k * 100).toFixed(1)
   };
 }
 
@@ -6398,10 +6399,50 @@ function renderIaList(){
           trueP = p.ph > p.pa ? p.ph : p.pa;
         }
         const k = _kellyCFA(trueP, displayPick.odd||1.5, BANKROLL);
-        if(!k || k.half < 100) return '';
-        return `<div style="margin-top:5px;background:#FFFBEB;border:1px solid #f59e0b33;border-radius:8px;padding:5px 10px;display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:12px;color:#111111;font-weight:700">💰 Mise conseillée (½ Kelly)</span>
-          <span style="font-size:15px;font-weight:900;color:#f59e0b">${k.half.toLocaleString('fr-FR')} FCFA</span>
+        if(!k || k.quarter < 100) return '';
+        // Mise sélecteur Kelly fractionnaire (3 niveaux)
+        return `<div style="margin-top:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-mute);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:5px">💰 MISES RECOMMANDÉES · KELLY ${k.pct}%</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border-radius:var(--r-sm);overflow:hidden">
+            <div title="1/8 Kelly — très prudent" style="background:var(--bg);padding:6px;text-align:center">
+              <div style="font-family:var(--mono);font-size:9px;color:var(--text-mute);letter-spacing:.5px">⅛K SAFE</div>
+              <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--up);margin-top:2px">${k.eighth.toLocaleString('fr-FR')}</div>
+            </div>
+            <div title="1/4 Kelly — recommandé débutant" style="background:var(--bg);padding:6px;text-align:center;border-left:2px solid var(--neutral)">
+              <div style="font-family:var(--mono);font-size:9px;color:var(--neutral);letter-spacing:.5px">¼K RECO</div>
+              <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--neutral);margin-top:2px">${k.quarter.toLocaleString('fr-FR')}</div>
+            </div>
+            <div title="1/2 Kelly — agressif" style="background:var(--bg);padding:6px;text-align:center">
+              <div style="font-family:var(--mono);font-size:9px;color:var(--text-mute);letter-spacing:.5px">½K AGR</div>
+              <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--warn);margin-top:2px">${k.half.toLocaleString('fr-FR')}</div>
+            </div>
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-mute);margin-top:4px;letter-spacing:.3px;line-height:1.3">FCFA · Kelly fractionnaire = moins de variance, capital protégé</div>
+        </div>`;
+      })()}
+      ${(()=>{
+        // Badge source data + boutons vote (👍/👎)
+        const fb = typeof _getFeedback==='function' ? _getFeedback() : {};
+        const myVote = fb[m.id];
+        const srcLabels = {espn:'ESPN', betclic:'BETCLIC', oddsapi:'ODDS API', synthetic:'POISSON'};
+        const srcLabel  = srcLabels[m.oddSource] || 'ESPN';
+        const dqLabels  = {high:'HAUTE', medium:'MOY.', low:'LIM.'};
+        const dqColor   = {high:'var(--up)', medium:'var(--warn)', low:'var(--text-mute)'};
+        const dq        = m.dataQuality || (m.hasRealOdds?'high':'low');
+        return `<div style="margin-top:6px;display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase">
+            <span style="color:var(--text-mute)">SRC</span>
+            <span style="color:var(--text-2);font-weight:600">${srcLabel}</span>
+            <span style="color:var(--text-mute)">·</span>
+            <span style="color:var(--text-mute)">QUAL</span>
+            <span style="color:${dqColor[dq]};font-weight:600">${dqLabels[dq]}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:2px" onclick="event.stopPropagation()">
+            <button id="vote-up-${m.id}" onclick="voteSignal(${m.id},'up')" title="Signal pertinent"
+              style="background:${myVote==='up'?'rgba(38,166,154,.12)':'transparent'};border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;cursor:pointer;color:${myVote==='up'?'var(--up)':'var(--text-mute)'};font-size:12px;line-height:1">👍</button>
+            <button id="vote-down-${m.id}" onclick="voteSignal(${m.id},'down')" title="Signal douteux"
+              style="background:${myVote==='down'?'rgba(239,83,80,.12)':'transparent'};border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;cursor:pointer;color:${myVote==='down'?'var(--down)':'var(--text-mute)'};font-size:12px;line-height:1">👎</button>
+          </div>
         </div>`;
       })()}
       <div class="ia-coupon-btn${inCoupon?' in-coupon':''}" id="ia-cb-${m.id}" onclick="toggleIaCouponSafe(event,${m.id})">
@@ -8172,6 +8213,41 @@ function clearCoupon(){
   _updateCouponBar();
   renderMatches();
   if(currentTab==='coupon') renderCoupon();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FEEDBACK SIGNAUX — vote utilisateur 👍/👎 sur les picks IA
+//  Stocké en localStorage, alimente une pondération soft
+// ══════════════════════════════════════════════════════════════
+const FEEDBACK_KEY = 'aretinofoot_feedback';
+function _getFeedback(){
+  try{ return JSON.parse(localStorage.getItem(FEEDBACK_KEY)||'{}'); }catch(e){ return {}; }
+}
+function _saveFeedback(fb){
+  try{ localStorage.setItem(FEEDBACK_KEY, JSON.stringify(fb)); }catch(e){}
+}
+function voteSignal(matchId, vote){
+  // vote: 'up' = trust+, 'down' = trust-
+  const fb = _getFeedback();
+  if(fb[matchId] === vote){ delete fb[matchId]; }
+  else { fb[matchId] = vote; }
+  _saveFeedback(fb);
+  // Re-render IA card visuel
+  const btnUp = document.getElementById('vote-up-'+matchId);
+  const btnDn = document.getElementById('vote-down-'+matchId);
+  if(btnUp){
+    btnUp.style.color   = fb[matchId]==='up'   ? 'var(--up)'   : 'var(--text-mute)';
+    btnUp.style.background = fb[matchId]==='up' ? 'rgba(38,166,154,.12)' : 'transparent';
+  }
+  if(btnDn){
+    btnDn.style.color   = fb[matchId]==='down' ? 'var(--down)' : 'var(--text-mute)';
+    btnDn.style.background = fb[matchId]==='down' ? 'rgba(239,83,80,.12)' : 'transparent';
+  }
+  // Toast discret
+  if(typeof showToast==='function'){
+    const msg = vote==='up'?'Signal validé · merci':'Signal écarté · noté';
+    showToast(msg,'ok',1200);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
