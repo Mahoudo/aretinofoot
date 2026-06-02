@@ -18,40 +18,40 @@
 <!-- Vercel Web Analytics — données anonymes, sans cookies, RGPD conforme -->
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
-/* ═══ DESIGN SYSTEM — Trading Desk (Bloomberg/Trading212) ═══ */
+/* ═══ DESIGN SYSTEM — Light & Warm (Notion/Linear inspiré) ═══ */
 :root{
-  /* Surfaces */
-  --bg:        #0a0e1a;     /* navy ultra sombre */
-  --surface:   #0f1421;     /* surfaces cards */
-  --surface-2: #161c2c;     /* surfaces interactives hover */
-  --surface-3: #1d2538;     /* surfaces actives */
-  --border:    #1f2a3e;     /* borders */
-  --border-2:  #2a3651;     /* borders accentuées */
+  /* Surfaces — clair chaleureux */
+  --bg:        #FAFAFB;     /* off-white doux */
+  --surface:   #FFFFFF;     /* pure white pour cards */
+  --surface-2: #F4F5F7;     /* hover léger */
+  --surface-3: #ECEEF1;     /* active */
+  --border:    #E5E7EB;     /* gris clair pour bordures */
+  --border-2:  #CBD0D7;     /* gris moyen accentué */
 
   /* Texte */
-  --text:      #e6edf3;     /* texte principal */
-  --text-2:    #8b949e;     /* texte secondaire / labels */
-  --text-mute: #5d6a7f;     /* texte muet */
+  --text:      #111827;     /* texte principal — gris très foncé */
+  --text-2:    #4B5563;     /* texte secondaire / labels */
+  --text-mute: #9CA3AF;     /* texte muet */
 
-  /* Sémantique trading */
-  --up:        #26a69a;     /* gain / win / positif (vert Bloomberg) */
-  --down:      #ef5350;     /* perte / loss / négatif (rouge Bloomberg) */
-  --neutral:   #42a5f5;     /* info / standard (bleu Bloomberg) */
-  --warn:      #ffb74d;     /* warning / signal (ambre) */
-  --accent:    #7c5cff;     /* accent rare / brand */
+  /* Sémantique (couleurs ajustées pour fond clair, plus saturées) */
+  --up:        #10B981;     /* vert émeraude — gain / win */
+  --down:      #EF4444;     /* rouge tomate — perte / loss / live */
+  --neutral:   #3B82F6;     /* bleu vif — info / standard */
+  --warn:      #F59E0B;     /* ambre — warning */
+  --accent:    #F97316;     /* orange brand — accent chaleureux */
 
   /* Typo */
   --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
 
   /* Layout */
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 8px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:var(--sans);font-feature-settings:'cv11','ss03','ss01';-webkit-font-smoothing:antialiased;color:var(--text)}
+body{background:linear-gradient(135deg,#FEF3E7 0%, #F0F4FA 100%);display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:var(--sans);font-feature-settings:'cv11','ss03','ss01';-webkit-font-smoothing:antialiased;color:var(--text)}
 ::-webkit-scrollbar{display:none}
 
 .phone{width:393px;height:852px;background:#FFFFFF;border-radius:48px;display:flex;flex-direction:column;overflow:hidden;position:relative;
@@ -109,11 +109,13 @@ body{background:#000;display:flex;align-items:center;justify-content:center;min-
 .tab-icon svg{width:20px;height:20px;stroke-width:1.6;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .tab.active .tab-icon{color:var(--neutral)}
 .tab-label{
-  font-family:var(--mono);
-  font-size:9px;font-weight:500;color:var(--text-mute);
-  letter-spacing:1px;text-transform:uppercase;transition:color .15s;
+  font-family:var(--sans);
+  font-size:11px;font-weight:600;color:var(--text-2);
+  letter-spacing:.1px;transition:color .15s;
 }
-.tab.active .tab-label{color:var(--neutral)}
+.tab.active .tab-label{color:var(--accent);font-weight:700}
+.tab.active .tab-icon{color:var(--accent)}
+.tab.active::before{background:var(--accent)!important}
 .tab-dot{display:none}
 .tab.active::before{
   content:'';position:absolute;top:0;left:25%;right:25%;height:2px;
@@ -217,24 +219,24 @@ body{background:#000;display:flex;align-items:center;justify-content:center;min-
   -webkit-text-fill-color:initial;
   order:2;
 }
-/* CTA discret en bas */
+/* CTA accueil — bouton accent chaleureux */
 .hb-cta{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  width:100%;padding:11px 14px;
-  background:var(--bg);
-  border:none;border-top:1px solid var(--border);
-  color:var(--neutral);
-  font-family:var(--mono);
-  font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:14px;
+  background:linear-gradient(135deg, var(--accent) 0%, #EA580C 100%);
+  border:none;border-top:none;
+  color:#FFFFFF;
+  font-family:var(--sans);
+  font-size:14px;font-weight:700;letter-spacing:.1px;
   cursor:pointer;
-  text-align:left;
+  text-align:center;
   border-radius:0;
-  box-shadow:none;
-  transition:background .15s,color .15s;
+  box-shadow:0 4px 12px rgba(249,115,22,.25);
+  transition:transform .15s, box-shadow .15s;
 }
-.hb-cta::after{content:'→';margin-left:auto;font-size:13px}
-.hb-cta:hover{background:var(--surface-2);color:var(--text);box-shadow:none}
-.hb-cta:active{transform:scale(.995)}
+.hb-cta::after{content:'';display:none}
+.hb-cta:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(249,115,22,.35)}
+.hb-cta:active{transform:translateY(0) scale(.98)}
 .hb-cta{
   display:flex;align-items:center;justify-content:center;gap:6px;
   width:100%;padding:11px;
@@ -693,9 +695,9 @@ mark{background:none;color:#f97316;font-weight:900}
 
 /* Taille de police — override via px direct */
 
-/* ─── Theme Trading Desk — overrides du shell ─── */
-body{background:#000!important}
-.phone{background:var(--bg)!important;box-shadow:0 0 0 10px #1c1c1e,0 0 0 12px #2c2c2e,0 40px 80px rgba(0,0,0,.55)!important;border-radius:48px!important}
+/* ─── Theme clair chaleureux — overrides du shell ─── */
+body{background:linear-gradient(135deg,#FEF3E7 0%, #F0F4FA 100%)!important}
+.phone{background:var(--bg)!important;box-shadow:0 0 0 8px #E5E7EB, 0 0 0 10px #D1D5DB, 0 40px 80px rgba(0,0,0,.18)!important;border-radius:48px!important}
 .notch{background:var(--bg)!important}
 .screen{background:var(--bg)!important}
 
@@ -934,19 +936,19 @@ body{background:#000!important}
    Placé en fin de <style> pour battre tous les !important light.
    ════════════════════════════════════════════════════════════ */
 
-/* ─── Section headers ─── */
-.sec-header{padding:14px 14px 8px!important;border-top:1px solid var(--border);margin-top:4px}
+/* ─── Section headers — labels lisibles ─── */
+.sec-header{padding:16px 14px 8px!important;margin-top:4px}
 .sec-title{
-  color:var(--text-2)!important;
-  font-family:var(--mono)!important;
-  font-size:10px!important;font-weight:500!important;
-  letter-spacing:1.5px!important;text-transform:uppercase!important;
+  color:var(--text)!important;
+  font-family:var(--sans)!important;
+  font-size:15px!important;font-weight:700!important;
+  letter-spacing:-.2px!important;text-transform:none!important;
 }
 .sec-link{
-  color:var(--neutral)!important;
-  font-family:var(--mono)!important;
-  font-size:10px!important;font-weight:500!important;
-  letter-spacing:1px!important;text-transform:uppercase!important;
+  color:var(--accent)!important;
+  font-family:var(--sans)!important;
+  font-size:13px!important;font-weight:600!important;
+  letter-spacing:0!important;text-transform:none!important;
 }
 
 /* ─── Tiles dashboard ─── */
@@ -1305,7 +1307,51 @@ body{background:#000!important}
 .hb-cta:hover{background:var(--surface-2)!important;color:var(--text)!important;box-shadow:none!important}
 
 /* ─── Notif badge (badge "—") en haut à droite ─── */
-.ah-ico{opacity:.6}
+.ah-ico{opacity:.6;color:var(--text-2)!important}
+
+/* ─── Hero accueil — fond clair chaleureux ─── */
+.hero-banner{
+  background:linear-gradient(135deg, #FFF7ED 0%, #FFFFFF 50%, #EFF6FF 100%)!important;
+  border:1px solid var(--border)!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.04), 0 4px 12px rgba(249,115,22,.05)!important;
+}
+.hero-banner::before{display:none!important}
+.hero-banner::after{
+  background:radial-gradient(circle, rgba(249,115,22,.15), transparent 70%)!important;
+}
+.hb-top-row{background:transparent!important;border-bottom:none!important;padding:14px 14px 4px!important}
+.hb-tag{
+  background:rgba(239,68,68,.10)!important;
+  border:1px solid rgba(239,68,68,.25)!important;
+  border-radius:999px!important;padding:3px 10px!important;
+}
+.hb-tag-text, .lp-text{color:var(--down)!important;font-family:var(--sans)!important;font-size:11px!important;font-weight:700!important;letter-spacing:.3px!important;text-transform:none!important}
+.hb-trust{
+  background:rgba(59,130,246,.10)!important;
+  border:1px solid rgba(59,130,246,.25)!important;
+  color:var(--neutral)!important;
+  font-family:var(--sans)!important;font-size:11px!important;font-weight:700!important;
+  letter-spacing:.3px!important;text-transform:none!important;padding:3px 10px!important;border-radius:999px!important;
+}
+.hb-date{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:12px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;padding:4px 14px 0!important}
+.hb-title{
+  color:var(--text)!important;
+  font-family:var(--sans)!important;
+  font-size:24px!important;font-weight:800!important;letter-spacing:-.6px!important;
+  background:none!important;-webkit-background-clip:initial!important;
+  -webkit-text-fill-color:initial!important;background-clip:initial!important;
+  padding:6px 14px 2px!important;
+}
+.hb-sub{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;padding:0 14px 14px!important}
+.hb-stats{background:var(--border)!important;border-top:1px solid var(--border)!important}
+.hb-stats > div{background:rgba(255,255,255,.7)!important;padding:12px!important}
+.hbs-val{
+  color:var(--text)!important;
+  font-family:var(--mono)!important;font-size:20px!important;font-weight:700!important;
+  background:none!important;-webkit-background-clip:initial!important;
+  -webkit-text-fill-color:initial!important;
+}
+.hbs-lbl{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:10px!important;font-weight:600!important;letter-spacing:.2px!important;text-transform:none!important;margin-top:5px!important}
 
 /* ─── MONDIAL 2026 — écran dédié ─── */
 .wc-header{
@@ -2069,7 +2115,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
           <div><div class="hbs-val">—</div><div class="hbs-lbl">Conf. IA</div></div>
           <div><div class="hbs-val">—</div><div class="hbs-lbl">Cote max</div></div>
         </div>
-        <button class="hb-cta" onclick="switchTab('ia')">VOIR LES SIGNAUX IA</button>
+        <button class="hb-cta" onclick="switchTab('ia')">⚡ Voir les paris IA du jour</button>
       </div>
       <div class="tiles-grid">
         <div class="tile"><span class="tile-icon">⚽</span><div><div class="tile-val" id="tile-matchs">—</div><div class="tile-lbl">Matchs</div></div></div>
@@ -2460,23 +2506,23 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
   <div class="tabbar">
     <div class="tab active" onclick="switchTab('home')" id="tab-home">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/></svg></div>
-      <div class="tab-label">Home</div>
+      <div class="tab-label">Accueil</div>
     </div>
     <div class="tab" onclick="switchTab('matches')" id="tab-matches">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 10h18M8 5v14"/></svg></div>
-      <div class="tab-label">Markets</div>
+      <div class="tab-label">Matchs</div>
     </div>
     <div class="tab" onclick="switchTab('coupon')" id="tab-coupon">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-2z"/><path d="M10 7v10"/></svg></div>
-      <div class="tab-label">Bets</div>
+      <div class="tab-label">Coupon</div>
     </div>
     <div class="tab" onclick="switchTab('ia')" id="tab-ia">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h7v7"/></svg></div>
-      <div class="tab-label">Signals</div>
+      <div class="tab-label">IA</div>
     </div>
     <div class="tab" onclick="switchTab('mondial')" id="tab-mondial">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
-      <div class="tab-label">WC26</div>
+      <div class="tab-label">Mondial</div>
     </div>
     <div class="tab" onclick="switchTab('chat')" id="tab-chat">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/></svg></div>
@@ -2484,7 +2530,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
     </div>
     <div class="tab" onclick="switchTab('profil')" id="tab-profil">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
-      <div class="tab-label">Profile</div>
+      <div class="tab-label">Profil</div>
     </div>
   </div>
 </div>
@@ -2495,7 +2541,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.7';
+const APP_VERSION = 'v5.0';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -2764,27 +2810,27 @@ function card(m){
     </div>
     <div class="mp-section">
       <div class="mp-left">
-        <div class="mp-label">PICK</div>
+        <div class="mp-label">⭐ Meilleur pari</div>
         <div class="mp-bet">${mp.label}</div>
-        <div class="mp-type">${mp.type} · CONF ${mp.conf}/10</div>
+        <div class="mp-type">${mp.type} · Confiance ${mp.conf}/10</div>
       </div>
       <div class="mp-right">
         ${m.hasRealOdds
           ? `<span class="mp-odd">${(mp.odd||'').replace('×','')}</span>`
           : `<span class="mp-odd" style="color:var(--text-mute);font-size:13px">—</span>`}
-        <div style="font-family:var(--mono);font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;margin-top:2px">ODDS</div>
+        <div style="font-family:var(--sans);font-size:10px;color:var(--text-mute);font-weight:600;margin-top:2px">Cote</div>
       </div>
     </div>
     ${_liveAdverseWarning(m, mp.type)}
     <div style="display:flex;gap:1px;background:var(--border)">
       <div onclick="event.stopPropagation();toggleMatchSel(${m.id})" id="coupon-btn-${m.id}"
-        style="flex:1;text-align:center;padding:9px 0;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;letter-spacing:1.2px;text-transform:uppercase;background:var(--bg);
+        style="flex:1;text-align:center;padding:11px 0;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;background:var(--surface-2);
         ${isSel
           ? 'color:var(--down)'
-          : 'color:var(--neutral)'}">
-        ${isSel ? '− RETIRER' : '+ AU COUPON'}
+          : 'color:var(--accent)'}">
+        ${isSel ? '− Retirer du coupon' : '+ Ajouter au coupon'}
       </div>
-      <div style="flex:1;text-align:center;padding:9px 0;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;background:var(--bg);color:var(--text-2);cursor:pointer" onclick="event.stopPropagation();showDetail(${m.id})">DÉTAIL →</div>
+      <div style="flex:1;text-align:center;padding:11px 0;font-family:var(--sans);font-size:13px;font-weight:600;background:var(--surface-2);color:var(--neutral);cursor:pointer" onclick="event.stopPropagation();showDetail(${m.id})">Voir détails →</div>
     </div>
   </div>`;
 }
