@@ -2490,7 +2490,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.4';
+const APP_VERSION = 'v4.5';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -2687,41 +2687,41 @@ function card(m){
   const isDone=m.status==='finished';
   const isHT=m.period==='HT';
   const isTop5=TOP5_LS.has(m.ls);
-  const period=isHT?'Mi-temps':m.liveMin>45?'2e mi-temps':'1ère mi-temps';
+
+  // Drapeau si équipe nationale (WC26, qualifs internationales) — sinon emoji club
+  const hFlag = m.ls==='WC26' || m.ls==='UNL' ? (typeof _wcFlag==='function'?_wcFlag(m.home.name):m.home.emoji) : m.home.emoji;
+  const aFlag = m.ls==='WC26' || m.ls==='UNL' ? (typeof _wcFlag==='function'?_wcFlag(m.away.name):m.away.emoji) : m.away.emoji;
 
   const liveOrTime=isDone
-    ?`<span class="match-time" style="color:#22c55e">✓ FIN</span>`
+    ?`<span class="match-time" style="color:var(--up)">FT</span>`
     :isLive
-      ?`<div class="live-badge"><div class="live-dot"></div><span class="live-text">${isHT?'MT':m.liveMin+'\''}</span></div>`
+      ?`<div class="live-badge"><div class="live-dot"></div><span class="live-text">${isHT?'MT':m.liveMin+"'"}</span></div>`
       :`<span class="match-time">${m.time}</span>`;
 
   const center=(isLive||isDone)&&m.score
-    ?`<div class="sc-live" style="${isDone?'color:#111111':''}">${m.score.h} : ${m.score.a}</div><div class="sc-timer" style="${isDone?'color:#111111':isHT?'color:#eab308':''}">${isDone?'Terminé':period}</div>`
-    :`<div class="sc-vs">VS</div><div style="font-size:15px;color:#111111;margin-top:2px">⚔️</div><div class="sc-pred">${p.score}</div>`;
+    ?`<div class="sc-live">${m.score.h} : ${m.score.a}</div>${isDone?'':`<div class="sc-timer">${isHT?'MT':m.liveMin+"'"}</div>`}`
+    :`<div class="sc-vs">VS</div><div class="sc-pred">${p.score}</div>`;
   const isSel=!!COUPON[m.id];
   return `
-  <div class="match-card${isSel?' selected':''}" data-id="${m.id}" style="position:relative${isTop5?';border-left:3px solid '+m.lc+';border-radius:14px':''}" onclick="_cardClick(event,${m.id})">
+  <div class="match-card${isSel?' selected':''}" data-id="${m.id}" style="position:relative${isTop5?';border-left:2px solid '+m.lc:''}" onclick="_cardClick(event,${m.id})">
     <div class="card-check${isSel?' checked':''}"><span class="card-check-ico">✓</span></div>
     <div class="card-top">
       <div class="ct-left">
         <div class="league-dot" style="background:${m.lc}"></div>
         <span class="league-name">${m.ls} · ${m.league}</span>
-        ${isTop5?`<span style="font-size:10px;font-weight:900;color:${m.lc};background:${m.lc}18;border-radius:4px;padding:1px 5px;margin-left:4px">TOP 5</span>`:''}
       </div>
-      <div class="ct-right">${liveOrTime}${m.oddSource==='betclic'?'<span class="bc-badge">🎲 Betclic</span>':''}${riskBadge(m.risk)}</div>
+      <div class="ct-right">${liveOrTime}${m.oddSource==='betclic'?'<span class="bc-badge">BETCLIC</span>':''}${riskBadge(m.risk)}</div>
     </div>
     <div class="teams-row">
       <div class="team-side">
-        <div class="team-logo">${_logo(m.home.logo, m.home.emoji, 34)}</div>
+        <div class="team-logo">${_logo(m.home.logo, hFlag, 24)}</div>
         <div class="team-name">${m.home.name}</div>
-        <div class="team-label">🏠 Domicile</div>
         <div class="form-dots">${fd(m.home.form)}</div>
       </div>
       <div class="score-center">${center}</div>
       <div class="team-side right">
-        <div class="team-logo">${_logo(m.away.logo, m.away.emoji, 34)}</div>
+        <div class="team-logo">${_logo(m.away.logo, aFlag, 24)}</div>
         <div class="team-name" style="text-align:right">${m.away.name}</div>
-        <div class="team-label" style="text-align:right">✈️ Extérieur</div>
         <div class="form-dots" style="justify-content:flex-end">${fd(m.away.form)}</div>
       </div>
     </div>
@@ -2732,29 +2732,28 @@ function card(m){
     </div>
     <div class="mp-section">
       <div class="mp-left">
-        <div class="mp-label">⭐ MEILLEUR PARIS</div>
+        <div class="mp-label">PICK</div>
         <div class="mp-bet">${mp.label}</div>
-        <div class="mp-type">${mp.type}</div>
+        <div class="mp-type">${mp.type} · CONF ${mp.conf}/10</div>
       </div>
       <div class="mp-right">
         ${m.hasRealOdds
-          ? `<span class="mp-odd">${mp.odd}</span>`
-          : `<span class="mp-odd" style="color:#111111;font-size:14px" title="Cote non disponible — en attente bookmaker">—</span>`}
-        <div class="mp-conf"><span style="font-size:12px">⚡</span><span class="mp-conf-val">${mp.conf}/10</span></div>
-        <span class="mp-badge ${mp.risk==='SAFE'?'rb-safe':'rb-moyen'}">${mp.risk}</span>
+          ? `<span class="mp-odd">${(mp.odd||'').replace('×','')}</span>`
+          : `<span class="mp-odd" style="color:var(--text-mute);font-size:13px">—</span>`}
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-mute);letter-spacing:1px;text-transform:uppercase;margin-top:2px">ODDS</div>
       </div>
     </div>
     ${_liveAdverseWarning(m, mp.type)}
-    <div style="display:flex;gap:7px;padding:6px 10px 2px;align-items:center">
+    <div style="display:flex;gap:1px;background:var(--border)">
       <div onclick="event.stopPropagation();toggleMatchSel(${m.id})" id="coupon-btn-${m.id}"
-        style="flex:1;text-align:center;padding:7px 0;border-radius:10px;font-size:13px;font-weight:900;cursor:pointer;transition:.15s;
+        style="flex:1;text-align:center;padding:9px 0;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;letter-spacing:1.2px;text-transform:uppercase;background:var(--bg);
         ${isSel
-          ? 'background:#FEF2F2;border:1.5px solid #FCA5A5;color:#DC2626'
-          : 'background:#FFF4E8;border:1.5px solid #FDBA74;color:#EA580C'}">
-        ${isSel ? '✅ Retirer du coupon' : '➕ Ajouter au coupon'}
+          ? 'color:var(--down)'
+          : 'color:var(--neutral)'}">
+        ${isSel ? '− RETIRER' : '+ AU COUPON'}
       </div>
+      <div style="flex:1;text-align:center;padding:9px 0;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;background:var(--bg);color:var(--text-2);cursor:pointer" onclick="event.stopPropagation();showDetail(${m.id})">DÉTAIL →</div>
     </div>
-    <div class="card-cta" id="cta-${m.id}" style="padding-top:2px">👆 Appuyez pour plus de détails</div>
   </div>`;
 }
 
@@ -5954,15 +5953,17 @@ function _iaScore(m){
   // ════════════════════════════════════════════════════════════
   let calibInfo = null;
   if(typeof _applyCalibration === 'function' && score >= 35){
-    calibInfo = _applyCalibration(score, m.ls);
+    calibInfo = _applyCalibration(score, m.ls, pickType);
     const tierActive   = Math.abs(calibInfo.tierMult - 1) > 0.02 && calibInfo.sample >= 5;
     const leagueActive = calibInfo.leagueActive && calibInfo.leagueSample >= 8;
-    if(tierActive || leagueActive){
+    const marketActive = calibInfo.marketActive && calibInfo.marketSample >= 10;
+    if(tierActive || leagueActive || marketActive){
       score = calibInfo.adjusted;
       const pct = Math.round((calibInfo.mult-1)*100);
       const parts = [];
       if(tierActive)   parts.push(`tier ${calibInfo.tier} ${calibInfo.sample}p`);
       if(leagueActive) parts.push(`ligue ${m.ls} ${calibInfo.leagueSample}p`);
+      if(marketActive) parts.push(`marché ${pickType} ${calibInfo.marketSample}p`);
       const sign = pct>0?'+':'';
       reasons.push(`${pct<0?'📉':'📈'} Calibré ${sign}${pct}% (${parts.join(' · ')})`);
     }
@@ -7797,8 +7798,29 @@ function _computeCalibration(){
     calibL[ls] = { n: agg.n, w: agg.w, observed:+observed.toFixed(3), mult:+mult.toFixed(3) };
   }
 
-  try{ localStorage.setItem(CALIB_KEY, JSON.stringify({ts:Date.now(), calib, calibL})); }catch(e){}
-  return { tier: calib, league: calibL };
+  // ── Calibration MARCHÉ (K=10, prior par type de pari) ──
+  const KM = 10;
+  // Win rate attendu par marché : 1X2 ~50%, BTTS ~52%, O1.5 ~78%, O2.5 ~55%
+  const MARKET_PRIOR = {'1':0.45, '2':0.32, 'N':0.27, '1X':0.72, 'X2':0.59,
+                       '+1.5':0.78, '+2.5':0.55, 'btts':0.52, 'noBTTS':0.48, 'u2.5':0.45};
+  const markets = {};
+  for(const p of picks){
+    const k = p.pick || '?';
+    if(!markets[k]) markets[k] = {w:0, n:0};
+    markets[k].n++;
+    if(p.result==='W') markets[k].w++;
+  }
+  const calibM = {};
+  for(const [k, agg] of Object.entries(markets)){
+    const prior     = MARKET_PRIOR[k] || GLOBAL_EXPECTED;
+    const observed  = agg.n > 0 ? agg.w / agg.n : prior;
+    const smoothed  = (agg.w + KM*prior) / (agg.n + KM);
+    const mult      = Math.max(0.80, Math.min(1.10, smoothed / prior));
+    calibM[k] = { n: agg.n, w: agg.w, observed:+observed.toFixed(3), mult:+mult.toFixed(3) };
+  }
+
+  try{ localStorage.setItem(CALIB_KEY, JSON.stringify({ts:Date.now(), calib, calibL, calibM})); }catch(e){}
+  return { tier: calib, league: calibL, market: calibM };
 }
 
 let _calibCache = null;
@@ -7807,8 +7829,12 @@ function _getCalibration(){
   try{
     const raw = JSON.parse(localStorage.getItem(CALIB_KEY)||'null');
     if(raw && raw.calib){
-      // Compat ascendante : ancien format = calib seul (tier)
-      _calibCache = { tier: raw.calib, league: raw.calibL || {} };
+      // Compat ascendante (anciens formats)
+      _calibCache = {
+        tier:    raw.calib,
+        league:  raw.calibL || {},
+        market:  raw.calibM || {}
+      };
       return _calibCache;
     }
   }catch(e){}
@@ -7816,24 +7842,29 @@ function _getCalibration(){
   return _calibCache;
 }
 
-function _applyCalibration(rawScore, league){
-  const c          = _getCalibration();
-  const tier       = _scoreTier(rawScore);
-  const tierEntry  = c.tier?.[tier] || {};
-  const leagueEntry= league ? (c.league?.[league] || {}) : {};
-  const tierMult   = tierEntry.mult || 1;
-  const leagueMult = (leagueEntry.n || 0) >= 8 ? (leagueEntry.mult || 1) : 1;
-  // Combinaison borne globale [0.65, 1.15] pour éviter cumul extrême
-  const combined   = Math.max(0.65, Math.min(1.15, tierMult * leagueMult));
+function _applyCalibration(rawScore, league, market){
+  const c           = _getCalibration();
+  const tier        = _scoreTier(rawScore);
+  const tierEntry   = c.tier?.[tier] || {};
+  const leagueEntry = league ? (c.league?.[league] || {}) : {};
+  const marketEntry = market ? (c.market?.[market] || {}) : {};
+  const tierMult    = tierEntry.mult || 1;
+  const leagueMult  = (leagueEntry.n || 0) >= 8 ? (leagueEntry.mult || 1) : 1;
+  const marketMult  = (marketEntry.n || 0) >= 10 ? (marketEntry.mult || 1) : 1;
+  // Combinaison bornée [0.60, 1.20] pour éviter cumul extrême
+  const combined    = Math.max(0.60, Math.min(1.20, tierMult * leagueMult * marketMult));
   return {
     adjusted: Math.round(rawScore * combined),
     mult: +combined.toFixed(3),
     tierMult: +tierMult.toFixed(3),
     leagueMult: +leagueMult.toFixed(3),
+    marketMult: +marketMult.toFixed(3),
     tier,
     sample: tierEntry.n || 0,
     leagueSample: leagueEntry.n || 0,
-    leagueActive: leagueMult !== 1
+    marketSample: marketEntry.n || 0,
+    leagueActive: leagueMult !== 1,
+    marketActive: marketMult !== 1
   };
 }
 
@@ -8140,6 +8171,122 @@ function clearCoupon(){
   COUPON={};
   _updateCouponBar();
   renderMatches();
+  if(currentTab==='coupon') renderCoupon();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  COUPONS SAUVEGARDÉS — système numéroté avec localStorage
+// ══════════════════════════════════════════════════════════════
+const SAVED_COUPONS_KEY = 'aretinofoot_saved_coupons';
+
+function _getSavedCoupons(){
+  try{ return JSON.parse(localStorage.getItem(SAVED_COUPONS_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+function _setSavedCoupons(arr){
+  try{ localStorage.setItem(SAVED_COUPONS_KEY, JSON.stringify(arr)); }catch(e){}
+}
+
+function saveCurrentCoupon(){
+  const items = Object.values(COUPON);
+  if(!items.length){ showToast('Coupon vide','warn',1500); return; }
+  const saved = _getSavedCoupons();
+  const num = (saved.length ? Math.max(...saved.map(c=>c.num||0)) : 0) + 1;
+  const total = _couponTotal();
+  // Snapshot des matchs essentiels (équipes + pari + cote)
+  const snapshot = items.map(c=>{
+    const m = c.matchRef || MATCHES.find(x=>x.id===c.matchId) || {};
+    return {
+      matchId: c.matchId,
+      home: m.home?.name || c.home || '?',
+      away: m.away?.name || c.away || '?',
+      league: m.ls || '?',
+      time: m.time || '?',
+      bet: c.bet,
+      betLabel: c.label,
+      odd: c.odd,
+      status: m.status || 'scheduled',
+      score: m.score || null
+    };
+  });
+  const newCoupon = {
+    id: 'cp_' + Date.now(),
+    num,
+    createdAt: Date.now(),
+    total,
+    items: snapshot,
+    result: null  // sera résolu plus tard : 'W' / 'L' / 'V' (en cours)
+  };
+  saved.unshift(newCoupon); // plus récents en premier
+  _setSavedCoupons(saved);
+  showToast(`Coupon #${num} sauvegardé (${snapshot.length} matchs · ×${total})`,'ok',2200);
+  renderCoupon();
+}
+
+function deleteSavedCoupon(id){
+  const saved = _getSavedCoupons().filter(c=>c.id!==id);
+  _setSavedCoupons(saved);
+  renderCoupon();
+}
+
+function loadSavedCoupon(id){
+  const saved = _getSavedCoupons();
+  const cp = saved.find(c=>c.id===id);
+  if(!cp){ showToast('Coupon introuvable','warn'); return; }
+  // Recharger dans COUPON courant si les matchs sont encore dispo
+  COUPON = {};
+  let loaded = 0, missing = 0;
+  cp.items.forEach(it=>{
+    const m = MATCHES.find(x=>x.id===it.matchId);
+    if(m && m.status !== 'finished'){
+      COUPON[m.id] = {matchId:m.id, matchRef:m, bet:it.bet, label:it.betLabel, odd:it.odd};
+      loaded++;
+    } else { missing++; }
+  });
+  _updateCouponBar();
+  renderCoupon();
+  renderMatches();
+  showToast(`Coupon #${cp.num} chargé : ${loaded} matchs${missing?` (${missing} indisponibles)`:''}`,'ok',2200);
+}
+
+function _resolveSavedCoupons(){
+  // Met à jour le résultat de chaque coupon en fonction des matchs terminés
+  const saved = _getSavedCoupons();
+  let changed = false;
+  saved.forEach(cp=>{
+    if(cp.result === 'W' || cp.result === 'L') return; // déjà résolu
+    let allFinished = true, anyLost = false, anyPending = false;
+    cp.items.forEach(it=>{
+      const m = MATCHES.find(x=>x.id===it.matchId);
+      const score = m?.score || it.score;
+      const status = m?.status || it.status;
+      if(status !== 'finished' || !score){ allFinished = false; anyPending = true; return; }
+      // Évaluer le pick
+      const sh = score.h, sa = score.a;
+      const outcome = sh>sa?'1':sa>sh?'2':'N';
+      let win;
+      if(it.bet === '1') win = outcome === '1';
+      else if(it.bet === '2') win = outcome === '2';
+      else if(it.bet === 'N') win = outcome === 'N';
+      else if(it.bet === '1X') win = outcome === '1' || outcome === 'N';
+      else if(it.bet === 'X2') win = outcome === '2' || outcome === 'N';
+      else if(it.bet === '+1.5') win = (sh+sa) >= 2;
+      else if(it.bet === '+2.5') win = (sh+sa) >= 3;
+      else if(it.bet === 'btts') win = sh>0 && sa>0;
+      else if(it.bet === 'noBTTS') win = sh===0 || sa===0;
+      else if(it.bet === 'u2.5') win = (sh+sa) <= 2;
+      else win = null;
+      it.score = score; it.status = 'finished'; it.win = win;
+      if(win === false) anyLost = true;
+    });
+    if(allFinished){
+      cp.result = anyLost ? 'L' : 'W';
+      changed = true;
+    } else if(anyPending){
+      cp.result = 'P'; // pending
+    }
+  });
+  if(changed) _setSavedCoupons(saved);
 }
 
 function openCoupon(){
@@ -8177,9 +8324,40 @@ function renderCoupon(){
   const items=Object.values(COUPON);
   if(!container) return;
 
+  // Auto-résolution des coupons en attente
+  if(typeof _resolveSavedCoupons==='function') _resolveSavedCoupons();
+  const saved = _getSavedCoupons ? _getSavedCoupons() : [];
+
+  // ── Section coupons sauvegardés (toujours affichée si présents) ──
+  const savedHtml = saved.length ? `
+    <div style="padding:8px 12px 4px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:var(--bg)">
+      <span>${saved.length} COUPON${saved.length>1?'S':''} SAUVEGARDÉ${saved.length>1?'S':''}</span>
+      <span style="color:var(--up)">${saved.filter(c=>c.result==='W').length}W</span>
+    </div>
+    ${saved.slice(0,10).map(cp=>{
+      const colorByResult = {W:'var(--up)', L:'var(--down)', P:'var(--warn)', null:'var(--text-mute)'}[cp.result];
+      const labelByResult = {W:'GAGNÉ', L:'PERDU', P:'EN COURS', null:'À VENIR'}[cp.result];
+      const dateStr = new Date(cp.createdAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}).toUpperCase();
+      return `<div style="margin:0 12px 1px;background:var(--surface);border:1px solid var(--border);border-left:2px solid ${colorByResult};border-radius:var(--r-sm);padding:10px 12px;cursor:pointer" onclick="loadSavedCoupon('${cp.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text)">COUPON #${cp.num}</div>
+          <div style="font-family:var(--mono);font-size:9px;font-weight:600;color:${colorByResult};letter-spacing:1.2px">${labelByResult}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-2);letter-spacing:.5px">${dateStr} · ${cp.items.length} MATCHS</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text)">×${cp.total}</div>
+            <div onclick="event.stopPropagation();deleteSavedCoupon('${cp.id}')" style="color:var(--text-mute);cursor:pointer;font-size:13px;padding:2px 4px">×</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="height:8px"></div>
+  ` : '';
+
   if(!items.length){
     if(sub) sub.textContent='Sélectionnez des matchs depuis l\'onglet Matchs';
-    container.innerHTML=`
+    container.innerHTML = savedHtml + `
       <div class="coupon-empty">
         <div style="font-size:52px">🎫</div>
         <div style="font-size:18px;font-weight:800;color:#111111">Coupon vide</div>
@@ -8296,6 +8474,7 @@ function renderCoupon(){
   </div>`;
   })()}
   <div class="coupon-actions">
+    <button class="ca-btn ca-save" onclick="saveCurrentCoupon()" style="background:var(--up);color:#fff;border:none;border-radius:var(--r-sm);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:10px;cursor:pointer">💾 SAUVEGARDER</button>
     <button class="ca-btn ca-share" onclick="shareCoupon()">📤 Partager</button>
     <button class="ca-btn ca-copy" onclick="copyCoupon()">📋 Copier</button>
     <button class="ca-btn ca-clear" onclick="clearCoupon();renderCoupon()">🗑 Vider</button>
