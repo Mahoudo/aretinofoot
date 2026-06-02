@@ -2490,7 +2490,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.6.4';
+const APP_VERSION = 'v4.6.5';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -7737,15 +7737,15 @@ async function renderMondial(){
       const isLive = m.status === 'live';
       const isDone = m.status === 'finished';
       const score = m.score ? `${m.score.h} - ${m.score.a}` : '';
-      const statusTxt = isLive ? (m.liveMin? m.liveMin+"'" : 'LIVE')
-                      : isDone ? 'FT'
-                      : m.time || 'SCHED';
+      const statusTxt = isLive ? (typeof _liveMinDisplay==='function' ? _liveMinDisplay(m) : "LIVE")
+                      : isDone ? 'FT' : '';
+      const timeStr = m.time || '—';
       const pickLbl = m.mp?.label || '';
       const conf = s.score;
       html += `<div class="wc-match-row" onclick="showDetail(${m.id})">
-        <div>
-          <div class="wc-mr-time">${m.time||'—'}</div>
-          <div class="wc-mr-date">${m.ls||'WC26'}</div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div class="wc-mr-time" style="font-size:14px;font-weight:700;color:var(--text)">${timeStr}</div>
+          <div class="wc-mr-date">${isLive?'EN COURS':isDone?'FIN':'KICKOFF'}</div>
         </div>
         <div class="wc-mr-teams">
           <div class="wc-mr-team"><span class="wc-mr-team-flag">${hFlag}</span>${_esc(m.home.name)}</div>
@@ -7754,7 +7754,9 @@ async function renderMondial(){
         <div class="wc-mr-right">
           ${score
             ? `<div class="wc-mr-score">${score}</div><div class="wc-mr-status${isLive?' live':''}">${statusTxt}</div>`
-            : `<div class="wc-mr-pick">${(pickLbl||'—').slice(0,12).toUpperCase()}</div><div class="wc-mr-conf">${conf}</div>`}
+            : `<div class="wc-mr-status" style="color:var(--neutral);font-size:11px;font-weight:600">${timeStr}</div>
+               <div class="wc-mr-pick" style="margin-top:3px">${(pickLbl||'—').slice(0,10).toUpperCase()}</div>
+               <div class="wc-mr-conf">${conf}</div>`}
         </div>
       </div>`;
     });
