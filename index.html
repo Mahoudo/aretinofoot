@@ -2490,7 +2490,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.6';
+const APP_VERSION = 'v4.6.1';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -2726,9 +2726,9 @@ function card(m){
       </div>
     </div>
     <div class="prob-bar">
-      <div class="pb-h" style="flex:${p.h}">${p.h>=22?p.h+'%':''}</div>
-      <div class="pb-d" style="flex:${p.d}">${p.d>=15?p.d+'%':''}</div>
-      <div class="pb-a" style="flex:${p.a}">${p.a>=22?p.a+'%':''}</div>
+      <div class="pb-h" style="flex:${p.ph||p.h||33}">${(p.ph||p.h||0)>=22?(p.ph||p.h)+'%':''}</div>
+      <div class="pb-d" style="flex:${p.pd||p.d||33}">${(p.pd||p.d||0)>=15?(p.pd||p.d)+'%':''}</div>
+      <div class="pb-a" style="flex:${p.pa||p.a||33}">${(p.pa||p.a||0)>=22?(p.pa||p.a)+'%':''}</div>
     </div>
     <div class="mp-section">
       <div class="mp-left">
@@ -8358,8 +8358,9 @@ function _resolveSavedCoupons(){
     if(allFinished){
       cp.result = anyLost ? 'L' : 'W';
       changed = true;
-    } else if(anyPending){
-      cp.result = 'P'; // pending
+    } else if(anyPending && cp.result !== 'P'){
+      cp.result = 'P'; // pending → persiste pour éviter recalcul à chaque render
+      changed = true;
     }
   });
   if(changed) _setSavedCoupons(saved);
@@ -8568,7 +8569,8 @@ function renderCoupon(){
   </div>
   <div style="height:16px"></div>`;
 
-  container.innerHTML=html;
+  // Préfixer les coupons sauvegardés (toujours visibles, même avec coupon courant)
+  container.innerHTML = savedHtml + html;
 }
 
 // Map ls → URL Betclic.ci pour chaque championnat
