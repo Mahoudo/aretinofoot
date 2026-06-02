@@ -2490,7 +2490,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.3';
+const APP_VERSION = 'v4.4';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -6205,19 +6205,21 @@ function renderIaList(){
 
   // Apply filter, then sort display by time (live first → time asc → league)
   let list;
+  // ⚙️ Seuil global de confiance : 60 (ne ressort QUE les signaux fiables)
+  const MIN_CONF = 60;
   if(iaFilter === 'standard'){
-    list = _sortMatches(scored.filter(x => x.s.score >= 45).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
+    list = _sortMatches(scored.filter(x => x.s.score > MIN_CONF).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'banker'){
     list = _sortMatches(scored.filter(x => x.s.score >= 78).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'safe'){
-    list = _sortMatches(scored.filter(x => x.m.risk === 'safe' && x.s.score >= 50).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
+    list = _sortMatches(scored.filter(x => x.m.risk === 'safe' && x.s.score > MIN_CONF).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'vb'){
     // Value bets: sort by kelly then time
-    const vbFiltered = scored.filter(x => x.m.vb.length > 0 && x.s.score >= 36)
+    const vbFiltered = scored.filter(x => x.m.vb.length > 0 && x.s.score > MIN_CONF)
       .sort((a,b) => (b.m.vb[0]?.kelly||0) - (a.m.vb[0]?.kelly||0));
     list = _sortMatches(vbFiltered.map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'cote15'){
-    list = _sortMatches(scored.filter(x => x.m.hasRealOdds && (x.m.mp.oddVal||0) >= 1.5 && x.s.score >= 36).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
+    list = _sortMatches(scored.filter(x => x.m.hasRealOdds && (x.m.mp.oddVal||0) >= 1.5 && x.s.score > MIN_CONF).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'wc26'){
     // ── MONDIAL 2026 — filtre dédié, charge en arrière-plan si vide ──
     const wcMatches = scored.filter(x => x.m.ls === 'WC26');
@@ -6278,7 +6280,7 @@ function renderIaList(){
     }).catch(()=>{});
     return;
   } else {
-    list = _sortMatches(scored.filter(x => x.s.score >= 36).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
+    list = _sortMatches(scored.filter(x => x.s.score > MIN_CONF).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   }
 
   // Update IA hero metrics dynamically
