@@ -2236,6 +2236,11 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
       <div class="chip" onclick="setWcFilter('finished',this)">TERMINÉS</div>
       <div class="chip" onclick="setWcFilter('topia',this)">TOP IA</div>
     </div>
+    <div class="search-bar" style="margin:0 12px 8px">
+      <span class="sb-icon">🔍</span>
+      <input class="sb-input" id="wc-search" placeholder="ÉQUIPE, PAYS..." oninput="setWcSearch(this.value)"/>
+      <span id="wc-search-clear" onclick="setWcSearch('');document.getElementById('wc-search').value=''" style="display:none;color:var(--text-mute);cursor:pointer;font-size:14px;padding:0 4px">✕</span>
+    </div>
     <div class="scroll" id="wc-list">
       <div style="padding:40px 20px;text-align:center;color:var(--text-mute);font-family:var(--mono);font-size:11px;letter-spacing:.8px">CHARGEMENT DES MATCHS WC26…</div>
     </div>
@@ -2490,7 +2495,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v4.6.5';
+const APP_VERSION = 'v4.7';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -2609,7 +2614,7 @@ const _MATCHES_PLACEHOLDER=[
   }
 ];/* end _MATCHES_PLACEHOLDER */
 
-let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0, wcFilter='all';
+let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0, wcFilter='all', wcSearch='';
 
 // ── Compétitions favorites ──────────────────────────────
 let FAVE_LEAGUES = new Set(JSON.parse(localStorage.getItem('fave_leagues')||'[]'));
@@ -7644,6 +7649,13 @@ function setWcFilter(f, el){
   renderMondial();
 }
 
+function setWcSearch(v){
+  wcSearch = (v||'').trim().toLowerCase();
+  const clearBtn = document.getElementById('wc-search-clear');
+  if(clearBtn) clearBtn.style.display = wcSearch ? 'inline' : 'none';
+  renderMondial();
+}
+
 // Drapeaux pays (approximation)
 const _WC_FLAGS = {
   'France':'🇫🇷','Germany':'🇩🇪','Spain':'🇪🇸','Italy':'🇮🇹','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
@@ -7709,8 +7721,16 @@ async function renderMondial(){
       .map(x => x.m);
   }
 
+  // Search bar : filtre par nom d'équipe / pays
+  if(wcSearch){
+    filtered = filtered.filter(m =>
+      (m.home.name||'').toLowerCase().includes(wcSearch) ||
+      (m.away.name||'').toLowerCase().includes(wcSearch)
+    );
+  }
+
   if(!filtered.length){
-    list.innerHTML = `<div style="padding:30px 20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-mute);letter-spacing:.5px">AUCUN MATCH POUR CE FILTRE</div>`;
+    list.innerHTML = `<div style="padding:30px 20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-mute);letter-spacing:.5px">${wcSearch?`AUCUN RÉSULTAT POUR "${wcSearch.toUpperCase()}"`:'AUCUN MATCH POUR CE FILTRE'}</div>`;
     return;
   }
 
