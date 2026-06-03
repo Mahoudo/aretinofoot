@@ -14,40 +14,41 @@
 <!-- Polices Pro : Inter (sans) + JetBrains Mono (chiffres) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Vercel Web Analytics — données anonymes, sans cookies, RGPD conforme -->
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
-/* ═══ DESIGN SYSTEM — Light & Warm (Notion/Linear inspiré) ═══ */
+/* ═══ DESIGN SYSTEM — Generous Calm v5.1 (validé preview) ═══ */
 :root{
-  /* Surfaces — clair chaleureux */
-  --bg:        #FAFAFB;     /* off-white doux */
-  --surface:   #FFFFFF;     /* pure white pour cards */
-  --surface-2: #F4F5F7;     /* hover léger */
-  --surface-3: #ECEEF1;     /* active */
-  --border:    #E5E7EB;     /* gris clair pour bordures */
-  --border-2:  #CBD0D7;     /* gris moyen accentué */
+  --bg:        #FBF8F3;       /* cream chaleureux */
+  --surface:   #FFFFFF;
+  --surface-2: #F7F3EC;
+  --surface-3: #EFEAE1;
+  --border:    #EBE6DE;
+  --border-2:  #D4CFC4;
 
-  /* Texte */
-  --text:      #111827;     /* texte principal — gris très foncé */
-  --text-2:    #4B5563;     /* texte secondaire / labels */
-  --text-mute: #9CA3AF;     /* texte muet */
+  --text:      #181C26;       /* presque noir, chaleureux */
+  --text-2:    #606876;
+  --text-mute: #A0A8B4;
 
-  /* Sémantique (couleurs ajustées pour fond clair, plus saturées) */
-  --up:        #10B981;     /* vert émeraude — gain / win */
-  --down:      #EF4444;     /* rouge tomate — perte / loss / live */
-  --neutral:   #3B82F6;     /* bleu vif — info / standard */
-  --warn:      #F59E0B;     /* ambre — warning */
-  --accent:    #F97316;     /* orange brand — accent chaleureux */
+  --up:        #10B981;
+  --down:      #EF4444;
+  --neutral:   #3B82F6;
+  --warn:      #F59E0B;
+  --accent:    #F97316;
 
-  /* Typo */
-  --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  /* Backgrounds doux pour pills/cards sémantiques */
+  --orange-soft: #FFEDD5;
+  --green-soft:  #DCFCE7;
+  --red-soft:    #FEE2E2;
+  --blue-soft:   #DBEAFE;
 
-  /* Layout */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
+  --sans: 'Outfit','Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --mono: 'JetBrains Mono','Geist Mono','SF Mono',Menlo,monospace;
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -2071,9 +2072,308 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
   border:1px solid var(--border)!important;
   color:var(--text-2)!important;
   border-radius:var(--r-sm)!important;
-  font-family:var(--mono)!important;font-size:10px!important;font-weight:500!important;
-  letter-spacing:1px!important;text-transform:uppercase!important;
+  font-family:var(--sans)!important;font-size:13px!important;font-weight:600!important;
+  letter-spacing:0!important;text-transform:none!important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ░░░ GENEROUS CALM v5.1 — Override final (préview validée) ░░░
+   Applique le design débutant chaleureux validé en preview.
+   PRIORITÉ MAX : ce bloc bat tout ce qui précède.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Body & shell — fond cream chaleureux */
+body{background:linear-gradient(135deg,#FEF3E7 0%,#F0F4FA 100%)!important;font-family:var(--sans)!important}
+.phone{
+  background:var(--bg)!important;
+  border-radius:48px!important;
+  box-shadow:0 0 0 8px #1F2937, 0 0 0 10px #374151, 0 30px 60px rgba(0,0,0,.25)!important;
+}
+.notch{background:#000!important}
+.screen{background:var(--bg)!important}
+
+/* App header — nom de marque doux */
+.statusbar .time{color:var(--text)!important;font-family:var(--sans)!important;font-weight:700!important}
+.signal span{background:var(--text)!important}
+.battery{border-color:var(--text)!important}
+.battery::after{background:var(--text)!important}
+.battery-fill{background:var(--text)!important}
+.ah-name{color:var(--text)!important;font-family:var(--sans)!important;font-weight:700!important;font-size:18px!important;letter-spacing:-.3px!important}
+.ah-icon{
+  background:linear-gradient(135deg,var(--accent),#EA580C)!important;
+  border-radius:8px!important;
+  box-shadow:0 2px 6px rgba(249,115,22,.25)!important;
+}
+.ah-ico{color:var(--text-2)!important;opacity:.7}
+
+/* Tabbar — 4 onglets visibles seulement */
+.tabbar{
+  background:var(--white)!important;
+  border-top:1px solid var(--line,var(--border))!important;
+  box-shadow:0 -2px 12px rgba(0,0,0,.04)!important;
+}
+/* Cacher 3 onglets pour ne garder que Accueil/Matchs/Coupon/Profil */
+#tab-ia, #tab-mondial, #tab-chat{display:none!important}
+
+.tab-icon{color:var(--text-mute)!important;width:24px!important;height:24px!important}
+.tab-icon svg{width:22px!important;height:22px!important;stroke-width:1.8!important}
+.tab.active .tab-icon{color:var(--accent)!important}
+.tab-label{
+  font-family:var(--sans)!important;font-size:11px!important;font-weight:600!important;
+  color:var(--text-2)!important;letter-spacing:0!important;text-transform:none!important;
+}
+.tab.active .tab-label{color:var(--accent)!important;font-weight:700!important}
+.tab.active::before{background:var(--accent)!important}
+
+/* ─── Date strip + sections ─── */
+.date-strip-wrap{background:var(--bg)!important;border-bottom-color:var(--border)!important}
+.ds-day.today{background:var(--accent)!important}
+.ds-dayname,.ds-daynum,.ds-date-label{
+  font-family:var(--sans)!important;text-transform:none!important;letter-spacing:0!important;
+}
+.ds-dayname{color:var(--text-2)!important;font-size:11px!important;font-weight:600!important}
+.ds-daynum{color:var(--text)!important;font-size:16px!important;font-weight:700!important}
+.ds-day.today .ds-dayname{color:rgba(255,255,255,.85)!important}
+.ds-day.today .ds-daynum{color:#fff!important}
+.ds-date-label{color:var(--text-2)!important;font-size:13px!important}
+
+/* Section headers — lisibles, casse normale */
+.sec-header{padding:14px 16px 10px!important;margin-top:6px}
+.sec-title{
+  color:var(--text)!important;font-family:var(--sans)!important;
+  font-size:17px!important;font-weight:700!important;
+  letter-spacing:-.3px!important;text-transform:none!important;
+}
+.sec-link{
+  color:var(--accent)!important;font-family:var(--sans)!important;
+  font-size:13px!important;font-weight:600!important;
+  letter-spacing:0!important;text-transform:none!important;
+}
+
+/* ─── Hero accueil — Pari du jour ─── */
+.hero-banner{
+  background:var(--white)!important;
+  border:1px solid var(--border)!important;
+  border-radius:22px!important;
+  box-shadow:0 1px 3px rgba(0,0,0,.04), 0 8px 24px rgba(249,115,22,.08)!important;
+  margin:14px 14px 16px!important;
+  overflow:hidden;
+}
+.hero-banner::before,
+.hero-banner::after{display:none!important}
+.hb-top-row{
+  background:transparent!important;border-bottom:none!important;
+  padding:16px 16px 6px!important;display:flex!important;
+  align-items:center!important;justify-content:space-between!important;
+}
+.hb-tag{
+  background:var(--orange-soft)!important;
+  border:none!important;border-radius:999px!important;
+  padding:5px 11px!important;
+}
+.hb-tag-text,.lp-text{
+  color:var(--accent)!important;font-family:var(--sans)!important;
+  font-size:10px!important;font-weight:700!important;
+  letter-spacing:.5px!important;text-transform:uppercase!important;
+}
+.hb-trust{
+  background:var(--blue-soft)!important;
+  border:none!important;border-radius:999px!important;
+  color:var(--neutral)!important;font-family:var(--sans)!important;
+  font-size:11px!important;font-weight:700!important;
+  padding:5px 11px!important;letter-spacing:0!important;text-transform:none!important;
+}
+.hb-date{
+  font-family:var(--sans)!important;font-size:13px!important;font-weight:500!important;
+  color:var(--text-2)!important;padding:8px 16px 0!important;letter-spacing:0!important;text-transform:none!important;
+}
+.hb-title{
+  font-family:var(--sans)!important;font-size:24px!important;font-weight:800!important;
+  color:var(--text)!important;letter-spacing:-.5px!important;
+  background:none!important;-webkit-background-clip:initial!important;
+  -webkit-text-fill-color:initial!important;
+  padding:6px 16px 4px!important;
+}
+.hb-sub{
+  font-family:var(--sans)!important;font-size:14px!important;font-weight:500!important;
+  color:var(--text-2)!important;padding:0 16px 14px!important;
+  letter-spacing:0!important;text-transform:none!important;
+}
+.hb-stats{
+  background:transparent!important;border-top:1px solid var(--border)!important;
+  gap:0!important;
+}
+.hb-stats > div{
+  background:transparent!important;
+  border-right:1px solid var(--border);
+  padding:14px 8px!important;text-align:center!important;
+}
+.hb-stats > div:last-child{border-right:none}
+.hbs-val{
+  font-family:var(--mono)!important;font-size:22px!important;font-weight:700!important;
+  color:var(--text)!important;
+  background:none!important;-webkit-background-clip:initial!important;
+  -webkit-text-fill-color:initial!important;
+}
+.hbs-lbl{
+  font-family:var(--sans)!important;font-size:11px!important;font-weight:600!important;
+  color:var(--text-2)!important;
+  margin-top:6px!important;letter-spacing:0!important;text-transform:none!important;
+}
+.hb-cta{
+  background:linear-gradient(135deg,var(--accent) 0%,#EA580C 100%)!important;
+  color:#fff!important;border:none!important;border-radius:0!important;
+  border-top:none!important;
+  font-family:var(--sans)!important;font-size:16px!important;font-weight:700!important;
+  padding:18px!important;letter-spacing:.1px!important;text-transform:none!important;
+  box-shadow:0 4px 14px rgba(249,115,22,.35)!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+}
+.hb-cta::after{display:none!important}
+.hb-cta:hover{transform:translateY(-1px)!important;box-shadow:0 6px 18px rgba(249,115,22,.45)!important}
+
+/* ─── Match cards ─── */
+.match-card{
+  background:var(--white)!important;
+  border:1px solid var(--border)!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+  margin:0 14px 10px!important;
+  overflow:hidden;
+}
+.match-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.04)!important;background:var(--white)!important}
+.card-top{padding:12px 14px 8px!important;border-bottom:1px solid var(--border)}
+.league-dot{width:6px!important;height:6px!important;border-radius:50%!important}
+.league-name{
+  color:var(--text-2)!important;font-family:var(--sans)!important;
+  font-size:12px!important;font-weight:600!important;
+  letter-spacing:0!important;text-transform:none!important;
+}
+.match-time{
+  color:var(--text)!important;font-family:var(--mono)!important;
+  font-size:13px!important;font-weight:600!important;
+}
+.rb{
+  font-family:var(--sans)!important;font-size:10px!important;font-weight:700!important;
+  padding:3px 8px!important;border-radius:7px!important;
+  letter-spacing:0!important;text-transform:none!important;border:none!important;
+}
+.rb-safe{background:var(--green-soft)!important;color:var(--up)!important}
+.rb-moyen{background:#FEF3C7!important;color:var(--warn)!important}
+.rb-eleve{background:var(--red-soft)!important;color:var(--down)!important}
+.live-badge{background:var(--red-soft)!important;border:none!important;border-radius:8px!important;padding:3px 8px!important}
+.live-text{color:var(--down)!important;font-family:var(--sans)!important;font-size:10px!important;font-weight:700!important;letter-spacing:0!important;text-transform:none!important}
+
+/* Teams row */
+.teams-row{padding:14px 14px!important;gap:12px!important}
+.team-logo{
+  width:36px!important;height:36px!important;
+  background:var(--surface-2)!important;border:1px solid var(--border);
+  border-radius:50%!important;font-size:16px!important;
+}
+.team-name{
+  color:var(--text)!important;font-family:var(--sans)!important;
+  font-size:15px!important;font-weight:700!important;letter-spacing:-.1px!important;
+}
+.team-label{display:none!important}
+.fd{width:9px!important;height:9px!important;border-radius:2px!important;font-size:0!important}
+.fd.W{background:var(--up)!important}
+.fd.D{background:var(--warn)!important}
+.fd.L{background:var(--down)!important}
+.form-dots{gap:3px!important}
+
+.sc-live{
+  color:var(--text)!important;font-family:var(--mono)!important;
+  font-size:24px!important;font-weight:700!important;letter-spacing:-.5px!important;
+}
+.sc-vs{color:var(--text-mute)!important;font-family:var(--sans)!important;font-size:14px!important;font-weight:600!important;letter-spacing:0!important}
+.sc-pred{color:var(--accent)!important;font-family:var(--mono)!important;font-size:12px!important;font-weight:600!important}
+.sc-timer{color:var(--down)!important;font-family:var(--mono)!important;font-size:12px!important;font-weight:700!important}
+
+.prob-bar{height:10px!important;border-radius:5px!important;margin:0 14px 10px!important;background:var(--surface-2)!important;border:none!important;overflow:hidden}
+.pb-h{background:var(--neutral)!important;font-size:0!important}
+.pb-d{background:var(--text-mute)!important;font-size:0!important}
+.pb-a{background:var(--accent)!important;font-size:0!important}
+
+/* Meilleur pari = section card avec border-left coloré */
+.mp-section{
+  margin:10px 14px!important;
+  background:var(--bg)!important;
+  border:1px solid var(--border)!important;
+  border-left:3px solid var(--up)!important;
+  border-radius:10px!important;
+  padding:10px 14px!important;
+}
+.mp-label{
+  color:var(--up)!important;font-family:var(--sans)!important;
+  font-size:11px!important;font-weight:700!important;
+  letter-spacing:.5px!important;text-transform:uppercase!important;
+}
+.mp-bet{color:var(--text)!important;font-family:var(--sans)!important;font-size:14px!important;font-weight:700!important}
+.mp-type{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:12px!important;font-weight:500!important;letter-spacing:0!important}
+.mp-odd{color:var(--text)!important;font-family:var(--mono)!important;font-size:18px!important;font-weight:700!important}
+
+/* Coupon select boutons */
+.match-card > div[onclick*="toggleMatchSel"]{
+  background:var(--orange-soft)!important;color:var(--accent)!important;
+  border:none!important;border-radius:10px!important;
+  font-family:var(--sans)!important;font-size:13px!important;font-weight:700!important;
+  letter-spacing:0!important;text-transform:none!important;
+}
+
+/* ─── Chips de filtre ─── */
+.chip{
+  background:var(--white)!important;border:1px solid var(--border)!important;
+  color:var(--text-2)!important;font-family:var(--sans)!important;
+  font-size:13px!important;font-weight:600!important;
+  border-radius:999px!important;padding:7px 14px!important;
+  letter-spacing:0!important;text-transform:none!important;
+}
+.chip:hover{background:var(--surface-2)!important;color:var(--text)!important}
+.chip.active{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}
+
+/* Search bar */
+.search-bar{
+  background:var(--white)!important;border:1px solid var(--border)!important;
+  border-radius:14px!important;padding:10px 14px!important;
+}
+.sb-icon{color:var(--text-mute)!important;font-size:16px!important}
+.sb-input{color:var(--text)!important;font-family:var(--sans)!important;font-size:15px!important;background:transparent!important}
+.sb-input::placeholder{color:var(--text-mute)!important;font-family:var(--sans)!important;font-size:14px!important;text-transform:none!important;letter-spacing:0!important}
+
+/* Coupon screen */
+.coupon-header{padding:14px 16px!important;border-bottom:1px solid var(--border)}
+.coupon-title{color:var(--text)!important;font-family:var(--sans)!important;font-size:20px!important;font-weight:800!important;letter-spacing:-.3px!important}
+.coupon-sub{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important}
+.coupon-item{
+  background:var(--white)!important;border:1px solid var(--border)!important;
+  border-radius:14px!important;box-shadow:none!important;
+}
+.ci-league{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:11px!important;font-weight:600!important;letter-spacing:0!important;text-transform:uppercase!important}
+.ci-teams{color:var(--text)!important;font-family:var(--sans)!important;font-size:15px!important;font-weight:700!important}
+.ci-bet{
+  background:var(--green-soft)!important;color:var(--up)!important;
+  border:none!important;border-radius:8px!important;
+  font-family:var(--sans)!important;font-size:12px!important;font-weight:700!important;
+  letter-spacing:0!important;text-transform:none!important;padding:5px 10px!important;
+}
+.ci-bet.active{background:var(--orange-soft)!important;color:var(--accent)!important}
+.coupon-total{
+  background:linear-gradient(135deg,var(--orange-soft) 0%,#FFE4D0 100%)!important;
+  border:1px solid var(--accent)!important;
+  border-radius:16px!important;
+}
+
+/* Profil */
+.profil-logo{
+  background:linear-gradient(135deg,var(--accent),#EA580C)!important;
+  border-radius:50%!important;width:64px!important;height:64px!important;
+  font-size:28px!important;
+  box-shadow:0 4px 14px rgba(249,115,22,.3)!important;
+  border:none!important;
+}
+.profil-appname{color:var(--text)!important;font-family:var(--sans)!important;font-size:18px!important;font-weight:700!important}
+.profil-sub{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;line-height:1.5!important}
 
 </style>
 </head>
@@ -2124,17 +2424,17 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
       <div class="hero-banner">
         <div class="hb-top-row">
           <div class="hb-tag"><div class="hb-tag-dot"></div><span class="hb-tag-text lp-text">0 LIVE</span></div>
-          <div class="hb-trust" id="hb-trust">AI · CALIBRATED</div>
+          <div class="hb-trust" id="hb-trust">IA calibrée</div>
         </div>
-        <div class="hb-date" id="hb-date">LOADING</div>
-        <div class="hb-title">Aretinofoot Trading Desk</div>
-        <div class="hb-sub">Football analytics · 1X2 · Over/Under · BTTS</div>
+        <div class="hb-date" id="hb-date">Bonjour,</div>
+        <div class="hb-title">Votre pari du jour</div>
+        <div class="hb-sub">Découvrez nos meilleures prédictions</div>
         <div class="hb-stats">
           <div><div class="hbs-val">—</div><div class="hbs-lbl">Matchs</div></div>
-          <div><div class="hbs-val">—</div><div class="hbs-lbl">Conf. IA</div></div>
+          <div><div class="hbs-val">—</div><div class="hbs-lbl">Confiance</div></div>
           <div><div class="hbs-val">—</div><div class="hbs-lbl">Cote max</div></div>
         </div>
-        <button class="hb-cta" onclick="switchTab('ia')">⚡ Voir les paris IA du jour</button>
+        <button class="hb-cta" onclick="switchTab('matches')">⭐ Voir les meilleurs paris →</button>
       </div>
       <div class="tiles-grid">
         <div class="tile"><span class="tile-icon">⚽</span><div><div class="tile-val" id="tile-matchs">—</div><div class="tile-lbl">Matchs</div></div></div>
@@ -2560,7 +2860,7 @@ mark{color:var(--neutral)!important;background:none!important;font-weight:700!im
 // ════════════════════════════
 // ── Version applicative ─────────────────────────────────
 // Incrémenter à chaque ajout d'algo ou de fonctionnalité majeure
-const APP_VERSION = 'v5.0.1';
+const APP_VERSION = 'v5.1';
 // Historique :
 //  v2.4 — moteur Poisson de base
 //  v3.0 — Aretinofoot Expert Engine v2 (5 piliers, Bayesian, H2H)
@@ -2970,11 +3270,9 @@ function renderAll(){
   const _selD2=_selectedDateStr?new Date(_selectedDateStr+'T12:00:00'):new Date();
   const _todayStr2=_fmtYMD(new Date());
   const _isToday2=_selectedDateStr===_todayStr2||!_selectedDateStr;
-  // Format date trading-desk : "JEU 27 MAI 2026 · SESSION ACTIVE"
-  const _dateRaw = `${_days2[_selD2.getDay()]} ${_selD2.getDate()} ${_months2[_selD2.getMonth()]} ${_selD2.getFullYear()}`.toUpperCase();
-  const _dateStr2 = _isToday2
-    ? `${_dateRaw} · SESSION ACTIVE`
-    : _dateRaw;
+  // Format date Generous Calm : "Bonjour," (accueil chaleureux)
+  const _dateRaw = `${_days2[_selD2.getDay()]} ${_selD2.getDate()} ${_months2[_selD2.getMonth()]}`;
+  const _dateStr2 = _isToday2 ? 'Bonjour,' : _dateRaw;
   const _hbDate=document.getElementById('hb-date');
   if(_hbDate) _hbDate.textContent=_dateStr2;
   // Mettre à jour TOUS les .lp-text (live-pill header + hero badge)
@@ -2993,9 +3291,9 @@ function renderAll(){
     const resolved = _getPicks().filter(p=>p.result==='W'||p.result==='L');
     if(resolved.length >= 5){
       const wr = Math.round(resolved.filter(p=>p.result==='W').length / resolved.length * 100);
-      _hbTrust.textContent = `WR ${wr}% · ${resolved.length}P`;
+      _hbTrust.textContent = `🎯 ${wr}% réussite`;
     } else {
-      _hbTrust.textContent = `AI · ${APP_VERSION||'3.8'}`;
+      _hbTrust.textContent = `🧠 IA calibrée`;
     }
   }
 
