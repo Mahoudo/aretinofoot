@@ -2402,6 +2402,12 @@ body{background:linear-gradient(135deg,#F3F4F8 0%,#E8ECF4 100%)!important;font-f
 .profil-appname{color:var(--text)!important;font-family:var(--sans)!important;font-size:18px!important;font-weight:700!important}
 .profil-sub{color:var(--text-2)!important;font-family:var(--sans)!important;font-size:13px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;line-height:1.5!important}
 
+/* ══════ FORMAT WEB — suppression du cadre/mockup iPhone ══════ */
+html{background:var(--bg)!important}
+body{background:var(--bg)!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;min-height:100vh!important;height:auto!important;padding:0!important;margin:0!important}
+.phone{width:100%!important;max-width:880px!important;height:auto!important;min-height:100vh!important;border-radius:0!important;box-shadow:none!important;background:var(--bg)!important}
+.notch,.statusbar{display:none!important}
+@media(min-width:900px){.phone{border-left:1px solid var(--border)!important;border-right:1px solid var(--border)!important}}
 </style>
 </head>
 <body>
