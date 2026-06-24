@@ -2716,6 +2716,15 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         </div>
         <button class="btn-primary" onclick="_aretMonteCarlo()" style="background:#10B981;color:#000">▶ Simuler 2000 scénarios</button>
         <div id="aret-mc-out" style="font-size:13px;color:var(--text);width:260px;line-height:1.6;margin-top:6px"></div>
+
+        <div style="width:260px;height:1px;background:var(--border);margin:16px 0"></div>
+        <div style="font-size:15px;font-weight:900;color:#46A6FF;margin-bottom:8px;align-self:flex-start;width:260px">🔔 Alertes coupon rapide</div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:8px;align-self:flex-start;width:260px;line-height:1.5">Toutes les 5 min, l'IA scanne les matchs et te signale la meilleure opportunité value (cote correcte + edge positif).</div>
+        <label style="display:flex;align-items:center;gap:9px;width:260px;cursor:pointer;font-size:14px;color:var(--text);margin-bottom:8px">
+          <input type="checkbox" id="aret-autoscan" onchange="_aretToggleScan()" style="width:auto;flex:none"> Activer les alertes (5 min)
+        </label>
+        <button class="btn-primary" onclick="_autoScanTick(true)" style="background:#46A6FF;color:#04121f">⚡ Chercher une opportunité maintenant</button>
+        <div style="font-size:11.5px;color:var(--text-mute);width:260px;line-height:1.5;margin-top:4px">Fonctionne tant que l'app est ouverte. Active les notifications (cloche en haut) pour les recevoir hors de l'écran.</div>
       </div>
     </div>
   </div>
@@ -8286,6 +8295,7 @@ function _aretMonthPL(){
 function _aretRiskRender(){
   const sl=parseFloat(localStorage.getItem(ARET_SL_KEY))||0;
   const slInp=document.getElementById('aret-sl'); if(slInp&&!slInp.value&&sl) slInp.value=sl;
+  const sc=document.getElementById('aret-autoscan'); if(sc) sc.checked=localStorage.getItem('aret_autoscan')==='1';
   const b=_aretBrier(), bEl=document.getElementById('aret-brier');
   if(bEl) bEl.innerHTML = b ? `Brier : <b style="color:${b.brier<0.25?'#10B981':b.brier<0.33?'#f59e0b':'#EF4444'}">${b.brier.toFixed(3)}</b> sur ${b.n} paris résolus <span style="color:#666">(0=parfait, 0,25=bon, 0,33+=faible)</span>` : 'Pas encore de paris résolus pour mesurer la précision.';
   const pl=_aretMonthPL(), slEl=document.getElementById('aret-sl-status');
@@ -8315,6 +8325,48 @@ function _aretMonteCarlo(){
     Bankroll finale : médiane <b>×${q(0.5).toFixed(2)}</b> · pire 5% ×${q(0.05).toFixed(2)} · top 5% ×${q(0.95).toFixed(2)}<br>
     <span style="color:#666">Mise ${(frac*100).toFixed(1)}%/pari (¼ Kelly). ${edgeNeg?'⚠ Edge négatif : tu perds à terme quoi qu\'il arrive.':''}</span>`;
 }
+
+// ═══ SCANNER AUTO D'OPPORTUNITÉS (toutes les 5 min, basé sur l'IA) ═══
+const _scanSeen={}; // matchId -> ts du dernier signalement
+function _teamN(t){ return (t&&t.name)?t.name:(t||'?'); }
+function _mpOdd(mp){ return mp.oddVal || parseFloat(String(mp.odd||'').replace(/[×x]/g,'')) || 0; }
+function _bestOpportunities(){
+  if(typeof MATCHES==='undefined'||!Array.isArray(MATCHES)) return [];
+  const ops=[];
+  MATCHES.forEach(m=>{
+    if(m.status==='finished' || !m.mp) return;
+    const conf=parseFloat(m.mp.conf), odd=_mpOdd(m.mp);
+    if(isNaN(conf)) return;
+    // opportunité = reco IA solide : confiance ≥6/10, risque pas élevé, cote jouable
+    if(conf>=6.0 && odd>=1.30 && odd<=4.0 && m.mp.risk!=='ÉLEVÉ') ops.push({m, conf, odd});
+  });
+  return ops.sort((a,b)=>b.conf-a.conf);
+}
+function _autoScanTick(force){
+  if(localStorage.getItem('aret_autoscan')==='0' && !force) return;
+  const ops=_bestOpportunities();
+  if(!ops.length){ if(force) showToast('Aucune opportunité value pour l\'instant (recharge les matchs).','info',3500); return; }
+  // top 3 du moment (pour bâtir un coupon rapide)
+  const top=ops.slice(0,3);
+  const best=top[0], id=best.m.id, now=Date.now();
+  if(!force && _scanSeen[id] && now-_scanSeen[id]<30*60*1000) return; // pas de répétition <30 min
+  _scanSeen[id]=now;
+  const h=_teamN(best.m.home), a=_teamN(best.m.away);
+  const msg=`💡 Coupon rapide — ${h} vs ${a} : ${best.m.mp.label} @${best.odd.toFixed(2)} · conf ${best.conf}/10`;
+  showToast(msg,'ok',8000);
+  // notif navigateur si autorisée
+  try{ if(window.Notification && Notification.permission==='granted' && navigator.serviceWorker){
+    navigator.serviceWorker.ready.then(r=>r.showNotification('Aretinofoot — Opportunité',{body:msg,icon:'icon-192.svg',tag:'aret-op'})).catch(()=>{});
+  }}catch(e){}
+}
+function _aretToggleScan(){
+  const on=document.getElementById('aret-autoscan').checked;
+  localStorage.setItem('aret_autoscan', on?'1':'0');
+  showToast(on?'🔔 Alertes opportunités activées (toutes les 5 min)':'🔕 Alertes désactivées','info',2500);
+  if(on) _autoScanTick(true);
+}
+setInterval(_autoScanTick, 5*60*1000);
+setTimeout(()=>_autoScanTick(false), 9000); // premier scan ~9s après chargement
 
 // ══════════════════════════════════════════════════════════════
 //  CALIBRATION — feedback loop : recalibrer le score IA à partir
