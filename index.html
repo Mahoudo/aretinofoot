@@ -3770,7 +3770,41 @@ function _renderExplain(m){
         + row('Espérance (EV)', (edge>0?'+':'')+edge.toFixed(1)+'% / 100 misés', edge>0?'var(--up)':'var(--down)')
         + row('Mise Kelly (¼)', (kelly*25).toFixed(1)+'%', '#F5C84B'))
   // Coach
-  + card('🎓 Coach IA', `<div style="font-size:13px;color:var(--text);line-height:1.5">${coach}</div>`);
+  + card('🎓 Coach IA', `<div style="font-size:13px;color:var(--text);line-height:1.5">${coach}</div>`)
+  // Timeline live (seulement si match en cours/terminé)
+  + _liveTimelineCard(m);
+}
+// #13 — Win-probability LIVE (modèle in-play réel : score + temps restant + λ pré-match)
+function _liveTimelineCard(m){
+  if(!m || (m.status!=='live' && m.status!=='finished') || !m.score) return '';
+  const p=m.pred||{}; const lh=+p.hxg||1.2, la=+p.axg||1.1;
+  const sh=+m.score.h||0, sa=+m.score.a||0;
+  let minNow = m.status==='finished' ? 90 : (parseInt(m.liveMin)||45);
+  minNow=Math.max(1,Math.min(90,minNow));
+  const inPlay=(min)=>{
+    const rem=Math.max(0,(95-min))/95, eh=lh*rem, ea=la*rem;
+    let pH=0,pD=0,pA=0;
+    for(let i=0;i<=8;i++)for(let j=0;j<=8;j++){const pr=poissonP(eh,i)*poissonP(ea,j);const fh=sh+i,fa=sa+j;if(fh>fa)pH+=pr;else if(fh===fa)pD+=pr;else pA+=pr;}
+    const s=pH+pD+pA||1; return [pH/s,pD/s,pA/s];
+  };
+  const cur=inPlay(minNow), k=cur.indexOf(Math.max(...cur));
+  const sideName=[m.home.name,'Match nul',m.away.name][k];
+  // points de maintenant → 90'
+  const step=Math.max(5,Math.round((90-minNow)/6)||5), marks=[];
+  for(let t=minNow;t<90;t+=step) marks.push(t); marks.push(90);
+  const rows=marks.map(t=>{const v=Math.round(inPlay(t)[k]*100);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <span style="width:34px;font-size:11px;color:var(--text-2);font-weight:700">${t}'</span>
+      <div style="flex:1;height:7px;background:var(--surface-3);border-radius:99px;overflow:hidden"><div style="height:100%;width:${v}%;background:var(--up);border-radius:99px"></div></div>
+      <span style="width:34px;text-align:right;font-size:11.5px;font-weight:800;color:var(--up)">${v}%</span></div>`;
+  }).join('');
+  const head=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
+    <div><span style="color:var(--down);font-weight:800;font-size:12px">● LIVE ${minNow}'</span> <span style="font-size:12px;color:var(--text-2)">score ${sh}-${sa}</span></div>
+    <div style="font-family:'Sora';font-size:22px;font-weight:800;color:var(--up)">${Math.round(cur[k]*100)}%</div></div>
+    <div style="font-size:12px;color:var(--text);margin-bottom:8px">Victoire <b>${sideName}</b> — projection si le score tient :</div>`;
+  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:10px">
+    <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-mute);font-weight:700;margin-bottom:8px">📈 Win-probability live</div>
+    ${head}${rows}</div>`;
 }
 
 function switchDTab(tab,el){
