@@ -3723,6 +3723,26 @@ function _renderExplain(m){
   const row=(l,v,c)=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span style="color:var(--text-2)">${l}</span><span style="font-weight:700;color:${c||'var(--text)'}">${v}</span></div>`;
   const card=(title,body)=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:10px">${title?`<div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-mute);font-weight:700;margin-bottom:8px">${title}</div>`:''}${body}</div>`;
 
+  // ── Radar de profil (axes RÉELS) — équipe recommandée ──
+  const side = (k===2)?2:0;                       // nul → on montre le domicile
+  const sideTeam = side===0?m.home:m.away;
+  const sideXg = side===0?hxg:axg, oppXg = side===0?axg:hxg;
+  const clamp=(x)=>Math.max(4,Math.min(100,Math.round(x)));
+  const formArr = (sideTeam&&sideTeam.form)||[];
+  const formPts = formArr.length?formArr.reduce((s,r)=>s+(r==='W'?3:r==='D'?1:0),0)/(formArr.length*3)*100:50;
+  const axes=[
+    ['Attaque', sideXg?clamp(sideXg/2.6*100):50],
+    ['Défense', oppXg?clamp((1-oppXg/2.8)*100):50],
+    ['Forme',   clamp(formPts)],
+    ['Confiance IA', clamp(conf)],
+    ['Value',   edge==null?50:clamp(50+edge*3)]
+  ];
+  // axes optionnels SI la donnée existe (pas d'invention)
+  if(sideTeam&&sideTeam.injuries!=null) axes.push(['Effectif', clamp(100-(+sideTeam.injuries||0)*12)]);
+  if(sideTeam&&sideTeam.restDays!=null) axes.push(['Fraîcheur', clamp((+sideTeam.restDays||0)/7*100)]);
+  const barCol=(v)=>v>=66?'var(--up)':v>=40?'#F5C84B':'var(--down)';
+  const bar=(l,v)=>`<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px"><span style="color:var(--text-2)">${l}</span><span style="font-weight:700;color:${barCol(v)}">${v}</span></div><div style="height:7px;background:var(--surface-3);border-radius:99px;overflow:hidden"><div style="height:100%;width:${v}%;background:${barCol(v)};border-radius:99px"></div></div></div>`;
+
   el.innerHTML =
   // Score IA + risque
   card('', `<div style="display:flex;align-items:center;justify-content:space-between">
@@ -3734,6 +3754,8 @@ function _renderExplain(m){
         <div style="font-size:11px;color:var(--text-mute);margin-top:4px">Volatilité <b style="color:${volCol}">${vol}% ${volLbl}</b></div></div></div>`)
   // Pourquoi
   + card('💡 Pourquoi ce pari ?', why.map(w=>`<div style="font-size:13px;color:var(--text);padding:3px 0;display:flex;gap:8px"><span style="color:var(--up)">✔</span><span>${w}</span></div>`).join(''))
+  // Radar de profil
+  + card('📊 Profil — '+((sideTeam&&sideTeam.name)||''), axes.map(a=>bar(a[0],a[1])).join(''))
   // Monte-Carlo
   + card('🎲 10 000 simulations Monte-Carlo', `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
       <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:#3b82f6">${nH.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">${m.home.name}</div></div>
