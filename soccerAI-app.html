@@ -2469,12 +2469,22 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         </div>
         <button class="hb-cta" onclick="switchTab('matches')">⭐ Voir les meilleurs paris →</button>
       </div>
-      <div class="tiles-grid">
-        <div class="tile"><span class="tile-icon">⚽</span><div><div class="tile-val" id="tile-matchs">—</div><div class="tile-lbl">Matchs</div></div></div>
-        <div class="tile"><span class="tile-icon">✅</span><div><div class="tile-val" id="tile-conf">—</div><div class="tile-lbl">Précision IA</div></div></div>
-        <div class="tile"><span class="tile-icon">⭐</span><div><div class="tile-val" id="tile-cote">—</div><div class="tile-lbl">Cote max</div></div></div>
-        <div class="tile"><span class="tile-icon">🤖</span><div><div class="tile-val" id="tile-version">v3.1</div><div class="tile-lbl">Modèle IA</div></div></div>
+      <style>
+        .qa-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 10px;color:var(--text);font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;transition:.15s}
+        .qa-btn:active{transform:scale(.97)} .qa-btn .qa-i{font-size:18px}
+        .qa-btn.qa-live{border-color:rgba(255,46,77,.45)} .qa-btn.qa-live .qa-i{filter:drop-shadow(0 0 5px var(--brand))}
+        .scroll{padding-bottom:100px!important}
+      </style>
+      <!-- Bilan de la veille (affiché seulement s'il y a un historique) -->
+      <div id="hb-bilan" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 13px;margin:0 0 12px;font-size:13px;color:var(--text-2);line-height:1.5"></div>
+      <!-- Raccourcis rapides (remplacent les stats redondantes) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 6px">
+        <button class="qa-btn" onclick="switchTab('ia')"><span class="qa-i">⚡</span>Top Value Bets</button>
+        <button class="qa-btn qa-live" onclick="switchTab('matches')"><span class="qa-i">🔴</span>Matchs Live</button>
+        <button class="qa-btn" onclick="switchTab('mondial')"><span class="qa-i">🌐</span>Coupe du Monde</button>
+        <button class="qa-btn" onclick="switchTab('coupon')"><span class="qa-i">🎟️</span>Mon coupon</button>
       </div>
+      <div style="display:none"><span id="tile-matchs"></span><span id="tile-conf"></span><span id="tile-cote"></span><span id="tile-version"></span></div>
       <div class="sec-header">
         <span class="sec-title">📰 Actu &amp; Analyses du Jour</span>
         <span class="ah-ico" style="font-size:20px">🔄</span>
@@ -8078,7 +8088,21 @@ function switchTab(name){
   if(name==='ia') renderIaList();
   if(name==='profil'){ renderProfilTracker(); try{_aretRiskRender();}catch(e){} }
   if(name==='mondial') renderMondial();
+  if(name==='home'){ try{_renderBilanVeille();}catch(e){} }
 }
+// Bilan de la veille (levier de confiance) — affiché seulement s'il y a un historique réel
+function _renderBilanVeille(){
+  const el=document.getElementById('hb-bilan'); if(!el) return;
+  const y=new Date(); y.setDate(y.getDate()-1); const ymd=y.toISOString().slice(0,10);
+  const picks=(typeof _getPicks==='function'?_getPicks():[]).filter(p=>p.result==='W'||p.result==='L');
+  const yest=picks.filter(p=>{ const d=new Date(p.settledAt||p.addedAt||p.date); return !isNaN(d)&&d.toISOString().slice(0,10)===ymd; });
+  if(!yest.length){ el.style.display='none'; return; }
+  const w=yest.filter(p=>p.result==='W').length, rate=w/yest.length;
+  const col=rate>=0.5?'var(--up)':'var(--down)';
+  el.style.display='block';
+  el.innerHTML=`📊 Hier : <b style="color:${col}">${w}/${yest.length}</b> pronostics validés — l'IA se recalibre dessus.`;
+}
+setTimeout(()=>{ try{_renderBilanVeille();}catch(e){} }, 1800);
 
 // ══════════════════════════════════════════════════════════════
 //  MONDIAL 2026 — Render screen
