@@ -6180,6 +6180,10 @@ async function fetchAllMatchesToday(forceYmd){
     startAutoRefresh();
     // Fetch ALL matches automatically (free, no key needed)
     fetchAllMatchesToday();
+    // Restaure l'onglet où l'utilisateur était avant le rechargement
+    try{ const t=localStorage.getItem('aret_tab');
+      if(t && t!=='home' && document.getElementById('tab-'+t)) switchTab(t);
+    }catch(e){}
   },300);
 })();
 
@@ -8260,6 +8264,7 @@ function switchTab(name){
   if(name==='profil'){ renderProfilTracker(); try{_aretRiskRender();}catch(e){} }
   if(name==='mondial') renderMondial();
   if(name==='home'){ try{_renderBilanVeille();}catch(e){} }
+  try{ localStorage.setItem('aret_tab', name); }catch(e){}   // garde l'onglet au rechargement
 }
 // Bilan de la veille (levier de confiance) — affiché seulement s'il y a un historique réel
 function _renderBilanVeille(){
