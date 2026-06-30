@@ -4979,19 +4979,9 @@ function _tickLive(){
       }
     }
 
-    // Mi-temps : pas de buts
-    if(m.period==='HT') return;
-
-    // ── Probabilité de but par tick de 10s (modèle Poisson) ──
-    // P(but/10s) = (xG_dom + xG_ext) / (90 min × 6 ticks/min)
-    const hxg=m.pred.hxg||1.2, axg=m.pred.axg||1.0;
-    const pTick=(hxg+axg)/(90*TICKS_PER_MIN);
-    if(Math.random()<pTick){
-      const isHome=Math.random()<hxg/(hxg+axg);
-      if(isHome) m.score.h++; else m.score.a++;
-      const scorer=isHome?m.home.name:m.away.name;
-      showToast(`⚽ But ! ${scorer}  ${m.home.name} ${m.score.h}-${m.score.a} ${m.away.name}  ${m.liveMin}'`);
-    }
+    // ⚠️ Les BUTS ne sont PLUS simulés : le score vient des vraies données
+    // (TheSportsDB via fetchAllMatchesToday, toutes les 10s). On n'invente rien.
+    // _tickLive ne fait qu'avancer l'horloge d'affichage entre deux fetchs réels.
   });
 
   if(anyChange) renderAll();
