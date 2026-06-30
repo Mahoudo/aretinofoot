@@ -2735,6 +2735,10 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         </label>
         <button class="btn-primary" onclick="_autoScanTick(true)" style="background:#46A6FF;color:#04121f">⚡ Chercher une opportunité maintenant</button>
         <div style="font-size:11.5px;color:var(--text-mute);width:260px;line-height:1.5;margin-top:4px">Fonctionne tant que l'app est ouverte. Active les notifications (cloche en haut) pour les recevoir hors de l'écran.</div>
+
+        <div style="width:260px;height:1px;background:var(--border);margin:16px 0"></div>
+        <div style="font-size:15px;font-weight:900;color:#2CD583;margin-bottom:8px;align-self:flex-start;width:260px">📈 Performance IA (30 jours)</div>
+        <div id="aret-perf30" style="width:260px"></div>
       </div>
     </div>
   </div>
@@ -2856,6 +2860,7 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
     </div>
     <div class="detail-probbar" id="d-probbar"></div>
     <div class="detail-pct" id="d-pct"></div>
+    <div id="d-explain" style="margin:10px 12px 0"></div>
 
     <!-- ── Panneau live Sofascore ── -->
     <div id="d-live-panel" style="display:none;margin:8px 12px 0;border-radius:14px;overflow:hidden;border:1.5px solid #ef444430;flex-shrink:0">
@@ -3638,6 +3643,7 @@ function showDetail(id){
     <span style="color:#3b82f6;font-weight:800">${m.home.name}</span>
     <span style="color:var(--text)">${_pd}%</span>
     <span style="color:#1E3A8A;font-weight:800">${m.away.name}</span>`;
+  try{ _renderExplain(m); }catch(e){ document.getElementById('d-explain').innerHTML=''; }
   document.getElementById('d-tabs').innerHTML=DTABS.map((t,i)=>
     `<div class="dt-tab${i===0?' active':''}" onclick="switchDTab('${t}',this)">${t}</div>`).join('');
   renderDBody(m,'Stats');
@@ -3667,6 +3673,82 @@ function closeDetail(){
   const _d=document.getElementById('detail-overlay');
   _d.classList.remove('open');
   _d.style.display='none';
+}
+
+// ═══ BLOC "POURQUOI CE PARI ?" — explicabilité réelle (1,3,4,5,6,7,10) ═══
+function _renderExplain(m){
+  const el=document.getElementById('d-explain'); if(!el) return;
+  const p=m.pred||{}; const probs=[+p.ph||0,+p.pd||0,+p.pa||0];
+  if(probs.every(x=>!x)){ el.innerHTML=''; return; }
+  const k=probs.indexOf(Math.max(...probs)); // issue dominante
+  const sideName=[m.home.name,'Match nul',m.away.name][k];
+  const oddsArr=[m.odds&&m.odds.h,m.odds&&m.odds.d,m.odds&&m.odds.a];
+  const bookOdd=+oddsArr[k]||0;
+  const trueP=probs[k]/100;
+  const fairOdd=trueP>0?1/trueP:0;
+  const edge=bookOdd>1?(trueP*bookOdd-1)*100:null;
+  const kelly=(bookOdd>1&&trueP>0)?Math.max(0,(trueP*bookOdd-1)/(bookOdd-1)):0;
+  const conf=Math.round(+p.conf||trueP*100);            // score IA /100
+  const stars=Math.max(1,Math.min(5,Math.round(conf/20)));
+  // volatilité = entropie normalisée des 3 issues (élevée = imprévisible)
+  const pp=probs.map(x=>x/100).filter(x=>x>0);
+  const H=-pp.reduce((s,x)=>s+x*Math.log(x),0)/Math.log(3);
+  const vol=Math.round(H*100);
+  const volLbl=vol<45?'Faible':vol<70?'Moyenne':'Élevée';
+  const volCol=vol<45?'var(--up)':vol<70?'#F5C84B':'var(--down)';
+  // Monte-Carlo (#4) : 10 000 simulations = probas Poisson échantillonnées
+  const sims=10000; let nH=Math.round(probs[0]/100*sims), nD=Math.round(probs[1]/100*sims), nA=sims-nH-nD;
+  // risque (#6)
+  const rk=(m.mp&&m.mp.risk)||m.risk||'';
+  const rkMap={'SAFE':['🟢','Faible','var(--up)'],'FAIBLE':['🟢','Faible','var(--up)'],'MOYEN':['🟡','Moyen','#F5C84B'],'ÉLEVÉ':['🔴','Élevé','var(--down)'],'ELEVE':['🔴','Élevé','var(--down)']};
+  const rkV=rkMap[(rk||'').toUpperCase()]||['🟡','Moyen','#F5C84B'];
+  // Pourquoi (#1) — puces dérivées des vraies données
+  const why=[];
+  if(k===0) why.push('Avantage du terrain (équipe à domicile)');
+  const hxg=+p.hxg||0, axg=+p.axg||0;
+  if(hxg&&axg){ const big=Math.max(hxg,axg), sm=Math.min(hxg,axg); const diff=sm>0?Math.round((big/sm-1)*100):0;
+    if(diff>=10) why.push(`xG supérieur de ${diff}% pour ${hxg>=axg?m.home.name:m.away.name}`); }
+  const myxg=k===0?hxg:k===2?axg:null;
+  if(myxg) why.push(`${sideName} : ${myxg.toFixed(2)} buts attendus (xG)`);
+  why.push(`${probs[k]}% des simulations donnent ${k===1?'le nul':sideName+' gagnant'}`);
+  if(edge!=null&&edge>2) why.push(`Le marché sous-estime ${sideName} de ${edge.toFixed(0)}%`);
+  if(p.o25!=null) why.push(`${p.o25}% de chances de +2,5 buts`);
+  // Coach IA (#10) — conseil règle-based
+  let coach;
+  if(edge==null) coach='Cote indisponible — impossible de juger la value. Attends les cotes réelles.';
+  else if(edge<=0) coach='Pas de value : le bookmaker paie correctement. Passe, ou mise symbolique pour le plaisir.';
+  else if(vol>=70||rkV[1]==='Élevé') coach=`Value présente (+${edge.toFixed(0)}%) mais match volatil/risqué — limite à 1-2% de bankroll.`;
+  else coach=`Bonne opportunité : value +${edge.toFixed(0)}%, risque ${rkV[1].toLowerCase()}. Mise jusqu'à ${(kelly*25).toFixed(1)}% (¼ Kelly).`;
+
+  const row=(l,v,c)=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span style="color:var(--text-2)">${l}</span><span style="font-weight:700;color:${c||'var(--text)'}">${v}</span></div>`;
+  const card=(title,body)=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:10px">${title?`<div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-mute);font-weight:700;margin-bottom:8px">${title}</div>`:''}${body}</div>`;
+
+  el.innerHTML =
+  // Score IA + risque
+  card('', `<div style="display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-size:11px;color:var(--text-mute);font-weight:700">SCORE IA</div>
+        <div style="font-family:'Sora',sans-serif;font-size:30px;font-weight:800;line-height:1">${conf}<span style="font-size:15px;color:var(--text-mute)">/100</span></div>
+        <div style="color:#F5C84B;font-size:13px">${'★'.repeat(stars)}<span style="color:var(--text-mute)">${'★'.repeat(5-stars)}</span></div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:var(--text-mute);font-weight:700">RISQUE</div>
+        <div style="font-size:18px;font-weight:800;color:${rkV[2]}">${rkV[0]} ${rkV[1]}</div>
+        <div style="font-size:11px;color:var(--text-mute);margin-top:4px">Volatilité <b style="color:${volCol}">${vol}% ${volLbl}</b></div></div></div>`)
+  // Pourquoi
+  + card('💡 Pourquoi ce pari ?', why.map(w=>`<div style="font-size:13px;color:var(--text);padding:3px 0;display:flex;gap:8px"><span style="color:var(--up)">✔</span><span>${w}</span></div>`).join(''))
+  // Monte-Carlo
+  + card('🎲 10 000 simulations Monte-Carlo', `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+      <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:#3b82f6">${nH.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">${m.home.name}</div></div>
+      <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:var(--text-2)">${nD.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">Nul</div></div>
+      <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:#F5C84B">${nA.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">${m.away.name}</div></div></div>`)
+  // Value bet
+  + card('📈 Analyse Value — '+sideName, edge==null
+      ? `<div style="font-size:13px;color:var(--text-mute)">Cote bookmaker indisponible (active ta clé API).</div>`
+      : row('Cote bookmaker', bookOdd.toFixed(2))
+        + row('Cote juste IA', fairOdd.toFixed(2), '#3b82f6')
+        + row('Edge (avantage)', (edge>0?'+':'')+edge.toFixed(1)+'%', edge>0?'var(--up)':'var(--down)')
+        + row('Espérance (EV)', (edge>0?'+':'')+edge.toFixed(1)+'% / 100 misés', edge>0?'var(--up)':'var(--down)')
+        + row('Mise Kelly (¼)', (kelly*25).toFixed(1)+'%', '#F5C84B'))
+  // Coach
+  + card('🎓 Coach IA', `<div style="font-size:13px;color:var(--text);line-height:1.5">${coach}</div>`);
 }
 
 function switchDTab(tab,el){
@@ -8330,6 +8412,24 @@ function _aretRiskRender(){
     else if(sl>0) txt+=` Marge avant stop : ${(sl+pl.units).toFixed(2)} u.`;
     slEl.innerHTML=txt;
   }
+  try{ _renderPerf30(); }catch(e){}
+}
+// #8 — Historique de précision sur 30 jours (données réelles du tracker)
+function _renderPerf30(){
+  const el=document.getElementById('aret-perf30'); if(!el) return;
+  const cut=Date.now()-30*24*3600*1000;
+  const picks=(typeof _getPicks==='function'?_getPicks():[]).filter(p=>(p.result==='W'||p.result==='L')&&(new Date(p.settledAt||p.addedAt||p.date).getTime()>=cut));
+  if(picks.length<3){ el.innerHTML=`<div style="font-size:12.5px;color:var(--text-mute);line-height:1.5">${picks.length}/3 paris résolus sur 30 j. Il faut un peu d'historique pour mesurer la performance réelle.</div>`; return; }
+  const w=picks.filter(p=>p.result==='W').length;
+  const rate=Math.round(w/picks.length*100);
+  const roi=picks.reduce((s,p)=>s+(p.result==='W'?((+p.odds>1)?(+p.odds-1):0):-1),0)/picks.length*100;
+  const cell=(lbl,val,col)=>`<div style="flex:1;text-align:center"><div style="font-family:'Sora';font-size:21px;font-weight:800;color:${col}">${val}</div><div style="font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.3px">${lbl}</div></div>`;
+  el.innerHTML=`<div style="display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 8px">
+    ${cell('Réussite', rate+'%', rate>=50?'var(--up)':'var(--down)')}
+    ${cell('ROI', (roi>0?'+':'')+roi.toFixed(0)+'%', roi>=0?'var(--up)':'var(--down)')}
+    ${cell('Paris', picks.length, 'var(--text)')}
+  </div>
+  <div style="font-size:11px;color:var(--text-mute);margin-top:6px;line-height:1.5">Calculé sur tes paris réellement notés (Gagné/Perdu). Au-delà de 50% et ROI positif sur 50+ paris = vrai avantage.</div>`;
 }
 function _aretMonteCarlo(){
   const p=(+document.getElementById('aret-mc-p').value)/100, o=+document.getElementById('aret-mc-o').value,
