@@ -3550,6 +3550,48 @@ async function _getSofaId(m){
   return null;
 }
 
+// ── Sync des VRAIS scores live (Sofascore) vers toute la liste ──
+let _sofaSyncing=false;
+async function _syncSofaScores(){
+  if(_sofaSyncing) return; _sofaSyncing=true;
+  try{
+    if(!_sofaLiveAll.ts || Date.now()-_sofaLiveAll.ts>25000){
+      const r=await fetch('https://api.sofascore.com/api/v1/sport/football/events/live');
+      if(!r.ok){ _sofaSyncing=false; return; }
+      const d=await r.json();
+      _sofaLiveAll.events=d.events||[];
+      _sofaLiveAll.ts=Date.now();
+    }
+    const evs=_sofaLiveAll.events||[];
+    let changed=false;
+    MATCHES.forEach(m=>{
+      const hN=_normTeam(m.home.name), aN=_normTeam(m.away.name);
+      const ev=evs.find(e=>{
+        const eh=_normTeam(e.homeTeam&&e.homeTeam.name), ea=_normTeam(e.awayTeam&&e.awayTeam.name);
+        return eh&&ea&&(eh.startsWith(hN.slice(0,5))||hN.startsWith(eh.slice(0,5))) &&
+               (ea.startsWith(aN.slice(0,5))||aN.startsWith(ea.slice(0,5)));
+      });
+      if(!ev) return;
+      const sh=ev.homeScore&&ev.homeScore.current, sa=ev.awayScore&&ev.awayScore.current;
+      if(typeof sh==='number' && typeof sa==='number'){
+        if(!m.score || m.score.h!==sh || m.score.a!==sa){ m.score={h:sh,a:sa}; changed=true; }
+      }
+      const st=ev.status&&ev.status.type;
+      if(st==='inprogress' && m.status!=='live'){ m.status='live'; changed=true; }
+      else if(st==='finished' && m.status!=='finished'){ m.status='finished'; changed=true; }
+      // minute réelle si dispo (Sofascore : temps écoulé depuis le début de période)
+      if(st==='inprogress' && ev.time && typeof ev.time.currentPeriodStartTimestamp==='number'){
+        const elapsed=Math.floor((Date.now()/1000 - ev.time.currentPeriodStartTimestamp)/60);
+        const base=(ev.statusDescription==='2nd half'||ev.lastPeriod==='period2')?45:0;
+        const mn=Math.max(1,Math.min(95, base+elapsed));
+        if(mn!==m.liveMin){ m.liveMin=mn; changed=true; }
+      }
+    });
+    if(changed) renderAll();
+  }catch(e){}
+  _sofaSyncing=false;
+}
+
 // Render the live panel with Sofascore data
 async function _refreshLivePanel(){
   const m=MATCHES.find(x=>x.id===detailId);
@@ -4946,6 +4988,7 @@ let _tickCount  = 0;      // compteur global de ticks
 // ── Live match tick (toutes les 10s) ──────────────────
 function _tickLive(){
   _tickCount++;
+  try{ _syncSofaScores(); }catch(e){}   // vrais scores live (Sofascore) → liste
   let anyChange=false;
 
   MATCHES.forEach(m=>{
