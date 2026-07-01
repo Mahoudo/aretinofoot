@@ -76,6 +76,7 @@ body{background:linear-gradient(135deg,var(--surface-2) 0%, var(--surface-3) 100
 .ah-logo{display:flex;align-items:center;gap:7px}
 .ah-icon{width:30px;height:30px;background:linear-gradient(135deg,#9333EA,#6B21A8);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:21px}
 .ah-name{font-size:24px;font-weight:900;color:#fff;letter-spacing:-.3px}
+.ah-ico svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;display:block}
 .ah-right{display:flex;align-items:center;gap:10px}
 .live-pill{display:flex;align-items:center;gap:5px;background:#ff000018;border:1px solid #ff444430;border-radius:999px;padding:4px 10px;cursor:pointer}
 .lp-dot{width:6px;height:6px;border-radius:50%;background:#ef4444;animation:pulse 1s infinite}
@@ -2128,9 +2129,9 @@ body{background:linear-gradient(135deg,var(--surface-2) 0%,var(--surface-3) 100%
 .battery-fill{background:var(--text)!important}
 .ah-name{color:var(--text)!important;font-family:var(--sans)!important;font-weight:700!important;font-size:18px!important;letter-spacing:-.3px!important}
 .ah-icon{
-  background:linear-gradient(135deg,var(--accent),#172554)!important;
+  background:linear-gradient(135deg,#9333EA,#6B21A8)!important;
   border-radius:8px!important;
-  box-shadow:0 2px 6px rgba(30,58,138,.25)!important;
+  box-shadow:0 2px 8px rgba(147,51,234,.30)!important;
 }
 .ah-ico{color:var(--text-2)!important;opacity:.7}
 
@@ -2443,8 +2444,8 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         <div class="lp-dot"></div>
         <span class="lp-text">1 LIVE</span>
       </div>
-      <span class="ah-ico" onclick="openSearch()" title="Rechercher" style="cursor:pointer">🔍</span>
-      <span class="ah-ico" id="refresh-btn" onclick="fetchAllMatchesToday()" style="cursor:pointer" title="Actualiser">🔄</span>
+      <span class="ah-ico" onclick="openSearch()" title="Rechercher" style="cursor:pointer"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+      <span class="ah-ico" id="refresh-btn" onclick="fetchAllMatchesToday()" style="cursor:pointer" title="Actualiser"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
       <span class="ah-ico" id="notif-btn" onclick="openNotifScreen()" title="Notifications"></span>
     </div>
   </div>
@@ -2907,31 +2908,31 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
   <!-- Tab Bar - icônes SVG minimalistes -->
   <div class="tabbar">
     <div class="tab active" onclick="switchTab('home')" id="tab-home">
-      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/></svg></div>
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></div>
       <div class="tab-label">Accueil</div>
     </div>
     <div class="tab" onclick="switchTab('matches')" id="tab-matches">
-      <div class="tab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 10h18M8 5v14"/></svg></div>
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></div>
       <div class="tab-label">Matchs</div>
     </div>
     <div class="tab" onclick="switchTab('coupon')" id="tab-coupon">
-      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-2z"/><path d="M10 7v10"/></svg></div>
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M2 9a3 3 0 1 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
       <div class="tab-label">Coupon</div>
     </div>
     <div class="tab" onclick="switchTab('ia')" id="tab-ia">
-      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h7v7"/></svg></div>
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
       <div class="tab-label">IA</div>
     </div>
     <div class="tab" onclick="switchTab('mondial')" id="tab-mondial">
-      <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
       <div class="tab-label">Mondial</div>
     </div>
     <div class="tab" onclick="switchTab('chat')" id="tab-chat">
-      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/></svg></div>
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></div>
       <div class="tab-label">Chat</div>
     </div>
     <div class="tab" onclick="switchTab('profil')" id="tab-profil">
-      <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div class="tab-label">Profil</div>
     </div>
   </div>
@@ -4643,11 +4644,12 @@ function showToast(msg, type='ok', duration=4000){
 function setRefreshState(loading){
   const btn=document.getElementById('refresh-btn');
   if(!btn) return;
+  const _rSvg='<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>';
   if(loading){
-    btn.textContent='⏳';
+    btn.innerHTML=_rSvg;
     btn.style.animation='pulse .8s infinite';
   } else {
-    btn.textContent='🔄';
+    btn.innerHTML=_rSvg;
     btn.style.animation='';
     const now=new Date();
     const ts=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');
@@ -7988,8 +7990,10 @@ function _saveNotifEnabled(v){ localStorage.setItem('notifEnabled', JSON.stringi
 function _updateNotifBtn(){
   const btn = document.getElementById('notif-btn');
   if(!btn) return;
-  btn.textContent = _notifEnabled ? '🔔' : '🔕';
-  btn.style.opacity = _notifEnabled ? '1' : '.5';
+  btn.innerHTML = _notifEnabled
+    ? '<svg viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/></svg>';
+  btn.style.opacity = _notifEnabled ? '1' : '.6';
   btn.style.filter  = _notifEnabled ? 'drop-shadow(0 0 6px #3B82F6)' : '';
 }
 
