@@ -4410,7 +4410,8 @@ const API_CFG = {
     {sport:'soccer_germany_bundesliga',                 ls:'BL', lc:'#ef4444',name:'Bundesliga'},
     {sport:'soccer_spain_la_liga',                      ls:'LL', lc:'#3B82F6',name:'La Liga'},
     {sport:'soccer_italy_serie_a',                      ls:'SA', lc:'#06b6d4',name:'Serie A'},
-    {sport:'soccer_france_ligue2',                      ls:'L2', lc:'#22c55e',name:'Ligue 2'}
+    {sport:'soccer_france_ligue2',                      ls:'L2', lc:'#22c55e',name:'Ligue 2'},
+    {sport:'soccer_fifa_world_cup',                     ls:'WC26',lc:'#eab308',name:'Coupe du Monde 2026'}
   ],
   remaining: null
 };
@@ -5247,17 +5248,43 @@ function transformTSDB(events){
 }
 
 // Merge TheSportsDB base data with Odds API enrichment
+// Normalise un nom d'équipe pour le matching cross-source (accents/ponctuation
+// + alias d'équipes nationales : ESPN et The Odds API n'écrivent pas pareil
+// "USA"/"United States", "South Korea"/"Korea Republic", etc.)
+const _NAT_ALIASES = {
+  usa:'usa', unitedstates:'usa', unitedstatesofamerica:'usa', etatsunis:'usa',
+  southkorea:'southkorea', korearepublic:'southkorea', korea:'southkorea', coreedusud:'southkorea',
+  northkorea:'northkorea', koreadpr:'northkorea', coreedunord:'northkorea',
+  iran:'iran', iriran:'iran',
+  ivorycoast:'ivorycoast', cotedivoire:'ivorycoast',
+  czechia:'czechia', czechrepublic:'czechia', republiquetcheque:'czechia',
+  capeverde:'capeverde', caboverde:'capeverde', capvert:'capeverde',
+  bosnia:'bosnia', bosniaandherzegovina:'bosnia', bosniaherzegovina:'bosnia', bosnieherzegovine:'bosnia',
+  drcongo:'drcongo', democraticrepublicofcongo:'drcongo', congodr:'drcongo', rdcongo:'drcongo',
+  congo:'congo', republicofcongo:'congo',
+  uae:'uae', unitedarabemirates:'uae', emiratsarabesunis:'uae',
+  saudiarabia:'saudiarabia', ksa:'saudiarabia', arabiesaoudite:'saudiarabia',
+  netherlands:'netherlands', holland:'netherlands', paysbas:'netherlands',
+  turkey:'turkey', turkiye:'turkey', turquie:'turkey',
+};
+function _normNat(name){
+  const base=(name||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]/g,'');
+  return _NAT_ALIASES[base] || base;
+}
 function mergeOddsIntoMatches(tsdbMatches, oddsMatches){
   const enriched=new Map(oddsMatches.map(m=>[
-    (m.home.name+m.away.name).toLowerCase().replace(/\s/g,''), m
+    _normNat(m.home.name)+'|'+_normNat(m.away.name), m
   ]));
   return tsdbMatches.map(m=>{
-    const key=(m.home.name+m.away.name).toLowerCase().replace(/\s/g,'');
+    const key=_normNat(m.home.name)+'|'+_normNat(m.away.name);
     const rich=enriched.get(key);
     if(rich){
-      // Keep TSDB score/status but use Odds API predictions & odds
+      // Garde le score/statut de la source de base, mais applique les cotes
+      // RÉELLES + prédictions The Odds API. hasRealOdds:true → _iaScore les
+      // prend en compte (sinon les cotes enrichies étaient ignorées).
       return {...m, pred:rich.pred, odds:rich.odds, vb:rich.vb, mp:rich.mp,
-        risk:rich.risk, recos:rich.recos};
+        risk:rich.risk, recos:rich.recos, hasRealOdds:true, oddSource:'oddsapi', dataQuality:'high'};
     }
     return m;
   });
@@ -6058,7 +6085,19 @@ async function fetchAllMatchesToday(forceYmd){
       } catch(e){ console.warn('[API-Football]', e.message); }
     }
 
-    // 6️⃣  Odds API — enrichissement si clé disponible
+    // 5c️⃣  COUPE DU MONDE 2026 — fetch dédié AVANT l'enrichissement Odds API,
+    //     pour que les matchs du Mondial reçoivent aussi les cotes réelles.
+    try{
+      const wc = await _fetchWC26AllMatches();
+      if(wc.length){
+        const existingKeys = new Set(newMatches.map(m=>(m.home.name+m.away.name+m.time).toLowerCase().replace(/\s/g,'')));
+        const wcNew = wc.filter(m => !existingKeys.has((m.home.name+m.away.name+m.time).toLowerCase().replace(/\s/g,'')));
+        wcNew.forEach(m=>newMatches.push(m));
+        if(wcNew.length) console.log(`[WC26] +${wcNew.length} matchs Coupe du Monde 2026 ajoutés`);
+      }
+    }catch(e){ console.warn('[WC26 merge]',e); }
+
+    // 6️⃣  Odds API — enrichissement si clé disponible (inclut désormais le Mondial)
     if(API_CFG.key){
       try {
         const from=ymd+'T00:00:00Z', to=ymd+'T23:59:59Z';
@@ -6080,18 +6119,6 @@ async function fetchAllMatchesToday(forceYmd){
         if(oddsMatches.length) newMatches=mergeOddsIntoMatches(newMatches,oddsMatches);
       } catch(e){ console.warn('[Odds enrichment]',e); }
     }
-
-    // 7️⃣  COUPE DU MONDE 2026 — fetch dédié + merge
-    //     Récupère tous les matchs du tournoi (cache 30 min)
-    try{
-      const wc = await _fetchWC26AllMatches();
-      if(wc.length){
-        const existingKeys = new Set(newMatches.map(m=>(m.home.name+m.away.name+m.time).toLowerCase().replace(/\s/g,'')));
-        const wcNew = wc.filter(m => !existingKeys.has((m.home.name+m.away.name+m.time).toLowerCase().replace(/\s/g,'')));
-        wcNew.forEach(m=>newMatches.push(m));
-        if(wcNew.length) console.log(`[WC26] +${wcNew.length} matchs Coupe du Monde 2026 ajoutés`);
-      }
-    }catch(e){ console.warn('[WC26 merge]',e); }
 
     // ── Préserver le chrono local pour les matchs live déjà trackés ──
     // ESPN API gratuit a ~3-5 min de délai → on garde la valeur la plus haute

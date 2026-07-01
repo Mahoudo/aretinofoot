@@ -1,4 +1,4 @@
-const CACHE = 'aretinofoot-v42';
+const CACHE = 'aretinofoot-v43';
 const ASSETS = [
   '/soccerAI-app.html',
   '/manifest.json',
