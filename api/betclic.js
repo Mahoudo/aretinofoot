@@ -6,6 +6,12 @@
  *
  * Zéro dépendance (https natif). Pas de spin-down, same-origin, cache edge 2 min.
  * Le code de scraping est identique au proxy local betclic-proxy.js (éprouvé).
+ *
+ * ⚠️ LIMITE CONNUE : Betclic.ci renvoie 403 Forbidden aux IP datacenter
+ * (Vercel/Render/Cloudflare...). Cette fonction ne renvoie donc [] en prod.
+ * Elle marche en LOCAL (IP résidentielle CI). Source de cotes réelle en prod =
+ * The Odds API (region eu, inclut Betclic) via une clé dans l'app. Fonction
+ * conservée pour le dev local et si un proxy résidentiel est branché plus tard.
  */
 const https = require('https');
 
@@ -138,23 +144,6 @@ module.exports = async (req, res) => {
     const q = req.query || {};
     let slug = q.league;
     if (!slug && q.ls) slug = LEAGUE_SLUGS[String(q.ls).toUpperCase()];
-
-    // ── Mode debug : voir ce que Betclic renvoie réellement à Vercel ──
-    if (q.debug) {
-      const dslug = slug || 'angl-premier-league-c3';
-      const html = await fetchPage(`https://www.betclic.ci/football-sfootball/${dslug}`);
-      res.status(200).json({
-        slug: dslug,
-        htmlLen: html.length,
-        hasOddsMarker: html.includes('"odds":'),
-        hasEventMarker: html.includes('matchDateUtc'),
-        hasContestants: html.includes('contestants'),
-        title: ((html.match(/<title>([^<]*)<\/title>/i) || [])[1] || '').slice(0, 120),
-        looksBlocked: /captcha|datadome|access denied|forbidden|blocked|are you human|unusual traffic/i.test(html),
-        snippet: html.slice(0, 400)
-      });
-      return;
-    }
 
     if (!slug) {
       res.status(400).json({ error: 'Missing ?league= or ?ls= param', available: LEAGUE_SLUGS });
