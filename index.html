@@ -5709,10 +5709,12 @@ function transformESPN(events){
 // ══════════════════════════════════════════════════════════════
 //  BETCLIC.CI — INTÉGRATION COTES LOCALES
 // ══════════════════════════════════════════════════════════════
-// Auto-detect: use deployed proxy on production, local proxy in dev
+// Auto-detect: en prod → fonction serverless same-origin /api/betclic (Vercel).
+// En dev local → proxy node betclic-proxy.js sur :5502.
+// (l'appel construit `${BETCLIC_PROXY}/betclic?league=` → prod: /api/betclic?league=)
 const BETCLIC_PROXY = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://localhost:5502'
-  : 'https://aretinofoot-proxy.onrender.com';
+  : '/api';
 
 // ══════════════════════════════════════════════════════════════
 //  API-FOOTBALL — Ligues supplémentaires (Honduras, CI, etc.)

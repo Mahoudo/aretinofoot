@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/soccerAI-app.html" }
+    { "source": "/((?!api/).*)", "destination": "/soccerAI-app.html" }
   ],
   "headers": [
     {
