@@ -6949,6 +6949,23 @@ function renderIaList(){
   // Update IA hero metrics dynamically
   _updateIaHero(scored);
 
+  // ── Fallback honnête : sur le filtre standard, ne JAMAIS laisser l'écran vide.
+  //    Si aucun match ne dépasse le seuil "signal fort", on montre quand même le
+  //    top 5 avec leur VRAI label (souvent modéré) + un bandeau clair. Pas de mensonge
+  //    sur la qualité : on annonce explicitement "aucun signal fort". ──
+  let iaFallbackBanner = '';
+  if(!list.length && iaFilter === 'standard'){
+    const top = scored.slice(0, 5); // déjà trié par score décroissant, format {m,s}
+    if(top.length){
+      list = top;
+      iaFallbackBanner =
+        `<div style="background:#f59e0b14;border:1px solid #f59e0b40;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:900;color:#f59e0b;display:flex;align-items:center;gap:6px">⚠️ AUCUN SIGNAL FORT AUJOURD'HUI</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.4">Aucun match ne dépasse le seuil de fiabilité. Voici les ${top.length} meilleurs disponibles — <b>confiance modérée</b>, à prendre avec prudence (ou s'abstenir).</div>
+        </div>`;
+    }
+  }
+
   if(!list.length){
     document.getElementById('ia-list').innerHTML =
       `<div style="text-align:center;padding:40px 20px;opacity:.4">
@@ -7112,7 +7129,7 @@ function renderIaList(){
     </div>`;
   }).join('') + '<div style="height:8px"></div>';
 
-  document.getElementById('ia-list').innerHTML = html;
+  document.getElementById('ia-list').innerHTML = iaFallbackBanner + html;
 
   // ── Enrichissement H2H ESPN en arrière-plan ──
   // Met à jour m.h2h sur les top matchs, puis re-render si nouveaux H2H trouvés
