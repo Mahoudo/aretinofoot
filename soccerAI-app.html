@@ -8331,8 +8331,17 @@ async function renderMondial(){
   const list = document.getElementById('wc-list');
   if(!list) return;
 
-  // Fetch matches (cache 30 min)
-  let matches = await _fetchWC26AllMatches();
+  // Fetch matches (cache 30 min) — blindé : un échec réseau ne doit pas planter l'onglet
+  let matches = [];
+  try{ matches = (await _fetchWC26AllMatches()) || []; }
+  catch(e){
+    console.warn('[Mondial] fetch échoué', e);
+    list.innerHTML = `<div style="padding:40px 20px;text-align:center">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Chargement impossible</div>
+      <div style="font-size:12px;color:var(--text-2);line-height:1.6">Le calendrier Coupe du Monde n'a pas pu être récupéré (réseau).<br>Réessaie dans un instant.</div>
+    </div>`;
+    return;
+  }
 
   // Update header stats
   document.getElementById('wc-total').textContent = matches.length || '—';
@@ -8398,6 +8407,8 @@ async function renderMondial(){
       : `${_DAYS_FR[d.getDay()]} ${d.getDate().toString().padStart(2,'0')} ${_MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
     html += `<div class="wc-section-bar"><span>${dateLabel}</span><span>${byDate[dateKey].length} MATCH${byDate[dateKey].length>1?'ES':''}</span></div>`;
     byDate[dateKey].forEach(m => {
+     try{
+      if(!m || !m.home || !m.away) return; // match incomplet → on saute, pas de crash
       const s = _iaScore(m);
       const hFlag = _wcFlag(m.home.name), aFlag = _wcFlag(m.away.name);
       const isLive = m.status === 'live';
@@ -8425,6 +8436,7 @@ async function renderMondial(){
                <div class="wc-mr-conf">${conf}</div>`}
         </div>
       </div>`;
+     }catch(err){ console.warn('[Mondial] carte ignorée', m&&m.id, err); }
     });
   });
   list.innerHTML = html + '<div style="height:12px"></div>';
