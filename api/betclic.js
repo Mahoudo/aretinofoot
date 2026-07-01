@@ -127,6 +127,24 @@ module.exports = async (req, res) => {
     const q = req.query || {};
     let slug = q.league;
     if (!slug && q.ls) slug = LEAGUE_SLUGS[String(q.ls).toUpperCase()];
+
+    // ── Mode debug : voir ce que Betclic renvoie réellement à Vercel ──
+    if (q.debug) {
+      const dslug = slug || 'angl-premier-league-c3';
+      const html = await fetchPage(`https://www.betclic.ci/football-sfootball/${dslug}`);
+      res.status(200).json({
+        slug: dslug,
+        htmlLen: html.length,
+        hasOddsMarker: html.includes('"odds":'),
+        hasEventMarker: html.includes('matchDateUtc'),
+        hasContestants: html.includes('contestants'),
+        title: ((html.match(/<title>([^<]*)<\/title>/i) || [])[1] || '').slice(0, 120),
+        looksBlocked: /captcha|datadome|access denied|forbidden|blocked|are you human|unusual traffic/i.test(html),
+        snippet: html.slice(0, 400)
+      });
+      return;
+    }
+
     if (!slug) {
       res.status(400).json({ error: 'Missing ?league= or ?ls= param', available: LEAGUE_SLUGS });
       return;
