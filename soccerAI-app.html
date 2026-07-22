@@ -2450,6 +2450,9 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
     </div>
   </div>
 
+  <!-- Barre d'état des cotes (réelles vs synthétiques) — persiste sur tous les onglets -->
+  <div id="odds-status-bar" onclick="showApiKeyModal()" style="display:none"></div>
+
   <!-- Date Strip -->
   <div class="date-strip-wrap" id="date-strip-wrap"></div>
 
@@ -3333,6 +3336,7 @@ function _sortMatches(arr){
 // ── renderAll : repaints all data-driven sections ──
 function renderAll(){
   _resolvePicks();
+  if(typeof _updateOddsStatus==='function') _updateOddsStatus();
   // Garde-fou : ne jamais afficher un match terminé
   const visible=_sortMatches(MATCHES.filter(m=>m.status!=='finished'));
   document.getElementById('home-matches').innerHTML=visible.length
@@ -4656,6 +4660,32 @@ function setRefreshState(loading){
     const ts=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');
     const lbl=document.getElementById('last-update');
     if(lbl){lbl.textContent='🟢 '+ts;lbl.style.display='';}
+  }
+}
+
+// Met à jour la barre d'état des cotes selon la présence d'une clé + cotes réelles chargées
+function _updateOddsStatus(){
+  const bar=document.getElementById('odds-status-bar');
+  if(!bar) return;
+  // API_CFG est un `const` déclaré plus bas : au tout 1er render (appel top-level
+  // renderAll() pendant le chargement) il est en TDZ → l'accès throw. On avale et
+  // on ressort : la barre sera peuplée au render suivant, après initialisation.
+  let hasKey=false;
+  try{ hasKey=!!API_CFG.key; }catch(e){ return; }
+  const realCount=(typeof MATCHES!=='undefined'?MATCHES:[]).filter(m=>m&&m.hasRealOdds).length;
+  const base='display:block;padding:7px 14px;font-size:12.5px;font-weight:600;text-align:center;cursor:pointer;line-height:1.35;border-bottom:1px solid var(--border);';
+  if(hasKey && realCount>0){
+    bar.style.cssText='display:none'; // cotes réelles OK → on n'encombre pas
+    return;
+  }
+  if(hasKey){
+    // Clé présente mais aucune cote réelle (peu de compétitions couvertes aujourd'hui)
+    bar.style.cssText=base+'background:rgba(234,179,8,.12);color:#eab308';
+    bar.innerHTML='🟡 Clé active · 0 cote réelle aujourd’hui — peu de compétitions couvertes maintenant';
+  } else {
+    // Aucune clé → tout en synthétique. Nudge pour activer les cotes réelles.
+    bar.style.cssText=base+'background:rgba(248,113,113,.12);color:#f87171';
+    bar.innerHTML='⚠️ Cotes synthétiques · <b style="text-decoration:underline">activer les cotes réelles (Betclic)</b>';
   }
 }
 
@@ -6207,6 +6237,18 @@ async function fetchAllMatchesToday(forceYmd){
     const bst=document.getElementById('bankroll-status');
     if(bst) bst.textContent=`✅ Bankroll : ${BANKROLL.toLocaleString('fr-FR')} FCFA`;
   }
+
+  // État des cotes affiché immédiatement (avant même le 1er fetch)
+  if(typeof _updateOddsStatus==='function') _updateOddsStatus();
+
+  // Onboarding : au tout premier lancement sans clé, proposer d'activer les
+  // cotes réelles (une seule fois — l'utilisateur peut refuser et garder synthétique).
+  try{
+    if(!API_CFG.key && !localStorage.getItem('aret_onboard_seen')){
+      localStorage.setItem('aret_onboard_seen','1');
+      setTimeout(()=>{ if(!API_CFG.key && typeof showApiKeyModal==='function') showApiKeyModal(); }, 1400);
+    }
+  }catch(e){}
 
   setTimeout(()=>{
     startAutoRefresh();
