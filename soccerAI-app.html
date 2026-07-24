@@ -4415,8 +4415,8 @@ const API_CFG = {
     {sport:'soccer_germany_bundesliga',                 ls:'BL', lc:'#ef4444',name:'Bundesliga'},
     {sport:'soccer_spain_la_liga',                      ls:'LL', lc:'#3B82F6',name:'La Liga'},
     {sport:'soccer_italy_serie_a',                      ls:'SA', lc:'#06b6d4',name:'Serie A'},
-    {sport:'soccer_france_ligue2',                      ls:'L2', lc:'#22c55e',name:'Ligue 2'},
-    {sport:'soccer_fifa_world_cup',                     ls:'WC26',lc:'#eab308',name:'Coupe du Monde 2026'}
+    {sport:'soccer_france_ligue2',                      ls:'L2', lc:'#22c55e',name:'Ligue 2'}
+    // {sport:'soccer_fifa_world_cup', ls:'WC26', ...} retiré (module CDM désactivé)
   ],
   remaining: null
 };
@@ -5362,6 +5362,8 @@ async function _fetchTSDBToday(existingMatches, ymd){
 //  Récupère TOUS les matchs du tournoi (11 juin → 19 juillet 2026)
 //  via ESPN /fifa.world/scoreboard avec ranges de dates
 // ══════════════════════════════════════════════════════════════
+// Module CDM désactivé : mettre à true pour recharger les matchs Coupe du Monde
+const WC26_ENABLED = false;
 const WC26 = {
   startDate:'20260611', endDate:'20260719',
   events:[], lastFetch:0, ttl: 30*60*1000  // cache 30 min
@@ -6116,9 +6118,9 @@ async function fetchAllMatchesToday(forceYmd){
       } catch(e){ console.warn('[API-Football]', e.message); }
     }
 
-    // 5c️⃣  COUPE DU MONDE 2026 — fetch dédié AVANT l'enrichissement Odds API,
-    //     pour que les matchs du Mondial reçoivent aussi les cotes réelles.
-    try{
+    // 5c️⃣  COUPE DU MONDE 2026 — fetch dédié (désactivé : WC26_ENABLED=false)
+    //     Réactiver le flag pour recharger les matchs du Mondial.
+    if(WC26_ENABLED) try{
       const wc = await _fetchWC26AllMatches();
       if(wc.length){
         const existingKeys = new Set(newMatches.map(m=>(m.home.name+m.away.name+m.time).toLowerCase().replace(/\s/g,'')));
