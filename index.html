@@ -2141,8 +2141,9 @@ body{background:linear-gradient(135deg,var(--surface-2) 0%,var(--surface-3) 100%
   border-top:1px solid var(--line,var(--border))!important;
   box-shadow:0 -2px 12px rgba(0,0,0,.04)!important;
 }
-/* Garder Accueil/Matchs/Coupon/IA/Mondial/Profil — Chat masqué */
-#tab-chat{display:none!important}
+/* Garder Accueil/Matchs/Coupon/IA/Profil — Chat + Mondial masqués */
+/* Module CDM masqué (réversible) : retirer #tab-mondial ci-dessous pour le réafficher */
+#tab-chat,#tab-mondial{display:none!important}
 
 .tab-icon{color:var(--text-mute)!important;width:24px!important;height:24px!important}
 .tab-icon svg{width:22px!important;height:22px!important;stroke-width:1.8!important}
@@ -2486,7 +2487,7 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 6px">
         <button class="qa-btn" onclick="switchTab('ia')"><span class="qa-i">⚡</span>Top Value Bets</button>
         <button class="qa-btn qa-live" onclick="switchTab('matches')"><span class="qa-i">🔴</span>Matchs Live</button>
-        <button class="qa-btn" onclick="switchTab('mondial')"><span class="qa-i">🌐</span>Coupe du Monde</button>
+        <button class="qa-btn" onclick="switchTab('profil')"><span class="qa-i">🏦</span>Ma bankroll</button>
         <button class="qa-btn" onclick="switchTab('coupon')"><span class="qa-i">🎟️</span>Mon coupon</button>
       </div>
       <div style="display:none"><span id="tile-matchs"></span><span id="tile-conf"></span><span id="tile-cote"></span><span id="tile-version"></span></div>
@@ -2582,7 +2583,7 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         <div class="chip" onclick="setIaFilter('o15',this)">⚽ +1.5 Buts</div>
         <div class="chip" onclick="setIaFilter('u45',this)">⬇️ Moins de 4.5</div>
         <div class="chip" onclick="setIaFilter('buteur',this)">🎯 Buteurs</div>
-        <div class="chip" onclick="setIaFilter('wc26',this)" style="border-color:var(--down)!important;color:var(--down)!important">🏆 MONDIAL</div>
+        <div class="chip" onclick="setIaFilter('wc26',this)" style="display:none!important;border-color:var(--down)!important;color:var(--down)!important">🏆 MONDIAL</div>
       </div>
       <div style="margin:0 12px 8px;background:var(--surface-2);border-radius:12px;display:flex;padding:8px 0">
         <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--text)">5</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Matchs du jour</div></div>
@@ -6255,8 +6256,10 @@ async function fetchAllMatchesToday(forceYmd){
     // Fetch ALL matches automatically (free, no key needed)
     fetchAllMatchesToday();
     // Restaure l'onglet où l'utilisateur était avant le rechargement
+    // (ignore les onglets masqués : chat, mondial → sinon écran affiché sans bouton)
     try{ const t=localStorage.getItem('aret_tab');
-      if(t && t!=='home' && document.getElementById('tab-'+t)) switchTab(t);
+      const HIDDEN_TABS=['chat','mondial'];
+      if(t && t!=='home' && !HIDDEN_TABS.includes(t) && document.getElementById('tab-'+t)) switchTab(t);
     }catch(e){}
   },300);
 })();
