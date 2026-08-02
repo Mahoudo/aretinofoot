@@ -3205,20 +3205,20 @@ function card(m){
     <div class="card-top">
       <div class="ct-left">
         <div class="league-dot" style="background:${m.lc}"></div>
-        <span class="league-name">${m.ls} · ${m.league}</span>
+        <span class="league-name">${m.ls} · ${_esc(m.league)}</span>
       </div>
       <div class="ct-right">${liveOrTime}${m.oddSource==='betclic'?'<span class="bc-badge">BETCLIC</span>':''}${riskBadge(m.risk)}</div>
     </div>
     <div class="teams-row">
       <div class="team-side">
         <div class="team-logo">${_logo(m.home.logo, hFlag, 24)}</div>
-        <div class="team-name">${m.home.name}</div>
+        <div class="team-name">${_esc(m.home.name)}</div>
         <div class="form-dots">${fd(m.home.form)}</div>
       </div>
       <div class="score-center">${center}</div>
       <div class="team-side right">
         <div class="team-logo">${_logo(m.away.logo, aFlag, 24)}</div>
-        <div class="team-name" style="text-align:right">${m.away.name}</div>
+        <div class="team-name" style="text-align:right">${_esc(m.away.name)}</div>
         <div class="form-dots" style="justify-content:flex-end">${fd(m.away.form)}</div>
       </div>
     </div>
@@ -3677,7 +3677,7 @@ function showDetail(id){
   const m=MATCHES.find(x=>x.id===id); if(!m) return;
   detailId=id;
   const p=m.pred;
-  document.getElementById('d-league').textContent=`${m.ls} · ${m.league}`;
+  document.getElementById('d-league').textContent=`${m.ls} · ${_esc(m.league)}`;
   document.getElementById('d-risk').innerHTML=riskBadge(m.risk);
   document.getElementById('d-home-logo').innerHTML=_logo(m.home.logo, m.home.emoji, 52);
   document.getElementById('d-away-logo').innerHTML=_logo(m.away.logo, m.away.emoji, 52);
@@ -3702,9 +3702,9 @@ function showDetail(id){
     <div class="dpb-d" style="flex:${_pd}">${_pd}%</div>
     <div class="dpb-a" style="flex:${_pa}">${_pa}%</div>`;
   document.getElementById('d-pct').innerHTML=`
-    <span style="color:#3b82f6;font-weight:800">${m.home.name}</span>
+    <span style="color:#3b82f6;font-weight:800">${_esc(m.home.name)}</span>
     <span style="color:var(--text)">${_pd}%</span>
-    <span style="color:#3B82F6;font-weight:800">${m.away.name}</span>`;
+    <span style="color:#3B82F6;font-weight:800">${_esc(m.away.name)}</span>`;
   try{ _renderExplain(m); }catch(e){ document.getElementById('d-explain').innerHTML=''; }
   document.getElementById('d-tabs').innerHTML=DTABS.map((t,i)=>
     `<div class="dt-tab${i===0?' active':''}" onclick="switchDTab('${t}',this)">${t}</div>`).join('');
@@ -3820,9 +3820,9 @@ function _renderExplain(m){
   + card('📊 Profil — '+((sideTeam&&sideTeam.name)||''), axes.map(a=>bar(a[0],a[1])).join(''))
   // Monte-Carlo
   + card('🎲 10 000 simulations Monte-Carlo', `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
-      <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:#3b82f6">${nH.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">${m.home.name}</div></div>
+      <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:#3b82f6">${nH.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">${_esc(m.home.name)}</div></div>
       <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:var(--text-2)">${nD.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">Nul</div></div>
-      <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:#F5C84B">${nA.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">${m.away.name}</div></div></div>`)
+      <div><div style="font-family:'Sora';font-size:19px;font-weight:800;color:#F5C84B">${nA.toLocaleString('fr-FR')}</div><div style="font-size:11px;color:var(--text-2)">${_esc(m.away.name)}</div></div></div>`)
   // Value bet
   + card('📈 Analyse Value — '+sideName, edge==null
       ? `<div style="font-size:13px;color:var(--text-mute)">Cote bookmaker indisponible (active ta clé API).</div>`
@@ -3994,7 +3994,7 @@ function renderDBody(m,tab){
         ${m.home.form.slice(0,5).map((r,i)=>`
           <div class="forme-match">
             <div class="fm-res ${r}">${r}</div>
-            <div class="fm-info"><div class="fm-teams">${m.home.name} vs ${homeOpps[i]}</div><div class="fm-meta">Championnat · ${dates[i]}</div></div>
+            <div class="fm-info"><div class="fm-teams">${_esc(m.home.name)} vs ${homeOpps[i]}</div><div class="fm-meta">Championnat · ${dates[i]}</div></div>
             <div class="fm-score">${scH[i]}</div>
           </div>`).join('')}
       </div>
@@ -4007,7 +4007,7 @@ function renderDBody(m,tab){
         ${m.away.form.slice(0,5).map((r,i)=>`
           <div class="forme-match">
             <div class="fm-res ${r}">${r}</div>
-            <div class="fm-info"><div class="fm-teams">${m.away.name} vs ${awayOpps[i]}</div><div class="fm-meta">Championnat · ${dates[i]}</div></div>
+            <div class="fm-info"><div class="fm-teams">${_esc(m.away.name)} vs ${awayOpps[i]}</div><div class="fm-meta">Championnat · ${dates[i]}</div></div>
             <div class="fm-score">${scA[i]}</div>
           </div>`).join('')}
       </div>`;
@@ -4111,9 +4111,9 @@ function renderDBody(m,tab){
       </div>`;
 
     const kellyRows = [
-      {label:`1 — ${m.home.name}`, trueP: p.ph, odd: m.odds.h, k: kelly1, col:'#3b82f6'},
+      {label:`1 — ${_esc(m.home.name)}`, trueP: p.ph, odd: m.odds.h, k: kelly1, col:'#3b82f6'},
       {label:`N — Nul`,            trueP: p.pd, odd: m.odds.d, k: kellyD, col:'#888'},
-      {label:`2 — ${m.away.name}`, trueP: p.pa, odd: m.odds.a, k: kelly2, col:'#3B82F6'},
+      {label:`2 — ${_esc(m.away.name)}`, trueP: p.pa, odd: m.odds.a, k: kelly2, col:'#3B82F6'},
     ].map(row=>`
       <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1e1e2e">
         <div style="font-size:13px;font-weight:800;color:${row.col};min-width:90px">${row.label}</div>
@@ -4173,23 +4173,23 @@ function renderDBody(m,tab){
     // Dynamic key points based on real data
     const keyPoints=[];
     // Home advantage
-    keyPoints.push(['🏠',`<b>${m.home.name}</b> joue à domicile. L'avantage du terrain représente +7% de victoire en moyenne en championnat.`]);
+    keyPoints.push(['🏠',`<b>${_esc(m.home.name)}</b> joue à domicile. L'avantage du terrain représente +7% de victoire en moyenne en championnat.`]);
     // Season strength comparison
     if(hr.played>3&&ar.played>3){
       const hPPG=hr.ppg, aPPG=ar.ppg;
       const stronger=hPPG>aPPG?m.home.name:m.away.name;
       const diff=Math.abs(hPPG-aPPG).toFixed(2);
-      keyPoints.push(['📊',`<b>Bilan saison</b> — ${m.home.name} : ${hr.label} (${hr.ppg}pts/j) · ${m.away.name} : ${ar.label} (${ar.ppg}pts/j). ${diff>0.5?`<b>${stronger}</b> domine clairement ce duel.`:''}`]);
+      keyPoints.push(['📊',`<b>Bilan saison</b> — ${_esc(m.home.name)} : ${hr.label} (${hr.ppg}pts/j) · ${_esc(m.away.name)} : ${ar.label} (${ar.ppg}pts/j). ${diff>0.5?`<b>${stronger}</b> domine clairement ce duel.`:''}`]);
     }
     // Expected goals
-    keyPoints.push(['⚽',`<b>Buts attendus (xG)</b> : ${p.hxg} pour ${m.home.name} · ${p.axg} pour ${m.away.name}. Total estimé : ${(p.hxg+p.axg).toFixed(1)} buts. Score le plus probable : <b>${p.score}</b>.`]);
+    keyPoints.push(['⚽',`<b>Buts attendus (xG)</b> : ${p.hxg} pour ${_esc(m.home.name)} · ${p.axg} pour ${_esc(m.away.name)}. Total estimé : ${(p.hxg+p.axg).toFixed(1)} buts. Score le plus probable : <b>${p.score}</b>.`]);
     // BTTS
     const bttsLabel=p.btts>60?'probable':'possible mais incertain';
     keyPoints.push(['🎯',`<b>Les deux marquent (BTTS)</b> : ${p.btts}% — ${bttsLabel}.`]);
     // Form
     if(m.home.form&&m.home.form.length){
       const hT=_formTrend(m.home.form), aT=_formTrend(m.away.form||[]);
-      keyPoints.push(['📈',`<b>Forme récente</b> — ${m.home.name} : ${(m.home.form||[]).join(' ')} (${hT}) · ${m.away.name} : ${(m.away.form||[]).join(' ')} (${aT}).`]);
+      keyPoints.push(['📈',`<b>Forme récente</b> — ${_esc(m.home.name)} : ${(m.home.form||[]).join(' ')} (${hT}) · ${_esc(m.away.name)} : ${(m.away.form||[]).join(' ')} (${aT}).`]);
     }
     // Value bet
     if(m.vb&&m.vb.length){
@@ -4262,16 +4262,16 @@ function renderDBody(m,tab){
     body.innerHTML=`
       <div class="dsec"><div class="dsec-title">⚔️ FORMATIONS ESTIMÉES</div>
         <div class="formations-box">
-          <div class="form-col"><div class="form-val">${t.hForm}</div><div class="form-lbl">${m.home.name}</div></div>
+          <div class="form-col"><div class="form-val">${t.hForm}</div><div class="form-lbl">${_esc(m.home.name)}</div></div>
           <div style="font-size:20px;font-weight:900;color:var(--text)">VS</div>
-          <div class="form-col"><div class="form-val">${t.aForm}</div><div class="form-lbl">${m.away.name}</div></div>
+          <div class="form-col"><div class="form-val">${t.aForm}</div><div class="form-lbl">${_esc(m.away.name)}</div></div>
         </div>
       </div>
       <div class="dsec"><div class="dsec-title">🎯 MOMENTUM DU MATCH</div>
         <div class="mom-labels">
-          <span style="color:#3b82f6;font-weight:800">${m.home.name}</span>
+          <span style="color:#3b82f6;font-weight:800">${_esc(m.home.name)}</span>
           <span style="color:var(--text)">${t.mom>=48&&t.mom<=52?'Équilibré':t.mom>52?'Avantage dom.':'Avantage ext.'}</span>
-          <span style="color:#3B82F6;font-weight:800">${m.away.name}</span>
+          <span style="color:#3B82F6;font-weight:800">${_esc(m.away.name)}</span>
         </div>
         <div class="mom-track"><div class="mom-thumb" style="left:${t.mom}%"></div></div>
         <div class="mom-sub"><span>🔵 Domicile</span><span>${t.mom}/${100-t.mom}</span><span>Extérieur 🔴</span></div>
@@ -4380,9 +4380,9 @@ function renderDBody(m,tab){
           </div>
           ${rows}
           <div style="margin-top:8px;font-size:11px;color:var(--text);text-align:center">
-            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--surface-2);border:2px solid #3b82f6;margin-right:4px"></span>${m.home.name}
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--surface-2);border:2px solid #3b82f6;margin-right:4px"></span>${_esc(m.home.name)}
             &nbsp;&nbsp;
-            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--surface-2);border:2px solid #3B82F6;margin-right:4px"></span>${m.away.name}
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--surface-2);border:2px solid #3B82F6;margin-right:4px"></span>${_esc(m.away.name)}
           </div>
         </div>`;
     });
@@ -4399,7 +4399,7 @@ function renderDBody(m,tab){
           `<div class="qc" style="font-size:12px;padding:4px 8px">${c}</div>`).join('')}
       </div>
       <div class="chat-msg" style="max-width:100%">
-        <div class="chat-msg-text">👋 Bonjour ! Je suis l'IA de <strong>Aretinofoot</strong>.<br><br>Sélectionne une analyse ou pose une question libre sur le match <strong>${m.home.name} vs ${m.away.name}</strong>.</div>
+        <div class="chat-msg-text">👋 Bonjour ! Je suis l'IA de <strong>Aretinofoot</strong>.<br><br>Sélectionne une analyse ou pose une question libre sur le match <strong>${_esc(m.home.name)} vs ${_esc(m.away.name)}</strong>.</div>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
         <input class="chat-input" style="flex:1" placeholder="Posez une question sur le match à l'IA..."/>
@@ -4898,17 +4898,17 @@ function _liveAdverseWarning(m, betType){
   let detail  = '';
 
   if(type === '1'){
-    if(h < a){ adverse = true; detail = `${m.home.name} est mené ${h}-${a} ❌`; }
+    if(h < a){ adverse = true; detail = `${_esc(m.home.name)} est mené ${h}-${a} ❌`; }
     else if(h === a){ detail = `Score nul ${h}-${a} pour l'instant ⏱`; adverse = false; }
   } else if(type === '2'){
-    if(a < h){ adverse = true; detail = `${m.away.name} est mené ${a}-${h} ❌`; }
+    if(a < h){ adverse = true; detail = `${_esc(m.away.name)} est mené ${a}-${h} ❌`; }
     else if(h === a){ detail = `Score nul ${h}-${a} pour l'instant ⏱`; adverse = false; }
   } else if(type === 'N'){
     if(h !== a){ adverse = true; detail = `Score ${h}-${a} — pas nul ❌`; }
   } else if(type === '1X'){
-    if(h < a){ adverse = true; detail = `${m.home.name} est mené ${h}-${a} ❌`; }
+    if(h < a){ adverse = true; detail = `${_esc(m.home.name)} est mené ${h}-${a} ❌`; }
   } else if(type === 'X2'){
-    if(h > a){ adverse = true; detail = `${m.home.name} mène ${h}-${a}, ext. perdant ❌`; }
+    if(h > a){ adverse = true; detail = `${_esc(m.home.name)} mène ${h}-${a}, ext. perdant ❌`; }
   } else if(type === '+1.5' || type === '+2.5'){
     // pas de sens adverse simple, pas d'alerte
   }
@@ -5059,7 +5059,7 @@ function _tickLive(){
         m.status='finished';
         m.liveMin=90;
         const sc=`${m.score.h}-${m.score.a}`;
-        showToast(`⏱️ FT : ${m.home.name} ${sc} ${m.away.name}`,'info',5000);
+        showToast(`⏱️ FT : ${_esc(m.home.name)} ${sc} ${_esc(m.away.name)}`,'info',5000);
         // Animer la carte avant suppression
         setTimeout(()=>{
           const card=document.querySelector(`[data-id="${m.id}"]`);
@@ -5486,37 +5486,37 @@ function _buildAnalysisText(m){
   const undTeam = p.ph>p.pa ? m.away.name : m.home.name;
   const favPct  = Math.round(Math.max(p.ph,p.pa));
   lines.push(`<b>📊 Contexte du match</b>`);
-  lines.push(`${m.home.name} reçoit ${m.away.name} dans le cadre de la <b>${m.league}</b>.`);
+  lines.push(`${_esc(m.home.name)} reçoit ${_esc(m.away.name)} dans le cadre de la <b>${_esc(m.league)}</b>.`);
 
   // 2. Season records
   if(hr&&hr.played>3){
     const strengthLabel=hr.pct>=75?'excellent':hr.pct>=55?'bon':hr.pct>=40?'moyen':'difficile';
-    lines.push(`${m.home.name} affiche un bilan de <b>${hr.label}</b> cette saison (${hr.pts} pts · ${hr.ppg} pts/match) — niveau <b>${strengthLabel}</b>.`);
+    lines.push(`${_esc(m.home.name)} affiche un bilan de <b>${hr.label}</b> cette saison (${hr.pts} pts · ${hr.ppg} pts/match) — niveau <b>${strengthLabel}</b>.`);
   }
   if(ar&&ar.played>3){
     const strengthLabel=ar.pct>=75?'excellent':ar.pct>=55?'bon':ar.pct>=40?'moyen':'difficile';
-    lines.push(`${m.away.name} : <b>${ar.label}</b> (${ar.pts} pts · ${ar.ppg} pts/match) — niveau <b>${strengthLabel}</b>.`);
+    lines.push(`${_esc(m.away.name)} : <b>${ar.label}</b> (${ar.pts} pts · ${ar.ppg} pts/match) — niveau <b>${strengthLabel}</b>.`);
   }
 
   // 3. Form
   const hFormTrend=_formTrend(m.home.form);
   const aFormTrend=_formTrend(m.away.form);
-  if(m.home.form&&m.home.form.length) lines.push(`Forme récente — ${m.home.name} : <b>${m.home.form.join('')}</b> (${hFormTrend})`);
-  if(m.away.form&&m.away.form.length) lines.push(`Forme récente — ${m.away.name} : <b>${m.away.form.join('')}</b> (${aFormTrend})`);
+  if(m.home.form&&m.home.form.length) lines.push(`Forme récente — ${_esc(m.home.name)} : <b>${m.home.form.join('')}</b> (${hFormTrend})`);
+  if(m.away.form&&m.away.form.length) lines.push(`Forme récente — ${_esc(m.away.name)} : <b>${m.away.form.join('')}</b> (${aFormTrend})`);
 
   // 4. Head-to-head
   const h2h=m.h2h;
   if(h2h&&(h2h.h+h2h.d+h2h.a)>0){
-    lines.push(`H2H : ${m.home.name} mène ${h2h.h}–${h2h.d}–${h2h.a} sur les dernières confrontations.`);
+    lines.push(`H2H : ${_esc(m.home.name)} mène ${h2h.h}–${h2h.d}–${h2h.a} sur les dernières confrontations.`);
   }
 
   // 5. Expected goals / score
   const oddsLbl=m.oddSource==='betclic'?'🎲 Betclic.ci':'📊 ESPN/DraftKings';
   lines.push(`<b>Source des cotes</b> : <span style="color:#3B82F6">${oddsLbl}</span> — 1×${m.odds.h.toFixed(2)} / X×${m.odds.d.toFixed(2)} / 2×${m.odds.a.toFixed(2)}.`);
-  lines.push(`<b>⚽ Modèle Poisson</b> : xG estimé <b>${p.hxg}</b> pour ${m.home.name} · <b>${p.axg}</b> pour ${m.away.name}. Score prédit : <b>${p.score}</b>.`);
+  lines.push(`<b>⚽ Modèle Poisson</b> : xG estimé <b>${p.hxg}</b> pour ${_esc(m.home.name)} · <b>${p.axg}</b> pour ${_esc(m.away.name)}. Score prédit : <b>${p.score}</b>.`);
 
   // 6. Key probabilities
-  lines.push(`<b>📈 Probabilités</b> : Victoire ${m.home.name} <b>${Math.round(p.ph)}%</b> · Nul <b>${Math.round(p.pd)}%</b> · Victoire ${m.away.name} <b>${Math.round(p.pa)}%</b>.`);
+  lines.push(`<b>📈 Probabilités</b> : Victoire ${_esc(m.home.name)} <b>${Math.round(p.ph)}%</b> · Nul <b>${Math.round(p.pd)}%</b> · Victoire ${_esc(m.away.name)} <b>${Math.round(p.pa)}%</b>.`);
   lines.push(`Plus de 1.5 buts : <b>${p.o15}%</b> · Plus de 2.5 buts : <b>${p.o25}%</b> · BTTS : <b>${p.btts}%</b>.`);
 
   // 7. Verdict
@@ -6083,15 +6083,15 @@ function _mergeBetclicOdds(espnMatches, betclicMatches){
       const maxP    = Math.max(ph,pd,pa);
       const pickType= ph===maxP?'1':pa===maxP?'2':'N';
       const pickOdd = pickType==='1'?best.oddH:pickType==='2'?best.oddA:best.oddD;
-      const pickLbl = pickType==='1'?`Victoire ${m.home.short}`:pickType==='2'?`Victoire ${m.away.short}`:'Match Nul';
+      const pickLbl = pickType==='1'?`Victoire ${_esc(m.home.short)}`:pickType==='2'?`Victoire ${_esc(m.away.short)}`:'Match Nul';
       m.mp  = { label:pickLbl, type:pickType, odd:'×'+pickOdd.toFixed(2), oddVal:pickOdd,
                 conf:(conf/10).toFixed(1), risk:risk==='safe'?'SAFE':risk==='moyen'?'MOYEN':'ÉLEVÉ' };
 
       // Value bets
       m.vb = [];
-      if(calcEdge(ph,best.oddH)>4) m.vb.push({label:`Vic. ${m.home.short}`,type:'1',odd:best.oddH,kelly:+(calcEdge(ph,best.oddH)/100*0.5).toFixed(3)});
+      if(calcEdge(ph,best.oddH)>4) m.vb.push({label:`Vic. ${_esc(m.home.short)}`,type:'1',odd:best.oddH,kelly:+(calcEdge(ph,best.oddH)/100*0.5).toFixed(3)});
       if(calcEdge(pd,best.oddD)>4) m.vb.push({label:'Match Nul',type:'N',odd:best.oddD,kelly:+(calcEdge(pd,best.oddD)/100*0.5).toFixed(3)});
-      if(calcEdge(pa,best.oddA)>4) m.vb.push({label:`Vic. ${m.away.short}`,type:'2',odd:best.oddA,kelly:+(calcEdge(pa,best.oddA)/100*0.5).toFixed(3)});
+      if(calcEdge(pa,best.oddA)>4) m.vb.push({label:`Vic. ${_esc(m.away.short)}`,type:'2',odd:best.oddA,kelly:+(calcEdge(pa,best.oddA)/100*0.5).toFixed(3)});
 
       // Refresh AI analysis with new odds
       m.aiAnalysis = _buildAnalysisText(m);
@@ -6265,7 +6265,7 @@ async function fetchAllMatchesToday(forceYmd){
       newlyFinished.forEach((m,i)=>{
         const sc=m.score?`${m.score.h}-${m.score.a}`:'FT';
         setTimeout(()=>{
-          showToast(`⏱️ FT : ${m.home.name} ${sc} ${m.away.name}`,'info',5000);
+          showToast(`⏱️ FT : ${_esc(m.home.name)} ${sc} ${_esc(m.away.name)}`,'info',5000);
           // Animer la carte avant suppression
           const card=document.querySelector(`[data-id="${m.id}"]`);
           if(card) card.classList.add('finishing');
@@ -6495,10 +6495,10 @@ function _renderO15Cards(list){
       </div>
       <div class="ias-match" style="display:flex;align-items:center;gap:6px">
         ${_logo(m.home.logo,m.home.emoji,20)}
-        <span>${m.home.name}</span>
+        <span>${_esc(m.home.name)}</span>
         <span style="color:var(--text);font-size:14px">vs</span>
         ${_logo(m.away.logo,m.away.emoji,20)}
-        <span>${m.away.name}</span>
+        <span>${_esc(m.away.name)}</span>
       </div>
       <div style="margin:3px 0 1px;font-size:13px;font-weight:900;color:#3B82F6">
         Plus de 1.5 buts · ×${s.fairOdd} · ${m.ls} · ${m.time}
@@ -6943,7 +6943,7 @@ function _expertSafePick(m){
   // ── Victoire directe si très dominant (> 68%) ─────────────
   if(p.ph >= 68){
     picks.push({
-      label: `Victoire ${m.home.short}`,
+      label: `Victoire ${_esc(m.home.short)}`,
       type: '1', odd: o.h,
       safeScore: p.ph,
       reason: `Domicile favori (${Math.round(p.ph)}% — bilan ${hr.label||'—'})`
@@ -6951,7 +6951,7 @@ function _expertSafePick(m){
   }
   if(p.pa >= 68){
     picks.push({
-      label: `Victoire ${m.away.short}`,
+      label: `Victoire ${_esc(m.away.short)}`,
       type: '2', odd: o.a,
       safeScore: p.pa,
       reason: `Extérieur favori (${Math.round(p.pa)}% — bilan ${ar.label||'—'})`
@@ -6963,7 +6963,7 @@ function _expertSafePick(m){
     const dc1xOdd = +(1 / Math.max((p.ph + p.pd) / 100, 0.01) * 1.06).toFixed(2);
     const dc1xOddCapped = Math.max(1.05, Math.min(2.0, dc1xOdd));
     picks.push({
-      label: `Double Chance 1X (${m.home.short} ou Nul)`,
+      label: `Double Chance 1X (${_esc(m.home.short)} ou Nul)`,
       type: '1X', odd: dc1xOddCapped,
       safeScore: p.ph + p.pd,
       reason: `Domicile avantagé (${Math.round(p.ph)}%) mais match serré → 1X plus sûr`
@@ -6975,7 +6975,7 @@ function _expertSafePick(m){
     const dcx2Odd = +(1 / Math.max((p.pa + p.pd) / 100, 0.01) * 1.06).toFixed(2);
     const dcx2OddCapped = Math.max(1.05, Math.min(2.0, dcx2Odd));
     picks.push({
-      label: `Double Chance X2 (${m.away.short} ou Nul)`,
+      label: `Double Chance X2 (${_esc(m.away.short)} ou Nul)`,
       type: 'X2', odd: dcx2OddCapped,
       safeScore: p.pa + p.pd,
       reason: `Extérieur avantagé (${Math.round(p.pa)}%) → X2 sécurisé`
@@ -7311,10 +7311,10 @@ function renderIaList(){
       </div>
       <div class="ias-match" style="display:flex;align-items:center;gap:6px">
         ${_logo(m.home.logo, m.home.emoji, 20)}
-        <span>${m.home.name}</span>
+        <span>${_esc(m.home.name)}</span>
         <span style="color:var(--text);font-size:14px">vs</span>
         ${_logo(m.away.logo, m.away.emoji, 20)}
-        <span>${m.away.name}</span>
+        <span>${_esc(m.away.name)}</span>
       </div>
       <div class="ias-bet" style="color:${isSafeFilter?'#22c55e':'#3B82F6'};margin:3px 0 2px;font-weight:900">
         ${displayPick.label}
@@ -7477,10 +7477,10 @@ function _renderU45Cards(u45list){
       </div>
       <div class="ias-match" style="display:flex;align-items:center;gap:6px">
         ${_logo(m.home.logo,m.home.emoji,20)}
-        <span>${m.home.name}</span>
+        <span>${_esc(m.home.name)}</span>
         <span style="color:var(--text);font-size:14px">vs</span>
         ${_logo(m.away.logo,m.away.emoji,20)}
-        <span>${m.away.name}</span>
+        <span>${_esc(m.away.name)}</span>
       </div>
       <div style="margin:3px 0 1px;font-size:13px;font-weight:900;color:#16a34a">
         Moins de 4.5 buts · ×${s.fairOdd} · ${m.ls} · ${m.time}
@@ -8082,7 +8082,7 @@ function _renderScorerCards(cards){
                 <div style="font-size:12px;font-weight:${isEst?600:800};
                     color:${isEst?'#888':'#1a1a1a'};font-style:${isEst?'italic':'normal'};
                     ${isEst?'':'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'}">
-                  ${p.name}
+                  ${_esc(p.name)}
                 </div>
                 <div style="font-size:10px;color:var(--text);margin-top:1px">
                   ${p.pos}${extraSub}
@@ -8112,10 +8112,10 @@ function _renderScorerCards(cards){
         <div style="min-width:0;flex:1">
           <div style="font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;
               letter-spacing:.6px;margin-bottom:2px;white-space:nowrap;overflow:hidden;
-              text-overflow:ellipsis">${m.ls} · ${m.league}</div>
+              text-overflow:ellipsis">${m.ls} · ${_esc(m.league)}</div>
           <div style="font-size:13px;font-weight:900;color:var(--text);white-space:nowrap;
               overflow:hidden;text-overflow:ellipsis">
-            ${m.home.name} <span style="color:var(--text)">vs</span> ${m.away.name}
+            ${_esc(m.home.name)} <span style="color:var(--text)">vs</span> ${_esc(m.away.name)}
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -8278,12 +8278,12 @@ function sendChatMessage(text,containerId,inputEl){
       const s=visible.find(m=>m.risk==='safe');
       resp=s?`🛡️ <strong>Paris sûr</strong><br>${s.home.name} vs ${s.away.name}<br>${s.mp.label} — Cote ${s.mp.odd}`:"Aucun paris sûr identifié aujourd'hui.";
     } else if(q.includes('value bet')){
-      resp=vbM.length?`💎 <strong>${vbM.length} value bet(s)</strong><br>`+vbM.map(m=>`• ${m.home.name} vs ${m.away.name} — ${m.mp.odd}`).join('<br>'):"Aucun value bet aujourd'hui.";
+      resp=vbM.length?`💎 <strong>${vbM.length} value bet(s)</strong><br>`+vbM.map(m=>`• ${_esc(m.home.name)} vs ${_esc(m.away.name)} — ${m.mp.odd}`).join('<br>'):"Aucun value bet aujourd'hui.";
     } else if(q.includes('banker')){
       const b=visible.find(m=>m.pred.conf>=80);
       resp=b?`🏆 <strong>Banker du jour</strong><br>${b.home.name} vs ${b.away.name}<br>${b.mp.label} — ${b.pred.conf}% confiance`:"Pas de banker identifié (confiance ≥80%) ce soir.";
     } else if(q.includes('live')){
-      resp=live.length?`🔴 <strong>${live.length} match(s) en live</strong><br>`+live.map(m=>`• ${m.home.name} ${m.score.h}-${m.score.a} ${m.away.name} (${m.liveMin||0}')`).join('<br>'):'Aucun match en live pour le moment.';
+      resp=live.length?`🔴 <strong>${live.length} match(s) en live</strong><br>`+live.map(m=>`• ${_esc(m.home.name)} ${m.score.h}-${m.score.a} ${_esc(m.away.name)} (${m.liveMin||0}')`).join('<br>'):'Aucun match en live pour le moment.';
     } else if(q.includes('stat')){
       const avg=visible.length?Math.round(visible.reduce((s,m)=>s+m.pred.conf,0)/visible.length):0;
       resp=`📊 <strong>Stats du jour</strong><br>• ${visible.length} matchs<br>• Confiance IA moy. : ${avg}%<br>• ${vbM.length} value bet(s)<br>• ${live.length} live`;
@@ -8479,9 +8479,9 @@ function _checkAllNotifs(){
 
     // ── 1. COUP D'ENVOI — match passe à live ──────────────────
     if(_notifPrefs.kickoff && m.status === 'live' && prevStatus !== 'live'){
-      _sendNotif(`🟢 Coup d'envoi ! ${m.home.name} vs ${m.away.name}`,
-        `${m.league} — coup d'envoi !`, `kickoff-${m.id}`, m.id);
-      _addNotifHistory('⚽', `Coup d'envoi`, `${m.home.name} vs ${m.away.name} — ${m.league}`);
+      _sendNotif(`🟢 Coup d'envoi ! ${_esc(m.home.name)} vs ${_esc(m.away.name)}`,
+        `${_esc(m.league)} — coup d'envoi !`, `kickoff-${m.id}`, m.id);
+      _addNotifHistory('⚽', `Coup d'envoi`, `${_esc(m.home.name)} vs ${_esc(m.away.name)} — ${_esc(m.league)}`);
     }
 
     // ── 2. BUT MARQUÉ — score change ──────────────────────────
@@ -8491,10 +8491,10 @@ function _checkAllNotifs(){
         const ph = parseInt(prevScore.split('-')[0])||0;
         const pa = parseInt(prevScore.split('-')[1])||0;
         const scorer = m.score.h > ph ? m.home.name : m.away.name;
-        _sendNotif(`⚽ But ! ${m.home.name} ${m.score.h}–${m.score.a} ${m.away.name}`,
-          `${scorer} marque à la ${m.liveMin||'?'}' — ${m.league}`,
+        _sendNotif(`⚽ But ! ${_esc(m.home.name)} ${m.score.h}–${m.score.a} ${_esc(m.away.name)}`,
+          `${scorer} marque à la ${m.liveMin||'?'}' — ${_esc(m.league)}`,
           `goal-${m.id}-${curr}`, m.id);
-        _addNotifHistory('⚽', `But de ${scorer}`, `${m.home.name} ${m.score.h}-${m.score.a} ${m.away.name} (${m.liveMin||'?'}')`);
+        _addNotifHistory('⚽', `But de ${scorer}`, `${_esc(m.home.name)} ${m.score.h}-${m.score.a} ${_esc(m.away.name)} (${m.liveMin||'?'}')`);
       }
       _notifGoals[m.id] = curr;
     } else if(!_notifGoals[m.id]){
@@ -8503,18 +8503,18 @@ function _checkAllNotifs(){
 
     // ── 3. MI-TEMPS ───────────────────────────────────────────
     if(_notifPrefs.halftime && m.status === 'live' && m.period === 'HT' && prevPeriod !== 'HT'){
-      _sendNotif(`⏸️ Mi-temps — ${m.home.name} ${m.score?.h||0}–${m.score?.a||0} ${m.away.name}`,
-        `${m.league} — mi-temps`, `ht-${m.id}`, m.id);
-      _addNotifHistory('⏸️', 'Mi-temps', `${m.home.name} ${m.score?.h||0}-${m.score?.a||0} ${m.away.name}`);
+      _sendNotif(`⏸️ Mi-temps — ${_esc(m.home.name)} ${m.score?.h||0}–${m.score?.a||0} ${_esc(m.away.name)}`,
+        `${_esc(m.league)} — mi-temps`, `ht-${m.id}`, m.id);
+      _addNotifHistory('⏸️', 'Mi-temps', `${_esc(m.home.name)} ${m.score?.h||0}-${m.score?.a||0} ${_esc(m.away.name)}`);
     }
 
     // ── 4. FIN DU MATCH ───────────────────────────────────────
     if(_notifPrefs.fulltime && m.status === 'finished' && prevStatus !== 'finished' && prevStatus){
       const sc = m.score ? `${m.score.h}-${m.score.a}` : '?-?';
-      const result = !m.score ? '—' : m.score.h > m.score.a ? `Victoire ${m.home.name}` : m.score.h < m.score.a ? `Victoire ${m.away.name}` : 'Match Nul';
-      _sendNotif(`🏁 Fin : ${m.home.name} ${sc} ${m.away.name}`,
-        `${result} — ${m.league}`, `ft-${m.id}`, m.id);
-      _addNotifHistory('🏁', `Fin du match`, `${m.home.name} ${sc} ${m.away.name} — ${result}`);
+      const result = !m.score ? '—' : m.score.h > m.score.a ? `Victoire ${_esc(m.home.name)}` : m.score.h < m.score.a ? `Victoire ${_esc(m.away.name)}` : 'Match Nul';
+      _sendNotif(`🏁 Fin : ${_esc(m.home.name)} ${sc} ${_esc(m.away.name)}`,
+        `${result} — ${_esc(m.league)}`, `ft-${m.id}`, m.id);
+      _addNotifHistory('🏁', `Fin du match`, `${_esc(m.home.name)} ${sc} ${_esc(m.away.name)} — ${result}`);
     }
 
     // ── 5. RAPPEL 15 MIN avant coup d'envoi ───────────────────
@@ -8523,9 +8523,9 @@ function _checkAllNotifs(){
       const matchMin = hh*60 + mm;
       const diff = matchMin - nowMin;
       if(diff >= 14 && diff <= 16){
-        _sendNotif(`⏰ Dans 15 min : ${m.home.name} vs ${m.away.name}`,
-          `${m.league} — coup d'envoi à ${m.time}`, `reminder-${m.id}`, m.id);
-        _addNotifHistory('⏰', `Rappel 15 min`, `${m.home.name} vs ${m.away.name} à ${m.time}`);
+        _sendNotif(`⏰ Dans 15 min : ${_esc(m.home.name)} vs ${_esc(m.away.name)}`,
+          `${_esc(m.league)} — coup d'envoi à ${m.time}`, `reminder-${m.id}`, m.id);
+        _addNotifHistory('⏰', `Rappel 15 min`, `${_esc(m.home.name)} vs ${_esc(m.away.name)} à ${m.time}`);
         _notifReminders[m.id] = true;
       }
     }
@@ -9285,9 +9285,9 @@ let _selMode = false;
 function _couponBets(m){
   const p=m.pred, o=m.odds;
   const bets=[];
-  if(o.h>1)  bets.push({key:'1',   label:`1 — ${m.home.name}`,  odd:o.h});
+  if(o.h>1)  bets.push({key:'1',   label:`1 — ${_esc(m.home.name)}`,  odd:o.h});
   if(o.d>1)  bets.push({key:'N',   label:'Nul (X)',              odd:o.d});
-  if(o.a>1)  bets.push({key:'2',   label:`2 — ${m.away.name}`,  odd:o.a});
+  if(o.a>1)  bets.push({key:'2',   label:`2 — ${_esc(m.away.name)}`,  odd:o.a});
   if(p.o15)  bets.push({key:'+1.5',label:'Plus de 1.5 buts',    odd:+(1/Math.max(p.o15/100,.01)).toFixed(2)});
   if(p.o25)  bets.push({key:'+2.5',label:'Plus de 2.5 buts',    odd:+(1/Math.max(p.o25/100,.01)).toFixed(2)});
   if(p.btts) bets.push({key:'btts',label:'Les deux équipes marquent', odd:+(1/Math.max(p.btts/100,.01)).toFixed(2)});
@@ -9673,7 +9673,7 @@ function renderCoupon(){
     <div class="coupon-item">
       <div class="ci-top">
         <div class="league-dot" style="background:${m.lc};width:7px;height:7px;border-radius:50%;flex-shrink:0"></div>
-        <div class="ci-league">${m.ls} · ${m.league} · ${m.time}</div>
+        <div class="ci-league">${m.ls} · ${_esc(m.league)} · ${m.time}</div>
         <div style="display:flex;align-items:center;gap:6px">
           <div onclick="showDetail(${m.id})" style="font-size:12px;font-weight:800;color:#3B82F6;background:var(--surface-3);border:1px solid #93C5FD;border-radius:6px;padding:2px 8px;cursor:pointer">🔍 Détails</div>
           <div class="ci-remove" onclick="removeCouponItem(${m.id})" title="Retirer">✕</div>
@@ -9681,10 +9681,10 @@ function renderCoupon(){
       </div>
       <div class="ci-teams" style="display:flex;align-items:center;gap:6px;cursor:pointer" onclick="showDetail(${m.id})">
         ${_logo(m.home.logo, m.home.emoji, 22)}
-        <span>${m.home.name}</span>
+        <span>${_esc(m.home.name)}</span>
         <span style="color:var(--text);font-size:14px">vs</span>
         ${_logo(m.away.logo, m.away.emoji, 22)}
-        <span>${m.away.name}</span>
+        <span>${_esc(m.away.name)}</span>
         <span style="font-size:12px;color:var(--text);margin-left:auto">›</span>
       </div>
       ${hasBc ? `
@@ -9819,7 +9819,7 @@ function _couponText(){
     const hasBetclic = !!m.betclicHome;
     txt+=`${i+1}. ${matchName}${hasBetclic?' 🎲':''}\n`;
     txt+=`   📌 ${c.label} · Cote ×${c.odd.toFixed(2)}\n`;
-    txt+=`   🏆 ${m.league} · ${m.time}\n`;
+    txt+=`   🏆 ${_esc(m.league)} · ${m.time}\n`;
     if(hasBetclic && BETCLIC_LEAGUE_URLS[m.ls]){
       txt+=`   🔗 ${BETCLIC_LEAGUE_URLS[m.ls]}\n`;
     }
