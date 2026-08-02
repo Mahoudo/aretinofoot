@@ -2585,6 +2585,11 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         <div class="chip" onclick="setIaFilter('buteur',this)">🎯 Buteurs</div>
         <div class="chip" onclick="setIaFilter('wc26',this)" style="display:none!important;border-color:var(--down)!important;color:var(--down)!important">🏆 MONDIAL</div>
       </div>
+      <!-- Bascule d'affichage : cartes détaillées ou 1 pick claire par match -->
+      <div style="display:flex;gap:6px;padding:0 12px 8px">
+        <div id="iav-detailed" onclick="setIaView('detailed')" style="flex:1;text-align:center;padding:7px 0;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;border:1px solid var(--border)">📊 Détaillé</div>
+        <div id="iav-simple" onclick="setIaView('simple')" style="flex:1;text-align:center;padding:7px 0;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;border:1px solid var(--border)">⚡ Simple</div>
+      </div>
       <div style="margin:0 12px 8px;background:var(--surface-2);border-radius:12px;display:flex;padding:8px 0">
         <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--text)">5</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Matchs du jour</div></div>
         <div style="flex:1;text-align:center;border-left:1px solid var(--border);border-right:1px solid var(--border)"><div style="font-size:20px;font-weight:900;color:#3B82F6">74%</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Confiance moy. IA</div></div>
@@ -3068,6 +3073,7 @@ const _MATCHES_PLACEHOLDER=[
 ];/* end _MATCHES_PLACEHOLDER */
 
 let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0, wcFilter='all', wcSearch='';
+let iaViewMode = (localStorage.getItem('aret_ia_view')||'detailed'); // 'detailed' | 'simple' (1 pick claire/match)
 
 // ── Compétitions favorites ──────────────────────────────
 let FAVE_LEAGUES = new Set(JSON.parse(localStorage.getItem('fave_leagues')||'[]'));
@@ -6934,6 +6940,61 @@ function _expertSafePick(m){
   return picks[0];
 }
 
+// ── Mode d'affichage IA : cartes détaillées ou 1 pick claire par match ──
+function setIaView(mode){
+  iaViewMode = (mode==='simple') ? 'simple' : 'detailed';
+  try{ localStorage.setItem('aret_ia_view', iaViewMode); }catch(e){}
+  _syncIaViewButtons();
+  renderIaList();
+}
+function _syncIaViewButtons(){
+  const d=document.getElementById('iav-detailed'), s=document.getElementById('iav-simple');
+  if(!d||!s) return;
+  const on ='background:var(--accent);border-color:var(--accent);color:#fff;';
+  const off='background:var(--surface-2);border-color:var(--border);color:var(--text-2);';
+  const base='flex:1;text-align:center;padding:7px 0;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;border:1px solid;';
+  d.style.cssText = base + (iaViewMode==='detailed'?on:off);
+  s.style.cssText = base + (iaViewMode==='simple'  ?on:off);
+}
+
+// Vue SIMPLE : une seule recommandation lisible par match (pick + cote + confiance).
+// Le détail complet reste accessible au clic sur la carte.
+function _renderSimpleCards(list){
+  return list.map(({m, s}) => {
+    const isSafeFilter = (iaFilter === 'safe');
+    const safePick = isSafeFilter ? _expertSafePick(m) : null;
+    const pick = safePick || { label: m.mp.label, odd: m.mp.oddVal || null };
+    const oddStr = m.hasRealOdds && pick.odd ? '×'+pick.odd.toFixed(2)
+                 : (m.oddSource==='betclic' && pick.odd ? '×'+pick.odd.toFixed(2) : '—');
+    const col = s.score>=78?'#f59e0b' : s.score>=63?'var(--up)' : s.score>=48?'var(--neutral)' : 'var(--text-mute)';
+    const isLive = m.status==='live';
+    const timeTxt = isLive ? (typeof _liveMinDisplay==='function'?_liveMinDisplay(m):'LIVE') : (m.time||'—');
+    const scoreTxt = m.score ? `${m.score.h} - ${m.score.a}` : '';
+    return `
+    <div class="ia-selection${COUPON[m.id]?' ia-selected':''}" id="ia-card-${m.id}" onclick="showDetail(${m.id})" style="padding:11px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+        <span style="font-size:11px;font-weight:700;color:var(--text-2)">${_esc(m.ls||'')}</span>
+        <span style="font-size:11.5px;font-weight:800;color:${isLive?'var(--down)':'var(--text-2)'}">${isLive?'🔴 ':''}${timeTxt}${scoreTxt?' · '+scoreTxt:''}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+        ${_logo(m.home.logo, m.home.emoji, 22)}
+        <span style="font-size:14.5px;font-weight:700;color:var(--text);flex:1">${_esc(m.home.name)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">
+        ${_logo(m.away.logo, m.away.emoji, 22)}
+        <span style="font-size:14.5px;font-weight:700;color:var(--text);flex:1">${_esc(m.away.name)}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px 11px">
+        <span style="font-size:14px;font-weight:800;color:${col}">${_esc(pick.label||'—')}</span>
+        <span style="display:flex;align-items:center;gap:9px">
+          <span style="font-size:11px;font-weight:800;color:${col}">${s.score}/100</span>
+          <span style="font-size:15px;font-weight:900;color:var(--up)">${oddStr}</span>
+        </span>
+      </div>
+    </div>`;
+  }).join('') + '<div style="height:8px"></div>';
+}
+
 function renderIaList(){
   const base = MATCHES.filter(m => m.status !== 'finished');
   let pool   = base.filter(m => m.pred.conf >= confMinFilter);
@@ -7049,6 +7110,13 @@ function renderIaList(){
         <div style="font-size:17px;font-weight:800;color:var(--text)">Aucune sélection pour ce filtre</div>
         <div style="font-size:13px;color:var(--text);margin-top:4px">Essayez "Tous" ou réduisez le seuil de confiance</div>
       </div>`;
+    return;
+  }
+
+  // Vue simple : 1 pick claire par match (le détail reste au clic)
+  if(iaViewMode === 'simple'){
+    document.getElementById('ia-list').innerHTML = iaFallbackBanner + _renderSimpleCards(list);
+    _syncIaViewButtons();
     return;
   }
 
@@ -7206,6 +7274,7 @@ function renderIaList(){
   }).join('') + '<div style="height:8px"></div>';
 
   document.getElementById('ia-list').innerHTML = iaFallbackBanner + html;
+  _syncIaViewButtons();
 
   // ── Enrichissement H2H ESPN en arrière-plan ──
   // Met à jour m.h2h sur les top matchs, puis re-render si nouveaux H2H trouvés
