@@ -2752,6 +2752,9 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         <div style="width:260px;height:1px;background:var(--border);margin:16px 0"></div>
         <div style="font-size:15px;font-weight:900;color:#2CD583;margin-bottom:8px;align-self:flex-start;width:260px">📈 Performance IA (30 jours)</div>
         <div id="aret-perf30" style="width:260px"></div>
+        <div style="width:260px;height:1px;background:var(--border);margin:16px 0"></div>
+        <div style="font-size:15px;font-weight:900;color:#2CD583;margin-bottom:8px;align-self:flex-start;width:260px">🏆 Saison en cours (par championnat)</div>
+        <div id="aret-perf-season" style="width:260px"></div>
       </div>
     </div>
   </div>
@@ -8756,6 +8759,7 @@ function _aretRiskRender(){
     slEl.innerHTML=txt;
   }
   try{ _renderPerf30(); }catch(e){}
+  try{ _renderPerfSeason(); }catch(e){}
 }
 // #8 — Historique de précision sur 30 jours (données réelles du tracker)
 function _renderPerf30(){
@@ -8774,6 +8778,58 @@ function _renderPerf30(){
   </div>
   <div style="font-size:11px;color:var(--text-mute);margin-top:6px;line-height:1.5">Calculé sur tes paris réellement notés (Gagné/Perdu). Au-delà de 50% et ROI positif sur 50+ paris = vrai avantage.</div>`;
 }
+// Suivi de la saison en cours, par championnat.
+// Ne compte que les paris résolus depuis le début de saison (1er août) —
+// les résultats de la saison passée ne disent rien de celle-ci.
+function _renderPerfSeason(){
+  const el=document.getElementById('aret-perf-season'); if(!el) return;
+  const now=new Date();
+  // Saison = du 1er août au 31 juillet
+  const seasonStart=new Date(now.getFullYear() - (now.getMonth()<7?1:0), 7, 1).getTime();
+  const seasonLbl=`${new Date(seasonStart).getFullYear()}-${(new Date(seasonStart).getFullYear()+1).toString().slice(2)}`;
+  const picks=(typeof _getPicks==='function'?_getPicks():[])
+    .filter(p=>(p.result==='W'||p.result==='L') &&
+      new Date(p.settledAt||p.addedAt||p.date).getTime()>=seasonStart);
+  if(!picks.length){
+    el.innerHTML=`<div style="font-size:12.5px;color:var(--text-mute);line-height:1.5">Aucun pari résolu depuis le début de la saison ${seasonLbl}. Note tes résultats pour mesurer la fiabilité réelle du modèle cette saison.</div>`;
+    return;
+  }
+  const by={};
+  picks.forEach(p=>{
+    const k=p.league||'—';
+    (by[k] = by[k] || {w:0,n:0,units:0});
+    by[k].n++;
+    if(p.result==='W'){ by[k].w++; by[k].units += (+p.odds>1 ? (+p.odds-1) : 0); }
+    else by[k].units -= 1;
+  });
+  const rows=Object.entries(by).map(([lg,v])=>({
+    lg, n:v.n, rate:Math.round(v.w/v.n*100), roi:v.units/v.n*100
+  })).sort((a,b)=>b.n-a.n);
+  const tot=picks.length;
+  const totW=picks.filter(p=>p.result==='W').length;
+  const totRoi=picks.reduce((s,p)=>s+(p.result==='W'?((+p.odds>1)?(+p.odds-1):0):-1),0)/tot*100;
+  el.innerHTML=`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:11px 12px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">
+        <span>Saison ${seasonLbl}</span><span>${tot} pari${tot>1?'s':''}</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:9px">
+        <div style="flex:1;text-align:center"><div style="font-family:'Sora';font-size:19px;font-weight:800;color:${totW/tot>=0.5?'var(--up)':'var(--down)'}">${Math.round(totW/tot*100)}%</div><div style="font-size:10px;color:var(--text-2);text-transform:uppercase">Réussite</div></div>
+        <div style="flex:1;text-align:center"><div style="font-family:'Sora';font-size:19px;font-weight:800;color:${totRoi>=0?'var(--up)':'var(--down)'}">${totRoi>0?'+':''}${totRoi.toFixed(0)}%</div><div style="font-size:10px;color:var(--text-2);text-transform:uppercase">ROI</div></div>
+      </div>
+      ${rows.map(r=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:12.5px;border-top:1px solid var(--border)">
+          <span style="color:var(--text);font-weight:700">${_esc(r.lg)}</span>
+          <span style="display:flex;gap:9px;align-items:center">
+            <span style="color:var(--text-2);font-size:11px">${r.n} pari${r.n>1?'s':''}</span>
+            <span style="font-weight:800;color:${r.rate>=50?'var(--up)':'var(--down)'}">${r.rate}%</span>
+            <span style="font-weight:800;font-size:11.5px;color:${r.roi>=0?'var(--up)':'var(--down)'}">${r.roi>0?'+':''}${r.roi.toFixed(0)}%</span>
+          </span>
+        </div>`).join('')}
+      <div style="font-size:10.5px;color:var(--text-mute);margin-top:7px;line-height:1.45">Sous 30 paris par championnat, ces chiffres sont surtout du bruit — ne conclus pas trop vite.</div>
+    </div>`;
+}
+
 function _aretMonteCarlo(){
   const p=(+document.getElementById('aret-mc-p').value)/100, o=+document.getElementById('aret-mc-o').value,
         N=Math.max(1,+document.getElementById('aret-mc-n').value|0), thr=(+document.getElementById('aret-mc-t').value)/100;
