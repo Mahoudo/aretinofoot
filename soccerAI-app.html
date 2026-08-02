@@ -5816,6 +5816,63 @@ function _afStatus(short, elapsed){
   return { status:'scheduled', period:'1H' };
 }
 
+// ══════════════════════════════════════════════════════════════
+//  BLESSURES / ABSENTS — API-Football (nécessite la clé RapidAPI)
+//  Quota gratuit très serré → 1 requête par match (pas par équipe),
+//  cache 6 h en localStorage, plafond strict de requêtes par rafraîchissement.
+//  Sans clé : ne fait rien du tout (aucune donnée inventée).
+// ══════════════════════════════════════════════════════════════
+const INJ_CACHE_KEY='aret_injuries_v1';
+const INJ_TTL = 6*3600*1000;
+const INJ_MAX_CALLS = 6;   // au plus 6 requêtes par rafraîchissement
+
+function _injCacheGet(){ try{ return JSON.parse(localStorage.getItem(INJ_CACHE_KEY)||'{}'); }catch(e){ return {}; } }
+function _injCacheSet(c){ try{ localStorage.setItem(INJ_CACHE_KEY, JSON.stringify(c)); }catch(e){} }
+
+async function _fetchInjuries(matches){
+  if(!APIFOOTBALL_KEY) return 0;               // pas de clé → on ne fait rien
+  const cache=_injCacheGet();
+  const now=Date.now();
+  // On ne s'intéresse qu'aux matchs à venir qui ont un id de fixture API-Football
+  const targets=matches
+    .filter(m=>m.status==='scheduled' && m.afFixtureId)
+    .slice(0, INJ_MAX_CALLS);
+  let applied=0, calls=0;
+
+  for(const m of targets){
+    const key='fx'+m.afFixtureId;
+    let entry=cache[key];
+    if(!entry || (now-entry.ts)>INJ_TTL){
+      if(calls>=INJ_MAX_CALLS) break;
+      try{
+        calls++;
+        const r=await fetch(`https://api-football-v1.p.rapidapi.com/v3/injuries?fixture=${m.afFixtureId}`,{
+          headers:{'X-RapidAPI-Key':APIFOOTBALL_KEY,'X-RapidAPI-Host':'api-football-v1.p.rapidapi.com'},
+          signal:AbortSignal.timeout(10000)
+        });
+        if(!r.ok) continue;
+        const j=await r.json();
+        const list=j.response||[];
+        const home={n:0,names:[]}, away={n:0,names:[]};
+        list.forEach(it=>{
+          const tid=it.team?.id, pname=it.player?.name||'';
+          const side = (tid && m.afHomeId && tid===m.afHomeId) ? home : (tid && m.afAwayId && tid===m.afAwayId) ? away : null;
+          if(side){ side.n++; if(side.names.length<3 && pname) side.names.push(pname); }
+        });
+        entry={ts:now, home, away};
+        cache[key]=entry;
+      }catch(e){ continue; }
+    }
+    if(entry){
+      m.home.injuries=entry.home.n; m.home.injuryNames=entry.home.names;
+      m.away.injuries=entry.away.n; m.away.injuryNames=entry.away.names;
+      applied++;
+    }
+  }
+  _injCacheSet(cache);
+  return applied;
+}
+
 async function _fetchApiFootballMatches(existingMatches, dateStr){
   if(!APIFOOTBALL_KEY) return 0;
   const url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?date=${dateStr}`;
@@ -5899,6 +5956,10 @@ async function _fetchApiFootballMatches(existingMatches, dateStr){
       const matchObj = {
         id: fx.fixture?.id || uidC++,
         espnId: null,
+        // ids API-Football → permettent de récupérer les blessures du match
+        afFixtureId: fx.fixture?.id || null,
+        afHomeId: fx.teams?.home?.id || null,
+        afAwayId: fx.teams?.away?.id || null,
         league: `${li.flag} ${li.name}`,
         ls: li.ls, lc: li.lc, pri: li.pri,
         time: timeStr, status, period, liveMin: elapsed,
@@ -6128,6 +6189,11 @@ async function fetchAllMatchesToday(forceYmd){
           newMatches.sort((a,b)=>(a.pri-b.pri)||a.time.localeCompare(b.time));
         }
       } catch(e){ console.warn('[API-Football]', e.message); }
+      // 5b️⃣  Blessures / absents (quota serré : cache 6 h + plafond de requêtes)
+      try{
+        const inj = await _fetchInjuries(newMatches);
+        if(inj) console.log(`[Injuries] ${inj} match(s) enrichis`);
+      } catch(e){ console.warn('[Injuries]', e.message); }
     }
 
     // 5c️⃣  COUPE DU MONDE 2026 — fetch dédié (désactivé : WC26_ENABLED=false)
@@ -7255,6 +7321,15 @@ function renderIaList(){
       </div>
       ${safeReasonHtml}
       ${reasonsHtml}
+      ${(()=>{
+        // Absents — affiché uniquement si la donnée a été récupérée (clé API-Football)
+        const hi=m.home.injuries, ai=m.away.injuries;
+        if(hi==null && ai==null) return '';
+        if(!hi && !ai) return '';
+        const part=(name,n,names)=> n ? `<b>${_esc(name)}</b> ${n} absent${n>1?'s':''}${names&&names.length?` (${names.map(_esc).join(', ')}${n>names.length?'…':''})`:''}` : '';
+        const bits=[part(m.home.name,hi,m.home.injuryNames), part(m.away.name,ai,m.away.injuryNames)].filter(Boolean);
+        return `<div style="font-size:11.5px;color:#f59e0b;margin-top:4px;line-height:1.4">🚑 ${bits.join(' · ')}</div>`;
+      })()}
       ${_liveAdverseWarning(m, displayPick.type)}
       <div class="ias-footer" style="margin-top:6px">
         <span class="ias-conf">🎯 ${p.conf}% · Edge ${s.edge>=0?'+':''}${s.edge.toFixed(1)}%${s.clv!==null?` · <span style="color:${s.clv>=3?'#22c55e':s.clv<=-3?'#ef4444':'#94a3b8'};font-weight:700">${s.clv>=0?'+':''}${s.clv}% vs marché</span>`:''}</span>
