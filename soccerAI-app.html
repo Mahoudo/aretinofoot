@@ -4660,21 +4660,42 @@ function showToast(msg, type='ok', duration=4000){
   t._t=setTimeout(()=>{t.style.opacity='0';},duration);
 }
 
-function setRefreshState(loading){
+// Horodatage du dernier rafraîchissement RÉUSSI (sert à dater les données périmées)
+let _lastOkFetch = 0;
+
+// setRefreshState(loading, ok) — ok=false signale un échec d'actualisation
+function setRefreshState(loading, ok){
   const btn=document.getElementById('refresh-btn');
   if(!btn) return;
   const _rSvg='<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>';
+  const lbl=document.getElementById('last-update');
+  const hhmmss=d=>d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
   if(loading){
     btn.innerHTML=_rSvg;
     btn.style.animation='pulse .8s infinite';
-  } else {
-    btn.innerHTML=_rSvg;
-    btn.style.animation='';
-    const now=new Date();
-    const ts=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');
-    const lbl=document.getElementById('last-update');
-    if(lbl){lbl.textContent='🟢 '+ts;lbl.style.display='';}
+    return;
   }
+  btn.innerHTML=_rSvg;
+  btn.style.animation='';
+  if(ok === false){
+    // Échec : ne PAS afficher un voyant vert à l'heure courante (ce serait
+    // mentir sur la fraîcheur). On indique l'âge réel des données affichées.
+    if(lbl){
+      if(_lastOkFetch){
+        const mins=Math.max(1, Math.round((Date.now()-_lastOkFetch)/60000));
+        lbl.textContent = mins>=60
+          ? `⚠️ hors ligne · données de ${hhmmss(new Date(_lastOkFetch))}`
+          : `⚠️ hors ligne · données vieilles de ${mins} min`;
+      } else {
+        lbl.textContent='⚠️ hors ligne · aucune donnée à jour';
+      }
+      lbl.style.color='#f59e0b';
+      lbl.style.display='';
+    }
+    return;
+  }
+  _lastOkFetch=Date.now();
+  if(lbl){ lbl.textContent='🟢 '+hhmmss(new Date()); lbl.style.color=''; lbl.style.display=''; }
 }
 
 // Met à jour la barre d'état des cotes selon la présence d'une clé + cotes réelles chargées
@@ -6292,8 +6313,10 @@ async function fetchAllMatchesToday(forceYmd){
       cr.textContent=`Crédits Odds API restants : ${API_CFG.remaining} / 500`;
 
   } catch(err){
-    setRefreshState(false);
-    showToast('⚠️ ESPN indisponible. Vérifiez votre connexion.','warn');
+    setRefreshState(false, false);   // échec → l'indicateur signale des données périmées
+    showToast(MATCHES.length
+      ? '⚠️ Actualisation impossible — les matchs affichés datent du dernier chargement réussi.'
+      : '⚠️ Connexion indisponible. Aucune donnée chargée.','warn', 4000);
     console.error('[fetchAllMatchesToday]',err);
   }
 }
