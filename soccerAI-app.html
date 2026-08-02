@@ -9882,6 +9882,11 @@ function closeSearch(){
   document.getElementById('search-overlay').classList.remove('open');
 }
 
+function clearRecentSearches(){
+  try{ localStorage.removeItem('aret_recent_search'); }catch(e){}
+  _renderSearchHome();
+}
+
 function clearSearch(){
   const inp=document.getElementById('so-input');
   inp.value='';
@@ -10014,26 +10019,80 @@ function _soMatchCard(m, highlightQ){
   </div>`;
 }
 
+// Normalise pour la recherche : minuscules, sans accents, sans ponctuation.
+// "Malmö FF" → "malmo ff" → trouvable en tapant "malmo".
+function _searchNorm(s){
+  return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+// Distance de Levenshtein bornée — tolère les fautes de frappe ("arsenl" → "arsenal")
+function _editDist(a,b,max){
+  if(Math.abs(a.length-b.length)>max) return max+1;
+  let prev=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+    const cur=[i]; let best=i;
+    for(let j=1;j<=b.length;j++){
+      const v=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      cur[j]=v; if(v<best) best=v;
+    }
+    if(best>max) return max+1;
+    prev=cur;
+  }
+  return prev[b.length];
+}
+// Un texte correspond-il à la requête ? sous-chaîne, sinon début de mot approché.
+function _searchHit(text, qn){
+  const t=_searchNorm(text);
+  if(!qn) return false;
+  if(t.includes(qn)) return true;
+  if(qn.length<4) return false;              // trop court pour du flou
+  const tol = qn.length>=7 ? 2 : 1;
+  // 1) requête complète ≈ texte complet (faute n'importe où : "st johnstona")
+  if(_editDist(qn, t, tol)<=tol) return true;
+  // 2) requête ≈ début du texte (l'utilisateur n'a tapé qu'un préfixe)
+  if(t.length>qn.length && _editDist(qn, t.slice(0, qn.length+tol), tol)<=tol) return true;
+  // 3) mot à mot : un mot du texte ≈ un mot de la requête
+  const qWords=qn.split(' ').filter(w=>w.length>=4);
+  const tWords=t.split(' ').filter(w=>w.length>=3);
+  return qWords.some(qw=>{
+    const wt = qw.length>=7 ? 2 : 1;
+    return tWords.some(tw=>_editDist(qw, tw, wt)<=wt);
+  });
+}
+// Mémorise les recherches récentes (max 6)
+function _pushRecentSearch(q){
+  if(!q||q.trim().length<2) return;
+  try{
+    const list=JSON.parse(localStorage.getItem('aret_recent_search')||'[]')
+      .filter(x=>x.toLowerCase()!==q.trim().toLowerCase());
+    list.unshift(q.trim());
+    localStorage.setItem('aret_recent_search', JSON.stringify(list.slice(0,6)));
+  }catch(e){}
+}
+
 function runSearch(q){
   const container=document.getElementById('so-results');
   document.getElementById('so-clear').style.display=q?'inline-flex':'none';
   if(!q||q.trim().length<1){ _renderSearchHome(); return; }
   const qL=q.trim().toLowerCase();
+  const qn=_searchNorm(q);
+  _pushRecentSearch(q);
 
   // ── Collect matching matches ──
   const matchSet=new Set();   // match ids that hit a team/player query
   const compMap={};
   const playerMap={};
 
-  MATCHES.filter(m=>m.status!=='finished').forEach(m=>{
-    // Teams — match if home OR away contains query
-    const homeHit=m.home.name.toLowerCase().includes(qL);
-    const awayHit=m.away.name.toLowerCase().includes(qL);
+  // On inclut aussi les matchs terminés : chercher un résultat est légitime.
+  MATCHES.forEach(m=>{
+    // Teams — match if home OR away contains query (accents + fautes tolérés)
+    const homeHit=_searchHit(m.home.name, qn);
+    const awayHit=_searchHit(m.away.name, qn);
     if((homeHit||awayHit) && (_soTab==='all'||_soTab==='team')){
       matchSet.add(m.id);
     }
     // Competitions
-    if((_soTab==='all'||_soTab==='comp') && m.league && m.league.toLowerCase().includes(qL)){
+    if((_soTab==='all'||_soTab==='comp') && m.league && (_searchHit(m.league, qn) || _searchHit(m.ls||'', qn))){
       if(!compMap[m.league]) compMap[m.league]={name:m.league,lc:m.lc||'#6366f1',matches:[]};
       compMap[m.league].matches.push(m);
     }
@@ -10041,7 +10100,7 @@ function runSearch(q){
     if(_soTab==='all'||_soTab==='player'){
       [['home',m.players?.h||[]],['away',m.players?.a||[]]].forEach(([side,players])=>{
         players.forEach(p=>{
-          if(p.name&&p.name.toLowerCase().includes(qL)){
+          if(p.name&&_searchHit(p.name, qn)){
             if(!playerMap[p.name]) playerMap[p.name]={name:p.name,pos:p.pos||'',matches:[]};
             playerMap[p.name].matches.push({m,side,team:side==='home'?m.home.name:m.away.name});
             matchSet.add(m.id);
@@ -10051,7 +10110,10 @@ function runSearch(q){
     }
   });
 
-  const matchCards=MATCHES.filter(m=>m.status!=='finished'&&matchSet.has(m.id));
+  // Live d'abord, puis à venir, puis terminés
+  const _rank=m=>m.status==='live'?0:m.status==='finished'?2:1;
+  const matchCards=MATCHES.filter(m=>matchSet.has(m.id))
+    .sort((a,b)=>_rank(a)-_rank(b)||(a.time||'').localeCompare(b.time||''));
   const comps=Object.values(compMap);
   const players=Object.values(playerMap);
   const total=matchCards.length+comps.length;
@@ -10113,7 +10175,21 @@ function _renderSearchHome(){
   });
   const leagues=Object.values(leagueGroups).sort((a,b)=>b.live-a.live||b.count-a.count);
 
-  let html=`<div class="so-section">🏆 Compétitions du jour</div>`;
+  // Recherches récentes (cliquables) — relancer une recherche en 1 tap
+  let html='';
+  let recents=[];
+  try{ recents=JSON.parse(localStorage.getItem('aret_recent_search')||'[]'); }catch(e){}
+  if(recents.length){
+    html+=`<div class="so-section" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🕘 Recherches récentes</span>
+      <span onclick="clearRecentSearches()" style="cursor:pointer;font-size:11px;color:var(--text-mute);font-weight:600">Effacer</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;padding:0 14px 12px">
+      ${recents.map(r=>`<span onclick="document.getElementById('so-input').value=${JSON.stringify(r)};runSearch(${JSON.stringify(r)})"
+        style="cursor:pointer;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--text)">${_esc(r)}</span>`).join('')}
+    </div>`;
+  }
+  html+=`<div class="so-section">🏆 Compétitions du jour</div>`;
   if(!leagues.length){
     html+=`<div style="text-align:center;padding:32px;color:var(--text);font-size:.9rem">Aucun match chargé</div>`;
   } else {
