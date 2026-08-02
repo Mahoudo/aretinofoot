@@ -2483,6 +2483,8 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
       </style>
       <!-- Bilan de la veille (affiché seulement s'il y a un historique) -->
       <div id="hb-bilan" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 13px;margin:0 0 12px;font-size:13px;color:var(--text-2);line-height:1.5"></div>
+      <!-- Calendrier de reprise des championnats (affiché à l'approche / au début de saison) -->
+      <div id="hb-saison" style="display:none;margin:0 0 12px"></div>
       <!-- Raccourcis rapides (remplacent les stats redondantes) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 6px">
         <button class="qa-btn" onclick="switchTab('ia')"><span class="qa-i">⚡</span>Top Value Bets</button>
@@ -3344,6 +3346,7 @@ function _sortMatches(arr){
 function renderAll(){
   _resolvePicks();
   if(typeof _updateOddsStatus==='function') _updateOddsStatus();
+  if(typeof _renderSeasonCountdown==='function') _renderSeasonCountdown();
   // Garde-fou : ne jamais afficher un match terminé
   const visible=_sortMatches(MATCHES.filter(m=>m.status!=='finished'));
   document.getElementById('home-matches').innerHTML=visible.length
@@ -6957,6 +6960,53 @@ function _expertSafePick(m){
              safeScore: Math.max(p.ph,p.pd,p.pa), reason: 'Meilleur paris selon les probabilités', isFallback: true };
   }
   return picks[0];
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CALENDRIER DE REPRISE DES CHAMPIONNATS
+//  Dates de la 1ère journée (à ajuster si le calendrier officiel change).
+//  Sert à annoncer la reprise et à rappeler que le modèle est prudent
+//  tant que les équipes n'ont pas joué assez de matchs.
+// ══════════════════════════════════════════════════════════════
+const SEASON_STARTS = [
+  { ls:'BL',  name:'Bundesliga',     flag:'🇩🇪', date:'2026-08-14' },
+  { ls:'PL',  name:'Premier League', flag:'🏴',  date:'2026-08-15' },
+  { ls:'L1',  name:'Ligue 1',        flag:'🇫🇷', date:'2026-08-15' },
+  { ls:'LL',  name:'La Liga',        flag:'🇪🇸', date:'2026-08-16' },
+  { ls:'SA',  name:'Serie A',        flag:'🇮🇹', date:'2026-08-22' },
+];
+
+function _renderSeasonCountdown(){
+  const box=document.getElementById('hb-saison');
+  if(!box) return;
+  // SEASON_STARTS est un `const` déclaré plus bas que le 1er appel top-level de
+  // renderAll() → accès en TDZ au tout premier render. On sort proprement :
+  // le bloc sera peuplé au render suivant.
+  let starts;
+  try{ starts = SEASON_STARTS; }catch(e){ return; }
+  const today=new Date(); today.setHours(0,0,0,0);
+  const rows=starts.map(l=>{
+    const d=new Date(l.date+'T00:00:00');
+    const days=Math.round((d-today)/86400000);
+    return {...l, days};
+  }).filter(l=>l.days >= -21)          // on garde 3 semaines après la reprise
+    .sort((a,b)=>a.days-b.days);
+  if(!rows.length){ box.style.display='none'; return; }
+  const fmt=l=> l.days>1 ? `dans ${l.days} j` : l.days===1 ? 'demain' : l.days===0 ? "aujourd'hui" : 'en cours';
+  const started=rows.filter(l=>l.days<=0).length;
+  box.style.display='';
+  box.innerHTML=`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 13px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:12.5px;font-weight:900;color:var(--text);letter-spacing:.3px">📅 REPRISE DES CHAMPIONNATS</span>
+      </div>
+      ${rows.map(l=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:13px">
+          <span style="color:var(--text)">${l.flag} ${l.name}</span>
+          <span style="font-weight:800;color:${l.days<=0?'var(--up)':l.days<=7?'#f59e0b':'var(--text-2)'}">${fmt(l)}</span>
+        </div>`).join('')}
+      ${started?`<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border);font-size:11.5px;color:#f59e0b;line-height:1.45">⚠️ Début de saison : tant que les équipes ont joué moins de 5 matchs, la forme n'est pas significative — les scores IA sont volontairement plafonnés.</div>`:''}
+    </div>`;
 }
 
 // ── Mode d'affichage IA : cartes détaillées ou 1 pick claire par match ──
