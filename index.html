@@ -6729,6 +6729,24 @@ function _iaScore(m){
     else if(dq==='medium') reasons.push(`ℹ️ Cotes synthétiques → fiabilité plafonnée`);
   }
 
+  // ════════════════════════════════════════════════════════════
+  // GARDE-FOU DÉBUT DE SAISON
+  //   En août/septembre les équipes ont peu de matchs joués : la forme et le
+  //   bilan ne veulent encore rien dire (effectifs remaniés, reprise). Le
+  //   modèle est donc aveugle — on plafonne le score pour ne JAMAIS afficher
+  //   "Signal fort" sur des données trop minces.
+  // ════════════════════════════════════════════════════════════
+  const hPlayed = (hr.played||0), aPlayed = (ar.played||0);
+  const minPlayed = Math.min(hPlayed, aPlayed);
+  const earlySeason = (hPlayed>0 || aPlayed>0) ? (minPlayed < 5) : (favForm.length < 3);
+  if(earlySeason){
+    const earlyCap = minPlayed <= 2 ? 52 : 62;   // <=2 matchs → jamais mieux que "Conf. std"
+    if(score > earlyCap){
+      score = earlyCap;
+      reasons.push(`⚠️ Début de saison (${minPlayed} match${minPlayed>1?'s':''} joué${minPlayed>1?'s':''}) — forme non significative, fiabilité plafonnée`);
+    }
+  }
+
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   let label, sublabel, labelColor, labelIcon;
@@ -6748,7 +6766,8 @@ function _iaScore(m){
     clv = +((modelProb - bookProb) * 100).toFixed(1); // en % points
   }
 
-  return { score, label, sublabel, labelColor, labelIcon, reasons, edge, maxP, formPts5, clv };
+  return { score, label, sublabel, labelColor, labelIcon, reasons, edge, maxP, formPts5, clv,
+           earlySeason, minPlayed };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -6973,7 +6992,7 @@ function _renderSimpleCards(list){
     return `
     <div class="ia-selection${COUPON[m.id]?' ia-selected':''}" id="ia-card-${m.id}" onclick="showDetail(${m.id})" style="padding:11px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-        <span style="font-size:11px;font-weight:700;color:var(--text-2)">${_esc(m.ls||'')}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text-2)">${_esc(m.ls||'')}${s.earlySeason?' · <span style="color:#f59e0b;font-weight:900">⚠️ DÉBUT DE SAISON</span>':''}</span>
         <span style="font-size:11.5px;font-weight:800;color:${isLive?'var(--down)':'var(--text-2)'}">${isLive?'🔴 ':''}${timeTxt}${scoreTxt?' · '+scoreTxt:''}</span>
       </div>
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
@@ -7156,6 +7175,7 @@ function renderIaList(){
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:900;color:${s.labelColor};background:${s.labelColor}18;border:1px solid ${s.labelColor}33;padding:2px 7px;border-radius:5px;letter-spacing:.5px">${s.labelIcon} ${s.label}</span>
           ${isSafeFilter?'<span style="font-size:12px;color:#22c55e;font-weight:900">🛡️ SAFE</span>':''}
+          ${s.earlySeason?`<span title="Peu de matchs joués cette saison : forme non significative" style="font-size:11px;font-weight:900;background:#f59e0b22;border:1px solid #f59e0b55;color:#f59e0b;padding:1px 6px;border-radius:4px">⚠️ DÉBUT DE SAISON</span>`:''}
           ${m.oddSource==='betclic'?'<span style="font-size:11px;color:#e83214;font-weight:900">🎲 Betclic</span>':''}
           ${(()=>{const ss=_sharpSignal(m);const bestS=ss.filter(x=>x.edge>=8);return bestS.length?`<span style="font-size:11px;font-weight:900;background:#f59e0b22;border:1px solid #f59e0b55;color:#f59e0b;padding:1px 6px;border-radius:4px;letter-spacing:.3px">⚡ SHARP +${bestS[0].edge.toFixed(0)}%</span>`:''})()}
         </div>
