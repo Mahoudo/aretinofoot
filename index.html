@@ -2586,6 +2586,7 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
         <div class="chip" onclick="setIaFilter('u45',this)">⬇️ Moins de 4.5</div>
         <div class="chip" onclick="setIaFilter('buteur',this)">🎯 Buteurs</div>
         <div class="chip" onclick="setIaFilter('wc26',this)" style="display:none!important;border-color:var(--down)!important;color:var(--down)!important">🏆 MONDIAL</div>
+        <div class="chip" id="chip-premium" onclick="setIaFilter('premium',this)">👑 Premium</div>
       </div>
       <!-- Bascule d'affichage : cartes détaillées ou 1 pick claire par match -->
       <div style="display:flex;gap:6px;padding:0 12px 8px">
@@ -7156,6 +7157,9 @@ function renderIaList(){
     const vbFiltered = scored.filter(x => x.m.vb.length > 0 && x.s.score > MIN_CONF)
       .sort((a,b) => (b.m.vb[0]?.kelly||0) - (a.m.vb[0]?.kelly||0));
     list = _sortMatches(vbFiltered.map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
+  } else if(iaFilter === 'premium'){
+    // Sélections premium : score IA ≥ 65 (même seuil que le compteur du hero)
+    list = _sortMatches(scored.filter(x => x.s.score >= 65).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'cote15'){
     list = _sortMatches(scored.filter(x => x.m.hasRealOdds && (x.m.mp.oddVal||0) >= 1.5 && x.s.score > MIN_CONF).map(x=>x.m)).map(m=>({m,s:scored.find(x=>x.m===m).s}));
   } else if(iaFilter === 'wc26'){
@@ -8141,18 +8145,19 @@ function _updateIaHero(scored){
   const topOdd  = scored.length ? Math.max(...scored.map(x=>parseFloat((x.m.mp.odd||'×0').replace('×','')))).toFixed(2) : '—';
 
   // Update header metrics
+  // Chaque métrique est cliquable → ouvre la vue filtrée correspondante
   const metricsEl=document.querySelector('.ia-metrics');
   if(metricsEl) metricsEl.innerHTML=`
-    <div class="ia-metric"><div class="ia-m-val">${total}</div><div class="ia-m-lbl">Matchs scannés</div></div>
-    <div class="ia-metric"><div class="ia-m-val">${vbCount}</div><div class="ia-m-lbl">Value Bets</div></div>
-    <div class="ia-metric"><div class="ia-m-val">${avgConf}%</div><div class="ia-m-lbl">Confiance moy.</div></div>`;
+    <div class="ia-metric" onclick="iaStatGo('all')" style="cursor:pointer" title="Voir tous les matchs du jour"><div class="ia-m-val">${total}</div><div class="ia-m-lbl">Matchs scannés</div></div>
+    <div class="ia-metric" onclick="iaStatGo('vb')" style="cursor:pointer" title="Voir les value bets"><div class="ia-m-val">${vbCount}</div><div class="ia-m-lbl">Value Bets</div></div>
+    <div class="ia-metric" onclick="iaStatGo('conf')" style="cursor:pointer" title="Trier par confiance"><div class="ia-m-val">${avgConf}%</div><div class="ia-m-lbl">Confiance moy.</div></div>`;
 
   // Update summary row
   const sumEl=document.querySelector('.ia-summary');
   if(sumEl) sumEl.innerHTML=`
-    <div class="ia-sum-item"><div class="sv" style="color:#f59e0b">${bankers}</div><div class="sl">Bankers</div></div>
-    <div class="ia-sum-item"><div class="sv">${avgConf}%</div><div class="sl">Confiance</div></div>
-    <div class="ia-sum-item"><div class="sv" style="color:#22c55e">${premium}</div><div class="sl">Premium</div></div>`;
+    <div class="ia-sum-item" onclick="iaStatGo('banker')" style="cursor:pointer" title="Voir les bankers"><div class="sv" style="color:#f59e0b">${bankers}</div><div class="sl">Bankers</div></div>
+    <div class="ia-sum-item" onclick="iaStatGo('conf')" style="cursor:pointer" title="Trier par confiance"><div class="sv">${avgConf}%</div><div class="sl">Confiance</div></div>
+    <div class="ia-sum-item" onclick="iaStatGo('premium')" style="cursor:pointer" title="Voir les sélections premium (score ≥ 65)"><div class="sv" style="color:#22c55e">${premium}</div><div class="sl">Premium</div></div>`;
 
   // Update scanning bar
   const scanEl=document.querySelector('.scanning-text');
@@ -8166,13 +8171,31 @@ function _updateIaHero(scored){
   const isEl=document.getElementById('ia-sub-txt');
   if(isEl) isEl.textContent=`Expert Engine ${APP_VERSION} — 5 piliers · Bayesian · H2H · O1.5 · U4.5`;
 
-  // Update stats bar (the 3-box row)
+  // Update stats bar (the 3-box row) — cliquable aussi
   const statsEl=document.querySelector('#screen-ia .scroll div[style*="1a1a28"][style*="border-radius:12px"]');
   if(statsEl) statsEl.innerHTML=`
-    <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--text)">${total}</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Matchs du jour</div></div>
-    <div style="flex:1;text-align:center;border-left:1px solid #2a2a3a;border-right:1px solid #2a2a3a"><div style="font-size:20px;font-weight:900;color:#3B82F6">${avgConf}%</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Confiance moy. IA</div></div>
-    <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:#f59e0b">${bankers}</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Bankers</div></div>`;
+    <div onclick="iaStatGo('all')" style="flex:1;text-align:center;cursor:pointer"><div style="font-size:20px;font-weight:900;color:var(--text)">${total}</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Matchs du jour</div></div>
+    <div onclick="iaStatGo('conf')" style="flex:1;text-align:center;cursor:pointer;border-left:1px solid #2a2a3a;border-right:1px solid #2a2a3a"><div style="font-size:20px;font-weight:900;color:#3B82F6">${avgConf}%</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Confiance moy. IA</div></div>
+    <div onclick="iaStatGo('banker')" style="flex:1;text-align:center;cursor:pointer"><div style="font-size:20px;font-weight:900;color:#f59e0b">${bankers}</div><div style="font-size:11px;color:var(--text);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">Bankers</div></div>`;
 }
+// Clic sur une statistique du hero IA → ouvre la vue filtrée correspondante.
+// On réutilise les chips existants (setIaFilter attend l'élément cliqué) pour
+// que le filtre actif reste visuellement cohérent.
+function iaStatGo(what){
+  const map={ all:'standard', vb:'vb', banker:'banker', premium:'premium', conf:'standard' };
+  const target=map[what]||'standard';
+  if(currentTab!=='ia' && typeof switchTab==='function') switchTab('ia');
+  const chip=[...document.querySelectorAll('#ia-chips .chip')]
+    .find(c=>(c.getAttribute('onclick')||'').includes(`'${target}'`));
+  if(chip){ setIaFilter(target, chip); }
+  else { iaFilter=target; renderIaList(); }
+  // Remonter en haut de la liste pour voir le résultat du filtre
+  const list=document.getElementById('ia-list');
+  if(list && list.scrollIntoView) list.scrollIntoView({behavior:'smooth', block:'start'});
+  if(what==='conf' && typeof showToast==='function')
+    showToast('Sélections triées par confiance IA','info',1600);
+}
+
 function setIaFilter(f,el){
   iaFilter=f;
   document.querySelectorAll('#ia-chips .chip').forEach(c=>{
@@ -8187,6 +8210,7 @@ function setIaFilter(f,el){
     standard:'⭐ Sélections IA Expert — Aujourd\'hui',
     banker:'🏆 Bankers du jour (score ≥ 78/100 — v2)',
     vb:'💎 Value Bets — Edge positif détecté',
+    premium:'👑 Sélections Premium (score IA ≥ 65/100)',
     safe:'🛡️ Paris Sûrs — Risque faible',
     cote15:'⚡ Cotes ≥ 1.5 — Bon rapport R/R',
     o15:'⚽ Plus de 1.5 buts — Moteur offensif expert 5 piliers',
