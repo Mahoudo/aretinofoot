@@ -2486,13 +2486,9 @@ body.modal-open{overflow:hidden!important}
         </div>
         <div class="hb-date" id="hb-date">Bonjour,</div>
         <div class="hb-title">Votre pari du jour</div>
-        <div class="hb-sub">Découvrez nos meilleures prédictions</div>
-        <div class="hb-stats">
-          <div><div class="hbs-val">—</div><div class="hbs-lbl">Matchs</div></div>
-          <div><div class="hbs-val">—</div><div class="hbs-lbl">Confiance</div></div>
-          <div><div class="hbs-val">—</div><div class="hbs-lbl">Cote max</div></div>
-        </div>
-        <button class="hb-cta" onclick="switchTab('matches')">⭐ Voir les meilleurs paris →</button>
+        <!-- Recommandation concrète : match, marché, cote, justification, risque -->
+        <div id="hb-pick"><div class="hb-sub">Analyse des matchs en cours…</div></div>
+        <button class="hb-cta" onclick="switchTab('ia')">⭐ Voir toutes les sélections →</button>
       </div>
       <style>
         .qa-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 10px;color:var(--text);font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;transition:.15s}
@@ -3369,6 +3365,7 @@ function _sortMatches(arr){
 function renderAll(){
   _resolvePicks();
   if(typeof _updateOddsStatus==='function') _updateOddsStatus();
+  if(typeof _renderHeroPick==='function') try{ _renderHeroPick(); }catch(e){ console.warn('[heroPick]',e); }
   if(typeof _renderSeasonCountdown==='function') _renderSeasonCountdown();
   // Garde-fou : ne jamais afficher un match terminé
   const visible=_sortMatches(MATCHES.filter(m=>m.status!=='finished'));
@@ -3400,11 +3397,11 @@ function renderAll(){
   document.querySelectorAll('.lp-text').forEach(el=>{
     el.textContent=(liveCount||'0')+' LIVE';
   });
-  const _hbSub = document.querySelector('.hb-sub');
+  // Les 3 compteurs .hbs-val du bandeau ont été remplacés par la
+  // recommandation concrète (_renderHeroPick) : on ne les écrit plus.
+  // .hb-sub n'existe que tant que la reco n'est pas encore calculée.
+  const _hbSub = document.querySelector('#hb-pick .hb-sub');
   if(_hbSub) _hbSub.textContent=`${visible.length} matchs disponibles · ${liveCount} en direct`;
-  document.querySelector('.hbs-val').textContent=visible.length;
-  document.querySelectorAll('.hbs-val')[1].textContent=avgConf+'%';
-  document.querySelectorAll('.hbs-val')[2].textContent=maxOdd!=='—'?'×'+maxOdd:'—';
 
   // Badge trust dynamique (calibration tracker)
   const _hbTrust=document.getElementById('hb-trust');
@@ -4973,6 +4970,76 @@ function _livePickVerdict(m, betType){
     case 'noBTTS': return (h>0&&a>0) ? 'perdu' : fini ? 'gagnant' : 'danger';
     default: return '';
   }
+}
+
+// « Votre pari du jour » : une recommandation concrète et unique plutôt que
+// des statistiques globales. Match, marché, cote, justification, risque.
+function _renderHeroPick(){
+  const el=document.getElementById('hb-pick');
+  if(!el) return;
+  // Une cote sous 1,20 ne rapporte quasiment rien (1,01 = +1 % de gain) et
+  // trahit souvent une donnée aberrante côté fournisseur. On ne met jamais un
+  // tel pari en recommandation principale.
+  const COTE_MIN_UTILE=1.20;
+  const candidats=(typeof MATCHES!=='undefined'?MATCHES:[])
+    .filter(m=>m.status==='scheduled' && m.mp && m.mp.label)
+    .filter(m=>!(m.mp.oddVal>0 && m.mp.oddVal<COTE_MIN_UTILE))
+    .map(m=>({m, s:(typeof _iaScore==='function'? _iaScore(m) : {score:0,reasons:[]})}))
+    .sort((a,b)=>b.s.score-a.s.score);
+  if(!candidats.length){
+    el.innerHTML='<div class="hb-sub">Aucun match à venir pour l’instant.</div>';
+    return;
+  }
+  const {m,s}=candidats[0];
+  const cote = m.hasRealOdds && m.mp.oddVal ? '×'+m.mp.oddVal.toFixed(2)
+             : (m.mp.odd && m.mp.odd!=='×0' ? m.mp.odd : null);
+  const risque = s.score>=78?{t:'Risque faible',c:'#22c55e'}
+               : s.score>=63?{t:'Risque modéré',c:'#eab308'}
+               : {t:'Risque élevé',c:'#f87171'};
+  const raison=(s.reasons&&s.reasons[0])?s.reasons[0]:'Analyse Poisson sur la forme récente';
+  el.innerHTML=`
+    <div style="background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:12px 13px;margin:8px 0 12px;cursor:pointer" onclick="showDetail(${m.id})">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:800;background:${risque.c}26;color:${risque.c};border:1px solid ${risque.c}55;border-radius:5px;padding:2px 7px">${risque.t}</span>
+        <span style="font-size:11px;font-weight:700;opacity:.85">${_esc(m.ls)} · ${_esc(m.time)}</span>
+        <span style="font-size:12px;font-weight:900;margin-left:auto">${s.score}/100</span>
+      </div>
+      <div style="font-size:15px;font-weight:800;line-height:1.25;margin-bottom:4px">${_esc(m.home.name)} <span style="opacity:.6">vs</span> ${_esc(m.away.name)}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="font-size:14.5px;font-weight:900">${_esc(m.mp.label)}</span>
+        ${cote?`<span style="font-size:14px;font-weight:900;background:rgba(255,255,255,.16);border-radius:6px;padding:2px 8px">${cote}</span>`
+              :`<span style="font-size:10.5px;font-weight:700;opacity:.75">cote non disponible</span>`}
+      </div>
+      <div style="font-size:11.5px;opacity:.85;line-height:1.4">${_esc(raison)}</div>
+      ${m.hasRealOdds?'':'<div style="font-size:10.5px;opacity:.7;margin-top:5px">📊 Estimation — sans cote réelle</div>'}
+    </div>`;
+}
+
+// Marqueur par carte : d'où viennent les probabilités affichées ?
+// Sans cotes réelles, le modèle retombe sur des valeurs génériques (souvent
+// identiques d'un match à l'autre) — il faut le dire sur la carte, pas
+// seulement dans un bandeau global.
+function _dataQualityBadge(m){
+  // Cote anormalement basse : gain négligeable, souvent une donnée corrompue
+  if(m && m.mp && m.mp.oddVal>0 && m.mp.oddVal<1.20){
+    return `<div style="display:inline-flex;align-items:center;gap:5px;margin-top:5px;
+        background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.4);
+        border-radius:6px;padding:3px 8px">
+      <span style="font-size:11px">⚠️</span>
+      <span style="font-size:10.5px;font-weight:700;color:#f59e0b;letter-spacing:.2px">
+        COTE ×${m.mp.oddVal.toFixed(2)} — gain négligeable, à éviter
+      </span>
+    </div>`;
+  }
+  if(m && m.hasRealOdds) return '';
+  return `<div style="display:inline-flex;align-items:center;gap:5px;margin-top:5px;
+      background:rgba(148,163,184,.13);border:1px solid rgba(148,163,184,.3);
+      border-radius:6px;padding:3px 8px">
+    <span style="font-size:11px">📊</span>
+    <span style="font-size:10.5px;font-weight:700;color:var(--text-2);letter-spacing:.2px">
+      ESTIMATION — sans cote réelle
+    </span>
+  </div>`;
 }
 
 // Bandeau visible sur la carte quand le pronostic est mort ou mal engagé
@@ -7434,6 +7501,7 @@ function renderIaList(){
         ${safeTypeBadge} · ${m.ls} · ${m.time}
       </div>
       ${_pickVerdictBadge(m, displayPick.type)}
+      ${_dataQualityBadge(m)}
       ${safeReasonHtml}
       ${reasonsHtml}
       ${(()=>{
