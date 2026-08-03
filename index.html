@@ -81,7 +81,10 @@ body{background:linear-gradient(135deg,var(--surface-2) 0%, var(--surface-3) 100
 .live-pill{display:flex;align-items:center;gap:5px;background:#ff000018;border:1px solid #ff444430;border-radius:999px;padding:4px 10px;cursor:pointer}
 .lp-dot{width:6px;height:6px;border-radius:50%;background:#ef4444;animation:pulse 1s infinite}
 .lp-text{font-size:14px;font-weight:900;color:#f87171}
-.ah-ico{font-size:24px;opacity:.6;cursor:pointer}
+/* .ah-ico est un <button> (accessibilité clavier + lecteur d'écran) :
+   on neutralise le style natif pour garder l'apparence d'une icône. */
+.ah-ico{font-size:24px;opacity:.6;cursor:pointer;background:none;border:none;padding:0;margin:0;color:inherit;font-family:inherit;display:inline-flex;align-items:center;justify-content:center}
+.ah-ico:focus-visible,.tab:focus-visible,.chip:focus-visible{outline:2px solid var(--neutral);outline-offset:2px;border-radius:6px}
 
 /* Date Strip */
 .date-strip-wrap{flex-shrink:0;border-bottom:1px solid var(--surface-3)}
@@ -2464,9 +2467,9 @@ body.modal-open{overflow:hidden!important}
         <div class="lp-dot"></div>
         <span class="lp-text">1 LIVE</span>
       </div>
-      <span class="ah-ico" onclick="openSearch()" title="Rechercher" style="cursor:pointer"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
-      <span class="ah-ico" id="refresh-btn" onclick="fetchAllMatchesToday()" style="cursor:pointer" title="Actualiser"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
-      <span class="ah-ico" id="notif-btn" onclick="openNotifScreen()" title="Notifications"></span>
+      <button type="button" class="ah-ico" onclick="openSearch()" title="Rechercher" aria-label="Rechercher un match, une équipe ou une compétition" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+      <button type="button" class="ah-ico" id="refresh-btn" onclick="fetchAllMatchesToday()" style="cursor:pointer" title="Actualiser" aria-label="Actualiser les matchs et les cotes"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></button>
+      <button type="button" class="ah-ico" id="notif-btn" onclick="openNotifScreen()" title="Notifications" aria-label="Ouvrir les notifications"></button>
     </div>
   </div>
 
@@ -2936,32 +2939,32 @@ body.modal-open{overflow:hidden!important}
   </div>
 
   <!-- Tab Bar - icônes SVG minimalistes -->
-  <div class="tabbar">
+  <div class="tabbar" role="tablist" aria-label="Navigation principale">
     <div class="tab active" onclick="switchTab('home')" id="tab-home">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></div>
       <div class="tab-label">Accueil</div>
     </div>
-    <div class="tab" onclick="switchTab('matches')" id="tab-matches">
+    <div class="tab" role="tab" tabindex="0" aria-label="Matchs" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('matches')}" onclick="switchTab('matches')" id="tab-matches">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></div>
       <div class="tab-label">Matchs</div>
     </div>
-    <div class="tab" onclick="switchTab('coupon')" id="tab-coupon">
+    <div class="tab" role="tab" tabindex="0" aria-label="Mon coupon" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('coupon')}" onclick="switchTab('coupon')" id="tab-coupon">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M2 9a3 3 0 1 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
       <div class="tab-label">Coupon</div>
     </div>
-    <div class="tab" onclick="switchTab('ia')" id="tab-ia">
+    <div class="tab" role="tab" tabindex="0" aria-label="Sélections IA" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('ia')}" onclick="switchTab('ia')" id="tab-ia">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
       <div class="tab-label">IA</div>
     </div>
-    <div class="tab" onclick="switchTab('mondial')" id="tab-mondial">
+    <div class="tab" role="tab" tabindex="0" aria-label="Coupe du Monde" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('mondial')}" onclick="switchTab('mondial')" id="tab-mondial">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
       <div class="tab-label">Mondial</div>
     </div>
-    <div class="tab" onclick="switchTab('chat')" id="tab-chat">
+    <div class="tab" role="tab" tabindex="0" aria-label="Assistant" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('chat')}" onclick="switchTab('chat')" id="tab-chat">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></div>
       <div class="tab-label">Chat</div>
     </div>
-    <div class="tab" onclick="switchTab('profil')" id="tab-profil">
+    <div class="tab" role="tab" tabindex="0" aria-label="Profil et bankroll" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchTab('profil')}" onclick="switchTab('profil')" id="tab-profil">
       <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div class="tab-label">Profil</div>
     </div>
@@ -3095,6 +3098,13 @@ const _MATCHES_PLACEHOLDER=[
 
 let currentTab='home', matchFilter='all', leagueFilter='all', searchVal='', detailId=null, iaFilter='standard', confMinFilter=0, wcFilter='all', wcSearch='';
 let iaViewMode = (localStorage.getItem('aret_ia_view')||'detailed'); // 'detailed' | 'simple' (1 pick claire/match)
+// Nombre de sélections affichées d'un coup : une page de 30 cartes complètes
+// représente plus de 10 000 px de défilement. On en montre 6, puis à la demande.
+const IA_PAGE = 6;
+let _iaShown = IA_PAGE;
+function iaShowMore(){ _iaShown += IA_PAGE; renderIaList(); }
+function iaShowLess(){ _iaShown = IA_PAGE; renderIaList();
+  document.getElementById('ia-list')?.scrollIntoView({behavior:'smooth',block:'start'}); }
 
 // ── Compétitions favorites ──────────────────────────────
 let FAVE_LEAGUES = new Set(JSON.parse(localStorage.getItem('fave_leagues')||'[]'));
@@ -7430,9 +7440,32 @@ function renderIaList(){
     return;
   }
 
+  // ── Séparation live / à venir + pagination ────────────────────
+  // Les matchs en cours passent devant : ce sont ceux qui bougent.
+  const _liveList = list.filter(x=>x.m.status==='live');
+  const _restList = list.filter(x=>x.m.status!=='live');
+  const _ordered  = [..._liveList, ..._restList];
+  const _totalSel = _ordered.length;
+  if(_iaShown > _totalSel) _iaShown = Math.max(IA_PAGE, IA_PAGE*Math.ceil(_totalSel/IA_PAGE));
+  const _visible  = _ordered.slice(0, _iaShown);
+  const _reste    = _totalSel - _visible.length;
+  // Bandeau de comptage + bouton « voir plus / réduire »
+  const _countBar = _totalSel>IA_PAGE
+    ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 2px 8px">
+         <span style="font-size:11.5px;color:var(--text-2);font-weight:600">
+           ${_visible.length} sur ${_totalSel} sélection${_totalSel>1?'s':''}${_liveList.length?` · 🔴 ${_liveList.length} en cours`:''}
+         </span>
+         ${_iaShown>IA_PAGE?`<button onclick="iaShowLess()" style="background:none;border:none;color:var(--neutral);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">Réduire</button>`:''}
+       </div>` : '';
+  const _moreBtn = _reste>0
+    ? `<button onclick="iaShowMore()" style="width:100%;margin:6px 0 4px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit">
+         Voir ${Math.min(IA_PAGE,_reste)} sélection${Math.min(IA_PAGE,_reste)>1?'s':''} de plus (${_reste} restante${_reste>1?'s':''})
+       </button>` : '';
+  list = _visible;
+
   // Vue simple : 1 pick claire par match (le détail reste au clic)
   if(iaViewMode === 'simple'){
-    document.getElementById('ia-list').innerHTML = iaFallbackBanner + _renderSimpleCards(list);
+    document.getElementById('ia-list').innerHTML = iaFallbackBanner + _countBar + _renderSimpleCards(list) + _moreBtn;
     _syncIaViewButtons();
     return;
   }
@@ -7604,7 +7637,7 @@ function renderIaList(){
     </div>`;
   }).join('') + '<div style="height:8px"></div>';
 
-  document.getElementById('ia-list').innerHTML = iaFallbackBanner + html;
+  document.getElementById('ia-list').innerHTML = iaFallbackBanner + _countBar + html + _moreBtn;
   _syncIaViewButtons();
 
   // ── Enrichissement H2H ESPN en arrière-plan ──
@@ -8377,6 +8410,7 @@ function iaStatGo(what){
 
 function setIaFilter(f,el){
   iaFilter=f;
+  _iaShown=IA_PAGE;   // nouveau filtre → on repart de la première page
   document.querySelectorAll('#ia-chips .chip').forEach(c=>{
     c.classList.remove('active');
     c.style.background='';c.style.borderColor='';c.style.color='';
