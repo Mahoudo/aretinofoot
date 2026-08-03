@@ -2411,6 +2411,25 @@ body{background:var(--bg)!important;display:flex!important;justify-content:cente
 .phone{width:100%!important;max-width:880px!important;height:auto!important;min-height:100vh!important;border-radius:0!important;box-shadow:none!important;background:var(--bg)!important}
 .notch,.statusbar{display:none!important}
 @media(min-width:900px){.phone{border-left:1px solid var(--border)!important;border-right:1px solid var(--border)!important}}
+
+/* ── Overlays en mode web ──────────────────────────────────────
+   En web, .phone fait height:auto et peut atteindre plusieurs milliers de
+   pixels. Un overlay en position:absolute;inset:0 s'étirait donc sur toute
+   cette hauteur : le fond était flouté partout et la boîte, centrée sur la
+   hauteur du conteneur, se retrouvait des milliers de pixels plus bas.
+   On les ancre au viewport. */
+#api-key-modal,.search-overlay,#search-overlay,#notif-screen,#detail-overlay{
+  position:fixed!important;
+  top:0!important;left:0!important;right:0!important;bottom:0!important;
+  inset:0!important;
+  width:100%!important;height:100%!important;max-height:100vh!important;
+}
+/* La boîte de dialogue reste centrée et défile si elle dépasse l'écran */
+#api-key-modal{overflow-y:auto!important;align-items:center!important;justify-content:center!important}
+/* Les panneaux plein écran gardent leur propre défilement interne */
+.search-overlay,#search-overlay,#notif-screen,#detail-overlay{overflow:hidden!important}
+/* Fond figé quand une modale est ouverte */
+body.modal-open{overflow:hidden!important}
 </style>
 </head>
 <body>
@@ -4745,15 +4764,25 @@ function showApiKeyModal(){
         <button onclick="saveApiKeyModal()" style="width:100%;background:#3B82F6;border:none;border-radius:10px;padding:11px;font-size:17px;font-weight:800;color:#fff;cursor:pointer;margin-bottom:8px">
           ✅ Enregistrer et charger
         </button>
-        <button onclick="document.getElementById('api-key-modal').remove()"
+        <button onclick="closeApiKeyModal()"
           style="width:100%;background:transparent;border:1px solid var(--border);border-radius:10px;padding:9px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer">
           Annuler (garder données statiques)
         </button>
       </div>`;
-    document.querySelector('.phone').appendChild(modal);
+    // Attaché au <body> (et non à .phone) : la modale est ancrée au viewport,
+    // pas à la hauteur totale du conteneur.
+    document.body.appendChild(modal);
+    // Clic sur le fond sombre → fermer
+    modal.addEventListener('click', e=>{ if(e.target===modal) closeApiKeyModal(); });
   } else {
     modal.style.display='flex';
   }
+  document.body.classList.add('modal-open');   // fige le défilement du fond
+}
+
+function closeApiKeyModal(){
+  document.getElementById('api-key-modal')?.remove();
+  document.body.classList.remove('modal-open');
 }
 
 function saveApiKeyModal(){
@@ -4762,7 +4791,7 @@ function saveApiKeyModal(){
   API_CFG.key=v;
   const p=document.getElementById('profil-api-key');
   if(p) p.value=v;
-  document.getElementById('api-key-modal')?.remove();
+  closeApiKeyModal();
   fetchAllMatchesToday(); // charge TheSportsDB + Odds API
 }
 
@@ -4909,6 +4938,62 @@ function _couponEV(){
 // ══════════════════════════════════════════════════════════════
 //  ⚠️  ALERTE PRÉDICTION ADVERSE EN LIVE
 // ══════════════════════════════════════════════════════════════
+// Verdict d'un pronostic au regard du score et du temps écoulé.
+// Renvoie 'perdu' (le pari ne peut plus passer, ou quasiment),
+// 'danger' (mal engagé mais rattrapable), 'gagnant' (acquis si ça finit ainsi),
+// ou '' (rien de notable / match non commencé).
+function _livePickVerdict(m, betType){
+  if(!m || !m.score || (m.status!=='live' && m.status!=='finished')) return '';
+  const h=m.score.h, a=m.score.a, diff=h-a;
+  const type=betType || m.mp?.type || '1';
+  const min = m.status==='finished' ? 95 : (m.liveMin||0);
+  const fini = m.status==='finished';
+  // Un écart de 2 buts après la 80e, ou de 3 buts après la 70e, est
+  // considéré comme irrattrapable en pratique.
+  const irrattrapable = e => fini || (e>=2 && min>=80) || (e>=3 && min>=70) || (e>=1 && min>=93);
+  const V=(gagnant,perdu)=> perdu ? 'perdu' : gagnant ? 'gagnant' : 'danger';
+  switch(type){
+    case '1':   return diff>0 ? (fini?'gagnant':'gagnant') : irrattrapable(-diff) && diff<=0 ? 'perdu' : 'danger';
+    case '2':   return diff<0 ? 'gagnant' : irrattrapable(diff) && diff>=0 ? 'perdu' : 'danger';
+    case 'N':   return diff===0 ? 'gagnant' : irrattrapable(Math.abs(diff)) ? 'perdu' : 'danger';
+    case '1X':  return diff>=0 ? 'gagnant' : irrattrapable(-diff) ? 'perdu' : 'danger';
+    case 'X2':  return diff<=0 ? 'gagnant' : irrattrapable(diff) ? 'perdu' : 'danger';
+    case '12':  return diff!==0 ? 'gagnant' : (fini?'perdu':'danger');
+    case '+0.5': case '+1.5': case '+2.5': case '+3.5': {
+      const seuil=parseFloat(type.replace('+',''));
+      if(h+a>seuil) return 'gagnant';
+      return fini ? 'perdu' : 'danger';
+    }
+    case 'u2.5': case '-2.5': case 'u3.5': case '-3.5': case 'u4.5': case '-4.5': {
+      const seuil=parseFloat(type.replace(/[u-]/,''));
+      if(h+a>seuil) return 'perdu';
+      return fini ? 'gagnant' : 'danger';
+    }
+    case 'BTTS': return (h>0&&a>0) ? 'gagnant' : fini ? 'perdu' : 'danger';
+    case 'noBTTS': return (h>0&&a>0) ? 'perdu' : fini ? 'gagnant' : 'danger';
+    default: return '';
+  }
+}
+
+// Bandeau visible sur la carte quand le pronostic est mort ou mal engagé
+function _pickVerdictBadge(m, betType){
+  const v=_livePickVerdict(m, betType);
+  if(v!=='perdu' && v!=='danger') return '';
+  const perdu = v==='perdu';
+  const sc = m.score ? `${m.score.h}-${m.score.a}` : '';
+  const quand = m.status==='finished' ? 'score final' : `${m.liveMin||0}'`;
+  return `<div style="margin-top:6px;display:flex;align-items:center;gap:7px;
+      background:${perdu?'rgba(239,68,68,.13)':'rgba(245,158,11,.12)'};
+      border:1px solid ${perdu?'rgba(239,68,68,.45)':'rgba(245,158,11,.4)'};
+      border-radius:8px;padding:6px 10px">
+    <span style="font-size:14px">${perdu?'❌':'⚠️'}</span>
+    <span style="font-size:12px;font-weight:800;color:${perdu?'#ef4444':'#f59e0b'};letter-spacing:.3px">
+      ${perdu?'PRONOSTIC PERDU':'PRONOSTIC EN DANGER'}
+    </span>
+    <span style="font-size:11.5px;color:var(--text-2);margin-left:auto">${sc} · ${quand}</span>
+  </div>`;
+}
+
 function _liveAdverseWarning(m, betType){
   if(m.status !== 'live' || !m.score) return '';
   const h = m.score.h, a = m.score.a;
@@ -7315,6 +7400,8 @@ function renderIaList(){
     const barColor = s.score>=80?'#f59e0b':s.score>=65?'#22c55e':s.score>=50?'#3b82f6':'#555';
 
     const inCoupon = !!COUPON[m.id];
+    // Le pronostic est-il déjà mort au vu du score live ? (barre le pari + badge)
+    const _pickLost = _livePickVerdict(m, displayPick.type)==='perdu';
     return `
     <div class="ia-selection${inCoupon?' ia-selected':''}" id="ia-card-${m.id}" onclick="showDetail(${m.id})">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
@@ -7339,13 +7426,14 @@ function renderIaList(){
         ${_logo(m.away.logo, m.away.emoji, 20)}
         <span>${_esc(m.away.name)}</span>
       </div>
-      <div class="ias-bet" style="color:${isSafeFilter?'#22c55e':'#3B82F6'};margin:3px 0 2px;font-weight:900">
+      <div class="ias-bet" style="color:${_pickLost?'var(--text-mute)':(isSafeFilter?'#22c55e':'#3B82F6')};margin:3px 0 2px;font-weight:900${_pickLost?';text-decoration:line-through;opacity:.65':''}">
         ${displayPick.label}
         ${displayOddStr !== '—'
-          ? ` <span style="color:${isSafeFilter?'#22c55e':'#3B82F6'}">${displayOddStr}</span>`
+          ? ` <span style="color:${_pickLost?'var(--text-mute)':(isSafeFilter?'#22c55e':'#3B82F6')}">${displayOddStr}</span>`
           : ` <span style="font-size:11px;background:#f5f5f5;border:1px solid #ddd;color:var(--text);padding:1px 6px;border-radius:4px;font-weight:700">Cote N/D</span>`}
         ${safeTypeBadge} · ${m.ls} · ${m.time}
       </div>
+      ${_pickVerdictBadge(m, displayPick.type)}
       ${safeReasonHtml}
       ${reasonsHtml}
       ${(()=>{
