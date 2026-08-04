@@ -1,4 +1,4 @@
-const CACHE = 'aretinofoot-v58';
+const CACHE = 'aretinofoot-v59';
 const ASSETS = [
   '/soccerAI-app.html',
   '/manifest.json',
@@ -24,6 +24,11 @@ self.addEventListener('fetch', e => {
   // Network-first for ESPN/Betclic API calls
   if (e.request.url.includes('espn.com') || e.request.url.includes('betclic') || e.request.url.includes('localhost:5502')) {
     return; // let browser handle directly
+  }
+  // Mesure d'audience Vercel : laisser passer sans interception (le beacon est
+  // un POST, la mise en cache n'a pas de sens et casserait l'envoi hors ligne).
+  if (e.request.url.includes('/_vercel/')) {
+    return;
   }
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
