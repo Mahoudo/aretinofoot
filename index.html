@@ -3119,6 +3119,59 @@ const AUTOPICKS_KEY = 'aretinofoot_autopicks';
 const AUTOPICK_MIN_SCORE = 60;    // on ne note que ce que l'app met en avant
 const AUTOPICK_MAX_JOUR  = 10;    // évite de saturer le stockage
 const AUTOPICK_SEUIL_FIABLE = 30; // résultats requis avant de parler de fiabilité
+
+// ── Protection du quota The Odds API ──────────────────────────
+// Le plan gratuit donne 500 requêtes par mois et chaque ligue coûte une
+// requête. Le rafraîchissement automatique tourne toutes les 10 secondes :
+// sans ces garde-fous, le quota d'un mois disparaissait en quelques minutes.
+const ODDS_CACHE_KEY   = 'aret_odds_cache';
+const ODDS_META_KEY    = 'aret_odds_meta';
+const ODDS_TTL_MS      = 30*60*1000;  // les cotes ne bougent pas en 10 secondes
+const ODDS_GARDE_QUOTA = 20;          // on cesse d'appeler en dessous de ce reste
+
+function _oddsMeta(){
+  try{ return JSON.parse(localStorage.getItem(ODDS_META_KEY)||'{}'); }catch(e){ return {}; }
+}
+function _oddsMetaSet(patch){
+  try{ localStorage.setItem(ODDS_META_KEY, JSON.stringify({..._oddsMeta(), ...patch})); }catch(e){}
+}
+// Vrai si la fenêtre de cache est écoulée (donc appel autorisé)
+function _oddsCacheExpire(){
+  return (Date.now() - (_oddsMeta().dernierFetch||0)) > ODDS_TTL_MS;
+}
+function _oddsMarkFetched(){ _oddsMetaSet({dernierFetch:Date.now()}); }
+// Compteur local, utile tant que l'API n'a pas encore renvoyé son propre reste
+function _oddsCountRequest(){
+  const m=_oddsMeta();
+  const mois=new Date().toISOString().slice(0,7);
+  const n = (m.mois===mois ? (m.utilisees||0) : 0) + 1;
+  _oddsMetaSet({mois, utilisees:n});
+}
+function _oddsSetRemaining(n){
+  if(!isFinite(n)) return;
+  API_CFG.remaining=n;
+  _oddsMetaSet({restant:n});
+}
+// Faux si le quota est presque épuisé : on préserve les dernières requêtes
+function _oddsBudgetOk(){
+  const m=_oddsMeta();
+  const restant = (typeof API_CFG!=='undefined' && API_CFG.remaining!=null) ? API_CFG.remaining : m.restant;
+  if(restant!=null && restant <= ODDS_GARDE_QUOTA) return false;
+  const mois=new Date().toISOString().slice(0,7);
+  if(m.mois===mois && (m.utilisees||0) >= 480) return false; // filet local
+  return true;
+}
+function _oddsCacheStore(list){
+  try{ localStorage.setItem(ODDS_CACHE_KEY, JSON.stringify({t:Date.now(), list})); }catch(e){}
+}
+function _oddsCacheRead(){
+  try{
+    const c=JSON.parse(localStorage.getItem(ODDS_CACHE_KEY)||'null');
+    // on réutilise les cotes tant qu'elles datent de moins de 6 h
+    if(c && (Date.now()-c.t) < 6*3600*1000) return c.list;
+  }catch(e){}
+  return null;
+}
 function iaShowMore(){ _iaShown += IA_PAGE; renderIaList(); }
 function iaShowLess(){ _iaShown = IA_PAGE; renderIaList();
   document.getElementById('ia-list')?.scrollIntoView({behavior:'smooth',block:'start'}); }
@@ -4767,7 +4820,16 @@ function _updateOddsStatus(){
   const realCount=(typeof MATCHES!=='undefined'?MATCHES:[]).filter(m=>m&&m.hasRealOdds).length;
   const base='display:block;padding:7px 14px;font-size:12.5px;font-weight:600;text-align:center;cursor:pointer;line-height:1.35;border-bottom:1px solid var(--border);';
   if(hasKey && realCount>0){
-    bar.style.cssText='display:none'; // cotes réelles OK → on n'encombre pas
+    // Cotes réelles actives. On n'encombre pas, SAUF si le quota mensuel
+    // s'épuise : mieux vaut prévenir avant la coupure.
+    let restant=null;
+    try{ restant = API_CFG.remaining!=null ? API_CFG.remaining : (_oddsMeta().restant ?? null); }catch(e){}
+    if(restant!=null && restant<=60){
+      bar.style.cssText=base+'background:rgba(245,158,11,.12);color:#eab308';
+      bar.innerHTML=`⚠️ Quota The Odds API bientôt épuisé · ${restant} requête${restant>1?'s':''} restante${restant>1?'s':''} ce mois-ci`;
+      return;
+    }
+    bar.style.cssText='display:none';
     return;
   }
   if(hasKey){
@@ -6423,27 +6485,47 @@ async function fetchAllMatchesToday(forceYmd){
       }
     }catch(e){ console.warn('[WC26 merge]',e); }
 
-    // 6️⃣  Odds API — enrichissement si clé disponible (inclut désormais le Mondial)
-    if(API_CFG.key){
+    // 6️⃣  Odds API — enrichissement si clé disponible
+    //     ⚠️ Quota gratuit : 500 requêtes/mois, et UNE requête par ligue.
+    //     Le rafraîchissement automatique tourne toutes les 10 s : sans
+    //     garde-fou, 9 ligues × 6 fois/minute épuisaient le quota en quelques
+    //     minutes. Trois protections : cache de 30 min, interrogation des
+    //     seules ligues ayant des matchs aujourd'hui, arrêt si quota bas.
+    if(API_CFG.key && _oddsBudgetOk() && _oddsCacheExpire()){
       try {
         const from=ymd+'T00:00:00Z', to=ymd+'T23:59:59Z';
+        // Ne demander que les ligues réellement présentes aujourd'hui
+        const lsPresentes=new Set(newMatches.map(m=>m.ls));
+        let aInterroger=API_CFG.leagues.filter(l=>lsPresentes.has(l.ls));
+        if(!aInterroger.length) aInterroger=API_CFG.leagues.slice(0,3); // repli prudent
         const fetchLeague=async(l)=>{
           const url=`${API_CFG.baseUrl}/sports/${l.sport}/odds?apiKey=${API_CFG.key}`
             +`&regions=${API_CFG.regions}&markets=${API_CFG.markets}`
             +`&bookmakers=${API_CFG.bookmakerPriority.join(',')}`
             +`&commenceTimeFrom=${from}&commenceTimeTo=${to}&dateFormat=iso&oddsFormat=decimal`;
           const r=await fetch(url);
+          _oddsCountRequest();
           if(!r.ok) return [];
           const rem=r.headers.get('x-requests-remaining');
-          if(rem) API_CFG.remaining=parseInt(rem);
+          if(rem) _oddsSetRemaining(parseInt(rem));
           const d=await r.json();
           return (Array.isArray(d)?d:[]).map(ev=>({sportInfo:l,event:ev}));
         };
-        const results=await Promise.allSettled(API_CFG.leagues.map(fetchLeague));
+        const results=await Promise.allSettled(aInterroger.map(fetchLeague));
         const allEvents=results.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
         const oddsMatches=transformOddsData(allEvents);
-        if(oddsMatches.length) newMatches=mergeOddsIntoMatches(newMatches,oddsMatches);
+        if(oddsMatches.length){
+          newMatches=mergeOddsIntoMatches(newMatches,oddsMatches);
+          _oddsCacheStore(oddsMatches);
+        }
+        _oddsMarkFetched();
+        console.log(`[Odds API] ${aInterroger.length} ligue(s) interrogée(s) · quota restant ${API_CFG.remaining??'?'}`);
       } catch(e){ console.warn('[Odds enrichment]',e); }
+    } else if(API_CFG.key){
+      // Dans la fenêtre de cache (ou quota bas) : on réapplique les cotes déjà
+      // obtenues au lieu de redemander l'API.
+      const cache=_oddsCacheRead();
+      if(cache && cache.length) newMatches=mergeOddsIntoMatches(newMatches,cache);
     }
 
     // ── Préserver le chrono local pour les matchs live déjà trackés ──
