@@ -2694,6 +2694,8 @@ body.modal-open{overflow:hidden!important}
   <!-- ═══════ PROFIL ═══════ -->
   <div class="screen" id="screen-profil">
     <div class="scroll">
+      <!-- Bilan réel des pronostics émis par l'application -->
+      <div id="auto-bilan"></div>
       <div id="profil-tracker"></div>
       <div class="profil-wrap">
         <div class="profil-logo">⚽</div>
@@ -3107,6 +3109,16 @@ let iaViewMode = (localStorage.getItem('aret_ia_view')||'detailed'); // 'detaile
 // représente plus de 10 000 px de défilement. On en montre 6, puis à la demande.
 const IA_PAGE = 6;
 let _iaShown = IA_PAGE;
+
+// ── Auto-évaluation du modèle ─────────────────────────────────
+// Déclaré ici (et non près des fonctions correspondantes) parce que
+// renderAll() s'exécute au chargement, bien avant la fin du script :
+// un const déclaré plus bas serait dans sa zone morte temporelle et
+// interromprait tout le rendu.
+const AUTOPICKS_KEY = 'aretinofoot_autopicks';
+const AUTOPICK_MIN_SCORE = 60;    // on ne note que ce que l'app met en avant
+const AUTOPICK_MAX_JOUR  = 10;    // évite de saturer le stockage
+const AUTOPICK_SEUIL_FIABLE = 30; // résultats requis avant de parler de fiabilité
 function iaShowMore(){ _iaShown += IA_PAGE; renderIaList(); }
 function iaShowLess(){ _iaShown = IA_PAGE; renderIaList();
   document.getElementById('ia-list')?.scrollIntoView({behavior:'smooth',block:'start'}); }
@@ -3379,6 +3391,14 @@ function _sortMatches(arr){
 // ── renderAll : repaints all data-driven sections ──
 function renderAll(){
   _resolvePicks();
+  // Auto-évaluation : l'app note ses propres pronostics puis les confronte
+  // aux résultats réels. Sans argent engagé, uniquement pour mesurer sa
+  // précision honnêtement dans le temps.
+  try{
+    if(typeof _resolveAutoPicks==='function') _resolveAutoPicks();
+    if(typeof _autoRecordPredictions==='function') _autoRecordPredictions();
+    if(typeof _renderAutoBilan==='function') _renderAutoBilan();
+  }catch(e){ console.warn('[auto-évaluation]', e); }
   if(typeof _updateOddsStatus==='function') _updateOddsStatus();
   if(typeof _renderHeroPick==='function') try{ _renderHeroPick(); }catch(e){ console.warn('[heroPick]',e); }
   if(typeof _renderSeasonCountdown==='function') _renderSeasonCountdown();
@@ -3418,15 +3438,21 @@ function renderAll(){
   const _hbSub = document.querySelector('#hb-pick .hb-sub');
   if(_hbSub) _hbSub.textContent=`${visible.length} matchs disponibles · ${liveCount} en direct`;
 
-  // Badge trust dynamique (calibration tracker)
+  // Badge de fiabilité — ne doit jamais annoncer une calibration inexistante.
+  // Tant que le modèle n'a pas assez de pronostics résolus, on dit qu'il
+  // apprend et on montre la progression.
   const _hbTrust=document.getElementById('hb-trust');
-  if(_hbTrust && typeof _getPicks==='function'){
-    const resolved = _getPicks().filter(p=>p.result==='W'||p.result==='L');
-    if(resolved.length >= 5){
-      const wr = Math.round(resolved.filter(p=>p.result==='W').length / resolved.length * 100);
-      _hbTrust.textContent = `🎯 ${wr}% réussite`;
+  if(_hbTrust && typeof _autoAccuracy==='function'){
+    const a=_autoAccuracy();
+    if(a.fiable && a.taux!==null){
+      _hbTrust.textContent = `🎯 ${a.taux}% de réussite (${a.resolus} pronostics)`;
+      _hbTrust.title = `Mesuré sur les pronostics de l'application depuis le ${a.depuis}`;
+    } else if(a.resolus > 0){
+      _hbTrust.textContent = `🧪 En apprentissage · ${a.resolus}/${AUTOPICK_SEUIL_FIABLE}`;
+      _hbTrust.title = `Précision provisoire : ${a.taux}% sur ${a.resolus} pronostics. Trop peu pour conclure.`;
     } else {
-      _hbTrust.textContent = `🧠 IA calibrée`;
+      _hbTrust.textContent = `🧪 Aucun bilan encore`;
+      _hbTrust.title = `L'application enregistre ses pronostics et mesurera sa précision une fois les matchs terminés.`;
     }
   }
 
@@ -9041,6 +9067,155 @@ function _resolvePicks(){
     changed=true;
   });
   if(changed){ _savePicks(picks); _refreshCalibration(); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AUTO-ÉVALUATION DU MODÈLE
+//  L'application note ses PROPRES pronostics, sans argent engagé, pour
+//  mesurer honnêtement sa précision réelle dans le temps.
+//  Volontairement séparé de PICKS_KEY, qui enregistre les paris que
+//  l'utilisateur a réellement placés.
+// ══════════════════════════════════════════════════════════════
+// (les constantes AUTOPICK_* sont déclarées en haut du script : renderAll()
+//  est appelé au chargement, avant ce point du fichier)
+
+function _getAutoPicks(){
+  try{ return JSON.parse(localStorage.getItem(AUTOPICKS_KEY)||'[]'); }catch(e){ return []; }
+}
+function _saveAutoPicks(list){
+  try{
+    // On garde 400 entrées maximum (les plus récentes)
+    localStorage.setItem(AUTOPICKS_KEY, JSON.stringify(list.slice(-400)));
+  }catch(e){ console.warn('[autopicks] stockage plein', e); }
+}
+
+// Enregistre les pronostics du jour que l'app met en avant.
+// Aucun argent : c'est un carnet de notes du modèle sur lui-même.
+function _autoRecordPredictions(){
+  if(typeof MATCHES==='undefined' || !MATCHES.length) return 0;
+  if(typeof _iaScore!=='function') return 0;
+  const list = _getAutoPicks();
+  const dejaVus = new Set(list.map(p=>p.id));
+  const aujourdhui = new Date().toISOString().slice(0,10);
+  const dejaAujourdhui = list.filter(p=>p.jour===aujourdhui).length;
+  if(dejaAujourdhui >= AUTOPICK_MAX_JOUR) return 0;
+
+  const candidats = MATCHES
+    .filter(m => m.status==='scheduled' && m.mp && m.mp.type && !dejaVus.has(m.id))
+    // une cote sous 1,20 n'a pas d'intérêt : on ne s'auto-félicite pas dessus
+    .filter(m => !(m.mp.oddVal>0 && m.mp.oddVal<1.20))
+    .map(m => ({m, s:_iaScore(m)}))
+    .filter(x => x.s.score >= AUTOPICK_MIN_SCORE)
+    .sort((a,b) => b.s.score - a.s.score)
+    .slice(0, AUTOPICK_MAX_JOUR - dejaAujourdhui);
+
+  if(!candidats.length) return 0;
+  candidats.forEach(({m,s})=>{
+    list.push({
+      id:m.id, jour:aujourdhui, enregistreLe:Date.now(),
+      dom:m.home.name, ext:m.away.name, ligue:m.ls,
+      pari:m.mp.type, libelle:m.mp.label,
+      cote: m.hasRealOdds ? (m.mp.oddVal||0) : 0,
+      coteReelle: !!m.hasRealOdds,
+      score:s.score, conf:m.pred?.conf||50,
+      resultat:null, scoreFinal:null
+    });
+  });
+  _saveAutoPicks(list);
+  return candidats.length;
+}
+
+// Compare aux résultats réels. Même logique que _resolvePicks (paris utilisateur).
+function _resolveAutoPicks(){
+  const list=_getAutoPicks();
+  let change=false;
+  list.forEach(p=>{
+    if(p.resultat) return;
+    const m=MATCHES.find(x=>x.id===p.id);
+    if(!m || m.status!=='finished' || !m.score) return;
+    const sh=m.score.h, sa=m.score.a, tot=sh+sa;
+    const issue = sh>sa?'1' : sa>sh?'2' : 'N';
+    p.scoreFinal = sh+'-'+sa;
+    switch(p.pari){
+      case '1':    p.resultat = issue==='1'?'W':'L'; break;
+      case '2':    p.resultat = issue==='2'?'W':'L'; break;
+      case 'N':    p.resultat = issue==='N'?'W':'L'; break;
+      case '1X':   p.resultat = (issue==='1'||issue==='N')?'W':'L'; break;
+      case 'X2':   p.resultat = (issue==='2'||issue==='N')?'W':'L'; break;
+      case '12':   p.resultat = issue!=='N'?'W':'L'; break;
+      case '+0.5': p.resultat = tot>=1?'W':'L'; break;
+      case '+1.5': p.resultat = tot>=2?'W':'L'; break;
+      case '+2.5': p.resultat = tot>=3?'W':'L'; break;
+      case 'u2.5': p.resultat = tot<=2?'W':'L'; break;
+      case 'u3.5': p.resultat = tot<=3?'W':'L'; break;
+      case 'u4.5': p.resultat = tot<=4?'W':'L'; break;
+      // marché non résolvable automatiquement → exclu du décompte
+      default:     p.resultat = 'X';
+    }
+    change=true;
+  });
+  if(change) _saveAutoPicks(list);
+  return change;
+}
+
+// Bilan honnête : ce que le modèle a réellement réussi.
+function _autoAccuracy(){
+  const list=_getAutoPicks();
+  const resolus=list.filter(p=>p.resultat==='W'||p.resultat==='L');
+  const gagnes=resolus.filter(p=>p.resultat==='W').length;
+  const enAttente=list.filter(p=>!p.resultat).length;
+  const depuis=list.length?list[0].jour:null;
+  // Rendement théorique en unités (mise 1), uniquement sur cotes réelles
+  let unites=0, nCote=0;
+  resolus.forEach(p=>{ if(p.cote>1){ nCote++; unites += p.resultat==='W' ? p.cote-1 : -1; } });
+  return {
+    total:list.length, resolus:resolus.length, gagnes,
+    taux: resolus.length ? Math.round(gagnes/resolus.length*100) : null,
+    enAttente, depuis,
+    fiable: resolus.length >= AUTOPICK_SEUIL_FIABLE,
+    unites: nCote ? +unites.toFixed(2) : null, nCote
+  };
+}
+
+// Affiche le bilan réel dans l'onglet Profil, sans enjoliver.
+function _renderAutoBilan(){
+  const el=document.getElementById('auto-bilan');
+  if(!el) return;
+  const a=_autoAccuracy();
+  const cadre=(contenu)=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin:0 0 12px">${contenu}</div>`;
+  const titre=`<div style="font-family:var(--mono);font-size:9.5px;color:var(--text-mute);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:9px">🧪 Précision réelle du modèle</div>`;
+
+  if(!a.total){
+    el.innerHTML=cadre(titre+
+      `<div style="font-size:13px;color:var(--text-2);line-height:1.5">
+        L'application enregistre chaque jour les pronostics qu'elle met en avant,
+        puis les compare aux résultats réels. Aucun argent n'est engagé.
+        <br><br>Revenez après quelques journées de championnat.
+      </div>`);
+    return;
+  }
+
+  const couleur = a.taux===null ? 'var(--text-2)' : a.taux>=55 ? 'var(--up)' : a.taux>=45 ? '#eab308' : 'var(--down)';
+  const avert = !a.fiable
+    ? `<div style="margin-top:10px;background:rgba(245,158,11,.11);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:8px 10px;font-size:11.5px;color:#f59e0b;line-height:1.45">
+         ⚠️ Échantillon trop faible pour conclure quoi que ce soit
+         (${a.resolus}/${AUTOPICK_SEUIL_FIABLE} résultats). Ne fondez aucune décision là-dessus.
+       </div>` : '';
+  const rendement = a.unites!==null
+    ? `<div style="margin-top:9px;font-size:11.5px;color:var(--text-2);line-height:1.45">
+         Rendement théorique sur cotes réelles : <b style="color:${a.unites>=0?'var(--up)':'var(--down)'}">${a.unites>=0?'+':''}${a.unites} unité${Math.abs(a.unites)>=2?'s':''}</b>
+         sur ${a.nCote} pronostic${a.nCote>1?'s':''} (mise de 1 par pari, hors frais).
+       </div>` : '';
+
+  el.innerHTML=cadre(titre+`
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:30px;font-weight:900;color:${couleur};line-height:1">${a.taux!==null?a.taux+'%':'—'}</div>
+      <div style="font-size:12.5px;color:var(--text-2)">
+        ${a.gagnes} réussis sur ${a.resolus}${a.enAttente?` · ${a.enAttente} en attente`:''}
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:var(--text-mute);margin-top:6px">Depuis le ${a.depuis}</div>
+    ${rendement}${avert}`);
 }
 
 // ═══ GREFFE BetLab : Brier + Stop-loss + Monte-Carlo ═══
