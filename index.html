@@ -3177,7 +3177,8 @@ async function _oddsGetSports(){
   if(!API_CFG.key) return [];
   try{
     // Cet appel est gratuit (non décompté du quota par The Odds API)
-    const r=await fetch(`${API_CFG.baseUrl}/sports/?apiKey=${API_CFG.key}`);
+    const r=await fetch(`${API_CFG.baseUrl}/sports/?apiKey=${API_CFG.key}`,
+      {signal:AbortSignal.timeout(6000)});
     if(!r.ok) return [];
     const d=await r.json();
     const list=(Array.isArray(d)?d:[])
@@ -5445,7 +5446,12 @@ let _fetchInProgress=false;
 async function _autoFetchTick(){
   if(_fetchInProgress) return; // évite les chevauchements
   _fetchInProgress=true;
-  try { await fetchAllMatchesToday(); } finally { _fetchInProgress=false; }
+  // Filet de sécurité : si un chargement se bloquait malgré les délais posés
+  // sur chaque requête, le verrou resterait fermé et l'application ne se
+  // rafraîchirait plus jamais. On le libère au bout de 40 s quoi qu'il arrive.
+  const secours=setTimeout(()=>{ _fetchInProgress=false; }, 40000);
+  try { await fetchAllMatchesToday(); }
+  finally { clearTimeout(secours); _fetchInProgress=false; }
 }
 
 function startAutoRefresh(){
@@ -6505,7 +6511,8 @@ async function fetchAllMatchesToday(forceYmd){
     // 1️⃣  ESPN Public API — gratuit, sans clé
     const espnDate=ymd.replace(/-/g,'');
     const espnUrl=`https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard?dates=${espnDate}`;
-    const res=await fetch(espnUrl);
+    // Délai borné : sans cela une requête qui traîne fige tout le chargement
+    const res=await fetch(espnUrl,{signal:AbortSignal.timeout(12000)});
     if(!res.ok) throw new Error(`ESPN ${res.status}`);
     const data=await res.json();
     const espnEvents=data.events||[];
@@ -6577,8 +6584,13 @@ async function fetchAllMatchesToday(forceYmd){
     //     garde-fou, 9 ligues × 6 fois/minute épuisaient le quota en quelques
     //     minutes. Trois protections : cache de 30 min, interrogation des
     //     seules ligues ayant des matchs aujourd'hui, arrêt si quota bas.
+    //     ⚠️ Ce bloc ne doit JAMAIS empêcher les matchs de s'afficher : il est
+    //     borné dans le temps et toute erreur est absorbée. Les cotes sont un
+    //     enrichissement, pas une condition d'affichage.
     if(API_CFG.key && _oddsBudgetOk() && _oddsCacheExpire()){
       try {
+        await Promise.race([
+          (async()=>{
         const from=ymd+'T00:00:00Z', to=ymd+'T23:59:59Z';
         // Quelles compétitions interroger ? On part de ce qui joue réellement
         // aujourd'hui, rapproché du catalogue live de The Odds API. La liste
@@ -6599,7 +6611,7 @@ async function fetchAllMatchesToday(forceYmd){
             +`&regions=${API_CFG.regions}&markets=${API_CFG.markets}`
             +`&bookmakers=${API_CFG.bookmakerPriority.join(',')}`
             +`&commenceTimeFrom=${from}&commenceTimeTo=${to}&dateFormat=iso&oddsFormat=decimal`;
-          const r=await fetch(url);
+          const r=await fetch(url,{signal:AbortSignal.timeout(7000)});
           _oddsCountRequest();
           if(!r.ok) return [];
           const rem=r.headers.get('x-requests-remaining');
@@ -6616,6 +6628,11 @@ async function fetchAllMatchesToday(forceYmd){
         }
         _oddsMarkFetched();
         console.log(`[Odds API] ${aInterroger.length} ligue(s) interrogée(s) · quota restant ${API_CFG.remaining??'?'}`);
+          })(),
+          // Filet : au-delà de 8 s on abandonne l'enrichissement et on affiche
+          // les matchs. Mieux vaut des cotes manquantes qu'un écran vide.
+          new Promise(res=>setTimeout(res,8000))
+        ]);
       } catch(e){ console.warn('[Odds enrichment]',e); }
     } else if(API_CFG.key){
       // Dans la fenêtre de cache (ou quota bas) : on réapplique les cotes déjà
