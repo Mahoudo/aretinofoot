@@ -3128,6 +3128,7 @@ const ODDS_CACHE_KEY   = 'aret_odds_cache';
 const ODDS_META_KEY    = 'aret_odds_meta';
 const ODDS_TTL_MS      = 30*60*1000;  // les cotes ne bougent pas en 10 secondes
 const ODDS_GARDE_QUOTA = 20;          // on cesse d'appeler en dessous de ce reste
+const ODDS_MAX_LIGUES  = 6;           // 1 requête par compétition → on plafonne
 
 function _oddsMeta(){
   try{ return JSON.parse(localStorage.getItem(ODDS_META_KEY)||'{}'); }catch(e){ return {}; }
@@ -3161,6 +3162,88 @@ function _oddsBudgetOk(){
   if(m.mois===mois && (m.utilisees||0) >= 480) return false; // filet local
   return true;
 }
+// ── Découverte dynamique des compétitions The Odds API ────────
+// Les identifiants de sport codés en dur vieillissent mal et diffèrent de ce
+// qu'on suppose (soccer_epl, pas soccer_england_epl…). L'endpoint /sports/
+// liste les compétitions réellement disponibles et ne consomme AUCUN quota.
+const ODDS_SPORTS_KEY='aret_odds_sports';
+const ODDS_SPORTS_TTL=24*3600*1000;   // catalogue rafraîchi une fois par jour
+
+async function _oddsGetSports(){
+  try{
+    const c=JSON.parse(localStorage.getItem(ODDS_SPORTS_KEY)||'null');
+    if(c && (Date.now()-c.t)<ODDS_SPORTS_TTL && Array.isArray(c.list)) return c.list;
+  }catch(e){}
+  if(!API_CFG.key) return [];
+  try{
+    // Cet appel est gratuit (non décompté du quota par The Odds API)
+    const r=await fetch(`${API_CFG.baseUrl}/sports/?apiKey=${API_CFG.key}`);
+    if(!r.ok) return [];
+    const d=await r.json();
+    const list=(Array.isArray(d)?d:[])
+      .filter(s=>s.key && s.key.startsWith('soccer_') && s.active)
+      .map(s=>({key:s.key, titre:s.title||'', groupe:s.group||''}));
+    try{ localStorage.setItem(ODDS_SPORTS_KEY, JSON.stringify({t:Date.now(), list})); }catch(e){}
+    return list;
+  }catch(e){ console.warn('[Odds sports]',e); return []; }
+}
+
+// Associe les compétitions présentes aujourd'hui aux identifiants disponibles,
+// par rapprochement de noms (sans accents ni ponctuation).
+// Termes trop courants pour identifier une compétition à eux seuls
+const _ODDS_GENERIQUES=new Set(['league','liga','ligue','serie','division','primera','premier',
+  'first','pro','championship','cup','super','superliga','1','2','a','b','the','of','div']);
+// ESPN emploie l'adjectif de nationalité, The Odds API le nom du pays
+const _ODDS_PAYS={norwegian:'norway',swedish:'sweden',danish:'denmark',finnish:'finland',
+  dutch:'netherlands',holland:'netherlands',portuguese:'portugal',spanish:'spain',italian:'italy',
+  german:'germany',french:'france',english:'england',scottish:'scotland',belgian:'belgium',
+  swiss:'switzerland',austrian:'austria',turkish:'turkey',greek:'greece',polish:'poland',
+  russian:'russia',japanese:'japan',korean:'korea',chinese:'china',brazilian:'brazil',
+  argentine:'argentina',argentinian:'argentina',colombian:'colombia',chilean:'chile',
+  bolivian:'bolivia',peruvian:'peru',ecuadorian:'ecuador',paraguayan:'paraguay',
+  uruguayan:'uruguay',mexican:'mexico',american:'usa',australian:'australia',saudi:'saudi'};
+
+// Quelques titres de The Odds API sont des sigles que le rapprochement par
+// mots ne peut pas relier ; on les développe explicitement.
+const _ODDS_SIGLES={epl:'england premier league', mls:'usa major league soccer',
+  ucl:'uefa champions league', uel:'uefa europa league', efl:'england championship'};
+
+function _oddsMatchSports(matchs, sports){
+  if(!sports.length) return [];
+  const norm=s=>(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim()
+    .split(' ').map(w=>_ODDS_PAYS[w]||w).join(' ');
+  // Mots réellement discriminants (nom propre de la compétition ou pays)
+  const cles=t=>norm(t).split(' ').filter(w=>w.length>=4 && !_ODDS_GENERIQUES.has(w));
+  // Compétitions du jour, les plus fournies d'abord
+  const parLigue={};
+  matchs.forEach(m=>{
+    if(m.status==='finished') return;
+    const nom=m.league||m.ls; if(!nom) return;
+    (parLigue[nom]=parLigue[nom]||{nom, ls:m.ls, n:0}).n++;
+  });
+  const ligues=Object.values(parLigue).sort((a,b)=>b.n-a.n);
+  const choisis=[], vus=new Set();
+  ligues.forEach(l=>{
+    const cible=norm(l.nom);
+    if(!cible) return;
+    const clesCible=cles(l.nom);
+    if(!clesCible.length) return;
+    const s=sports.find(sp=>{
+      const t=norm(sp.titre);
+      if(t===cible || t.includes(cible) || cible.includes(t)) return true;
+      // Rapprochement sur les mots discriminants uniquement : un seul suffit
+      // s'il est propre à la compétition (« eliteserien », « allsvenskan »),
+      // les termes génériques (« league », « serie ») étant écartés.
+      const sigle=_ODDS_SIGLES[norm(sp.titre)]||'';
+      const clesSport=cles(sp.titre+' '+sp.groupe+' '+sigle);
+      return clesCible.some(w=>clesSport.includes(w));
+    });
+    if(s && !vus.has(s.key)){ vus.add(s.key); choisis.push({sport:s.key, ls:l.ls, name:l.nom, n:l.n}); }
+  });
+  return choisis;
+}
+
 function _oddsCacheStore(list){
   try{ localStorage.setItem(ODDS_CACHE_KEY, JSON.stringify({t:Date.now(), list})); }catch(e){}
 }
@@ -4772,6 +4855,9 @@ function showToast(msg, type='ok', duration=4000){
 
 // Horodatage du dernier rafraîchissement RÉUSSI (sert à dater les données périmées)
 let _lastOkFetch = 0;
+// Échecs consécutifs : on n'affiche « hors ligne » qu'à partir du deuxième,
+// pour ne pas alarmer sur une coupure d'une seconde.
+let _echecsConsecutifs = 0;
 
 // setRefreshState(loading, ok) — ok=false signale un échec d'actualisation
 function setRefreshState(loading, ok){
@@ -6494,10 +6580,20 @@ async function fetchAllMatchesToday(forceYmd){
     if(API_CFG.key && _oddsBudgetOk() && _oddsCacheExpire()){
       try {
         const from=ymd+'T00:00:00Z', to=ymd+'T23:59:59Z';
-        // Ne demander que les ligues réellement présentes aujourd'hui
-        const lsPresentes=new Set(newMatches.map(m=>m.ls));
-        let aInterroger=API_CFG.leagues.filter(l=>lsPresentes.has(l.ls));
-        if(!aInterroger.length) aInterroger=API_CFG.leagues.slice(0,3); // repli prudent
+        // Quelles compétitions interroger ? On part de ce qui joue réellement
+        // aujourd'hui, rapproché du catalogue live de The Odds API. La liste
+        // figée de 9 championnats européens ne couvrait presque jamais les
+        // matchs du jour (Scandinavie, Amérique du Sud, Asie…).
+        const sportsDispo = await _oddsGetSports();
+        let aInterroger = _oddsMatchSports(newMatches, sportsDispo);
+        // Repli sur la liste historique si la découverte ne donne rien
+        if(!aInterroger.length){
+          const lsPresentes=new Set(newMatches.map(m=>m.ls));
+          aInterroger=API_CFG.leagues.filter(l=>lsPresentes.has(l.ls));
+          if(!aInterroger.length) aInterroger=API_CFG.leagues.slice(0,3);
+        }
+        // Chaque compétition coûte une requête : on plafonne pour tenir le mois
+        aInterroger = aInterroger.slice(0, ODDS_MAX_LIGUES);
         const fetchLeague=async(l)=>{
           const url=`${API_CFG.baseUrl}/sports/${l.sport}/odds?apiKey=${API_CFG.key}`
             +`&regions=${API_CFG.regions}&markets=${API_CFG.markets}`
@@ -6548,6 +6644,7 @@ async function fetchAllMatchesToday(forceYmd){
     MATCHES.forEach(m=>{ _prevStatus[m.id]=m.status; });
 
     MATCHES=newMatches;
+    _echecsConsecutifs=0;   // chargement réussi → on repart de zéro
     renderAll();
     setRefreshState(false);
 
@@ -6588,7 +6685,11 @@ async function fetchAllMatchesToday(forceYmd){
       cr.textContent=`Crédits Odds API restants : ${API_CFG.remaining} / 500`;
 
   } catch(err){
-    setRefreshState(false, false);   // échec → l'indicateur signale des données périmées
+    // Un échec isolé (coupure d'une seconde, ESPN qui tousse) ne doit pas
+    // afficher « hors ligne » : on ne l'annonce qu'à partir de 2 échecs de
+    // suite, sinon on garde l'affichage précédent.
+    _echecsConsecutifs++;
+    setRefreshState(false, _echecsConsecutifs>=2 ? false : undefined);
     showToast(MATCHES.length
       ? '⚠️ Actualisation impossible — les matchs affichés datent du dernier chargement réussi.'
       : '⚠️ Connexion indisponible. Aucune donnée chargée.','warn', 4000);
